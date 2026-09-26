@@ -90,7 +90,7 @@ public class TelePremiumCenterActivity extends BaseFragment {
 
     private void addRow(LinearLayout parent, Context context, String title, String subtitle, int icon, View.OnClickListener listener) {
         TextCell cell = new TextCell(context, getResourceProvider());
-        cell.setTextAndValueAndIcon(title, subtitle, context.getResources().getDrawable(icon), true);
+        cell.setTextAndValueAndIcon(title, subtitle, icon, true);
         cell.setOnClickListener(listener);
         cell.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         parent.addView(cell, rowParams());
