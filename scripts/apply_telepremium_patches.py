@@ -24,6 +24,42 @@ def replace_once(rel, old, new):
     write(p, data.replace(old, new, 1))
     print(f"patched: {rel}")
 
+def method_bounds(data, signature):
+    start = data.find(signature)
+    if start < 0:
+        raise SystemExit(f"method signature not found: {signature}")
+    brace = data.find("{", start)
+    if brace < 0:
+        raise SystemExit("opening brace not found")
+    depth = 0
+    end = None
+    for i in range(brace, len(data)):
+        ch = data[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    if end is None:
+        raise SystemExit("closing brace not found")
+    return start, brace, end
+
+def replace_in_method(rel, signature, old, new, expected):
+    p, data = read(rel)
+    start, brace, end = method_bounds(data, signature)
+    method = data[start:end + 1]
+    count = method.count(old)
+    if count == 0 and method.count(new) == expected:
+        print(f"already patched: {rel} :: {signature}")
+        return
+    if count != expected:
+        raise SystemExit(f"{rel} :: {signature}: expected {expected} matches, found {count}")
+    method = method.replace(old, new)
+    write(p, data[:start] + method + data[end + 1:])
+    print(f"patched: {rel} :: {signature}")
+
 def replace_method_body(rel, signature, body):
     p, data = read(rel)
     start = data.find(signature)
@@ -75,17 +111,14 @@ replace_once(
     'return new File("/data/data/" + getApplicationId() + "/files");',
 )
 
-# Generic external-view fallback for unknown extensions. Patch only the two
-# setDataAndType calls in openForView; the same ternary appears elsewhere.
-replace_once(
+# Generic external-view fallback for unknown extensions. Scope the replacement
+# strictly to openForView so unrelated text/plain fallbacks are untouched.
+replace_in_method(
     "TMessagesProj/src/main/java/org/telegram/messenger/AndroidUtilities.java",
-    'intent.setDataAndType(FileProvider.getUriForFile(activity, ApplicationLoader.getApplicationId() + ".provider", f), realMimeType != null ? realMimeType : "text/plain");',
-    'intent.setDataAndType(FileProvider.getUriForFile(activity, ApplicationLoader.getApplicationId() + ".provider", f), realMimeType != null ? realMimeType : "*/*");',
-)
-replace_once(
-    "TMessagesProj/src/main/java/org/telegram/messenger/AndroidUtilities.java",
-    'intent.setDataAndType(Uri.fromFile(f), realMimeType != null ? realMimeType : "text/plain");',
-    'intent.setDataAndType(Uri.fromFile(f), realMimeType != null ? realMimeType : "*/*");',
+    "public static boolean openForView(File f, String fileName, String mimeType, final Activity activity, Theme.ResourcesProvider resourcesProvider, boolean restrict)",
+    'realMimeType != null ? realMimeType : "text/plain"',
+    'realMimeType != null ? realMimeType : "*/*"',
+    2,
 )
 
 # Freeze only the APK updater. Telegram protocol/config/DC traffic remains intact.
