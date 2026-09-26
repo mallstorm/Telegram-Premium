@@ -35,12 +35,14 @@ public class AccountNetworkController {
     public void saveAndApply(int account, AccountNetworkProfile profile) {
         store.save(account, profile);
         applyProfile(account);
+        refreshPromo(account);
     }
 
     public void resetToGlobal(int account) {
         store.clear(account);
         applyInheritedGlobal(account);
         ConnectionsManager.native_resumeNetwork(account, true);
+        refreshPromo(account);
     }
 
     public void applyProfile(int account) {
@@ -66,7 +68,6 @@ public class AccountNetworkController {
         }
 
         ConnectionsManager.native_resumeNetwork(account, true);
-        refreshPromo(account);
     }
 
     public long checkProfile(int account, AccountNetworkProfile profile, RequestTimeDelegate delegate) {
@@ -136,7 +137,6 @@ public class AccountNetworkController {
             ConnectionsManager.native_setProxySettings(account, "", 1080, "", "", "");
         }
 
-        refreshPromo(account);
     }
 
     private void refreshPromo(int account) {
