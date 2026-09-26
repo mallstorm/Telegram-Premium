@@ -52,6 +52,10 @@ checks = {
         "applyInheritedGlobal",
         "native_setProxySettings",
     ],
+    "TMessagesProj/src/main/java/org/telegram/ui/LoginActivity.java": [
+        "settings.allow_app_hash = false;",
+        "settings.allow_firebase = false;",
+    ],
     "TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java": [
         "telePremiumRow",
         "new TelePremiumCenterActivity()",
@@ -121,4 +125,4 @@ print("Application ID: com.telepremium.messenger")
 print("Account slots: 10 Java / 10 native")
 print("APK updater: frozen")
 print("Telegram translation: native, message control default ON")
-print("Concept 5: center UI + per-account network core + file center foundation")
+print("Concept 5: center UI + per-account network core + file center foundation")\nprint("Login: custom-package Firebase/Play Integrity SMS path disabled; Telegram fallback enabled")
