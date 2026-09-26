@@ -75,16 +75,17 @@ replace_once(
     'return new File("/data/data/" + getApplicationId() + "/files");',
 )
 
-# Generic external-view fallback for unknown extensions.
+# Generic external-view fallback for unknown extensions. Patch only the two
+# setDataAndType calls in openForView; the same ternary appears elsewhere.
 replace_once(
     "TMessagesProj/src/main/java/org/telegram/messenger/AndroidUtilities.java",
-    'realMimeType != null ? realMimeType : "text/plain"',
-    'realMimeType != null ? realMimeType : "*/*"',
+    'intent.setDataAndType(FileProvider.getUriForFile(activity, ApplicationLoader.getApplicationId() + ".provider", f), realMimeType != null ? realMimeType : "text/plain");',
+    'intent.setDataAndType(FileProvider.getUriForFile(activity, ApplicationLoader.getApplicationId() + ".provider", f), realMimeType != null ? realMimeType : "*/*");',
 )
 replace_once(
     "TMessagesProj/src/main/java/org/telegram/messenger/AndroidUtilities.java",
-    'realMimeType != null ? realMimeType : "text/plain"',
-    'realMimeType != null ? realMimeType : "*/*"',
+    'intent.setDataAndType(Uri.fromFile(f), realMimeType != null ? realMimeType : "text/plain");',
+    'intent.setDataAndType(Uri.fromFile(f), realMimeType != null ? realMimeType : "*/*");',
 )
 
 # Freeze only the APK updater. Telegram protocol/config/DC traffic remains intact.
