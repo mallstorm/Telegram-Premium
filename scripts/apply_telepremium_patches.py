@@ -117,16 +117,12 @@ replace_once(
 # Keep Firebase/Google resource generation buildable under the custom package.
 # This rewrites only package selectors in the checked-in upstream JSON files;
 # project IDs/keys stay untouched.
-for google_json in (
-    "TMessagesProj/google-services.json",
+replace_all(
     "TMessagesProj_App/google-services.json",
-):
-    replace_all(
-        google_json,
-        '"package_name": "org.telegram.messenger',
-        '"package_name": "com.telepremium.messenger',
-        3,
-    )
+    '"package_name": "org.telegram.messenger',
+    '"package_name": "com.telepremium.messenger',
+    3,
+)
 
 # Telegram 11.4.2 source uses AGP 8.4.2; the checked-in wrapper is older.
 replace_once(
