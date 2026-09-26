@@ -33,6 +33,50 @@ checks = {
     "TMessagesProj/src/main/java/org/telegram/messenger/TranslateController.java": [
         'getBoolean("translate_button", true)',
     ],
+    "TMessagesProj/src/main/java/org/telegram/tgnet/ConnectionsManager.java": [
+        "AccountNetworkController",
+        "AccountNetworkController.getInstance().applyProfile(currentAccount);",
+        "hasExplicitProfile(a)",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/AccountNetworkProfile.java": [
+        "MODE_INHERIT",
+        "MODE_MTPROTO",
+        "MODE_SOCKS5",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/AccountNetworkStore.java": [
+        "telepremium_network_account_",
+        "bound_user_id",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/AccountNetworkController.java": [
+        "applyProfile(int account)",
+        "applyInheritedGlobal",
+        "native_setProxySettings",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java": [
+        "telePremiumRow",
+        "new TelePremiumCenterActivity()",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCenterActivity.java": [
+        "Мультиаккаунты",
+        "Сеть и стабильность",
+        "Файлы",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAccountCenterActivity.java": [
+        "Центр аккаунтов",
+        "switchToAccount",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkCenterActivity.java": [
+        "Маршруты аккаунтов",
+        "TelePremiumNetworkProfileActivity",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkProfileActivity.java": [
+        "Сохранить и применить",
+        "checkProfile",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumFileCenterActivity.java": [
+        "TelePremium File Center",
+        "TelePremiumDownloadsActivity",
+    ],
 }
 
 failures = []
@@ -77,3 +121,4 @@ print("Application ID: com.telepremium.messenger")
 print("Account slots: 10 Java / 10 native")
 print("APK updater: frozen")
 print("Telegram translation: native, message control default ON")
+print("Concept 5: center UI + per-account network core + file center foundation")
