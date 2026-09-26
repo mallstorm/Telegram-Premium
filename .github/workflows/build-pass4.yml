@@ -31,6 +31,16 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Free runner disk space
+        shell: bash
+        run: |
+          df -h
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/share/swift || true
+          sudo rm -rf "$ANDROID_HOME"/ndk/* || true
+          sudo rm -rf "$ANDROID_HOME"/cmake/* || true
+          sudo apt-get clean
+          df -h
+
       - name: Install Android build components
         shell: bash
         run: |
@@ -68,14 +78,14 @@ jobs:
             find upstream/Telegram/TMessagesProj_App -type f -name '*.apk' -print
             exit 1
           fi
-          cp "$APK" TelePremium_11.4.2_Pass4_10accounts_ci.apk
+          cp "$APK" TelePremium_11.4.2_Pass4_10accounts_arm64_ci.apk
           ls -lh TelePremium_11.4.2_Pass4_10accounts_ci.apk
-          sha256sum TelePremium_11.4.2_Pass4_10accounts_ci.apk | tee TelePremium_11.4.2_Pass4_10accounts_ci.sha256
+          sha256sum TelePremium_11.4.2_Pass4_10accounts_ci.apk | tee TelePremium_11.4.2_Pass4_10accounts_arm64_ci.sha256
 
       - name: Upload Pass 4 APK
         uses: actions/upload-artifact@v4
         with:
-          name: TelePremium-Pass4-10accounts
+          name: TelePremium-Pass4-10accounts-arm64
           path: |
             TelePremium_11.4.2_Pass4_10accounts_ci.apk
             TelePremium_11.4.2_Pass4_10accounts_ci.sha256
