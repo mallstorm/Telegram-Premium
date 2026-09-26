@@ -24,6 +24,17 @@ def replace_once(rel, old, new):
     write(p, data.replace(old, new, 1))
     print(f"patched: {rel}")
 
+def replace_all(rel, old, new, expected):
+    p, data = read(rel)
+    count = data.count(old)
+    if count == 0 and data.count(new) >= expected:
+        print(f"already patched: {rel}")
+        return
+    if count != expected:
+        raise SystemExit(f"{rel}: expected {expected} source matches, found {count}")
+    write(p, data.replace(old, new))
+    print(f"patched: {rel}")
+
 def method_bounds(data, signature):
     start = data.find(signature)
     if start < 0:
@@ -101,6 +112,27 @@ replace_once(
     "gradle.properties",
     "APP_PACKAGE=org.telegram.messenger",
     "APP_PACKAGE=com.telepremium.messenger",
+)
+
+# Keep Firebase/Google resource generation buildable under the custom package.
+# This rewrites only package selectors in the checked-in upstream JSON files;
+# project IDs/keys stay untouched.
+for google_json in (
+    "TMessagesProj/google-services.json",
+    "TMessagesProj_App/google-services.json",
+):
+    replace_all(
+        google_json,
+        '"package_name": "org.telegram.messenger',
+        '"package_name": "com.telepremium.messenger',
+        3,
+    )
+
+# Telegram 11.4.2 source uses AGP 8.4.2; the checked-in wrapper is older.
+replace_once(
+    "gradle/wrapper/gradle-wrapper.properties",
+    "distributionUrl=https\\://services.gradle.org/distributions/gradle-7.0.2-bin.zip",
+    "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.6-bin.zip",
 )
 
 # FileProvider and runtime paths already derive from applicationId in upstream.
