@@ -181,7 +181,7 @@ replace_once(
     "                    } else if (position == notificationRow) {\n"
     "                        textCell.setTextAndIcon(LocaleController.getString(R.string.NotificationsAndSounds), R.drawable.msg2_notifications, true);\n",
     "                    } else if (position == telePremiumRow) {\n"
-    "                        textCell.setTextAndValueAndIcon(\"TelePremium\", \"Аккаунты, сеть, файлы\", context.getResources().getDrawable(R.drawable.menu_premium_main), true);\n"
+    "                        textCell.setTextAndValueAndIcon(\"TelePremium\", \"Аккаунты, сеть, файлы\", R.drawable.menu_premium_main, true);\n"
     "                    } else if (position == notificationRow) {\n"
     "                        textCell.setTextAndIcon(LocaleController.getString(R.string.NotificationsAndSounds), R.drawable.msg2_notifications, true);\n",
 )
