@@ -209,4 +209,8 @@ replace_once(
     new_switch,
 )
 
-print("TelePremium source patches applied successfully.")\n\n# Concept 5 is layered on top of the stable Pass 1-4 source patch set.\nimport runpy\nrunpy.run_path(str(ROOT / "scripts" / "apply_concept5_patches.py"), run_name="__main__")
+print("TelePremium source patches applied successfully.")
+
+# Concept 5 is layered on top of the stable Pass 1-4 source patch set.
+import runpy
+runpy.run_path(str(ROOT / "scripts" / "apply_concept5_patches.py"), run_name="__main__")
