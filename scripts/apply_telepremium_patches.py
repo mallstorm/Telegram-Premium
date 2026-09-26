@@ -194,6 +194,19 @@ replace_once(
     "#define MAX_ACCOUNT_COUNT 10",
 )
 
+# CI Pass 4 target: arm64-v8a only. This keeps the first source-built APK
+# practical on GitHub-hosted runners while still recompiling libtmessages.
+replace_once(
+    "TMessagesProj_App/build.gradle",
+    'abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"',
+    'abiFilters "arm64-v8a"',
+)
+replace_once(
+    "TMessagesProj/build.gradle",
+    'defaultConfig {\n        minSdkVersion 19',
+    'defaultConfig {\n        ndk { abiFilters "arm64-v8a" }\n        minSdkVersion 19',
+)
+
 old_switch = """ConnectionsManager& ConnectionsManager::getInstance(int32_t instanceNum) {
     switch (instanceNum) {
         case 0:
