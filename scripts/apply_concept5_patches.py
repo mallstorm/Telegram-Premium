@@ -138,6 +138,20 @@ replace_in_method(
     new_proxy_loop,
 )
 
+# TelePremium is signed and packaged independently from the official Telegram
+# Play Store app. The official Firebase SMS / Play Integrity path is bound to
+# Telegram's production package/signing identity, so a fork must request the
+# normal Telegram login-code fallback instead of advertising Firebase/app-hash
+# verification that it cannot satisfy.
+login = "TMessagesProj/src/main/java/org/telegram/ui/LoginActivity.java"
+
+replace_once(
+    login,
+    "            settings.allow_app_hash = settings.allow_firebase = PushListenerController.GooglePushListenerServiceProvider.INSTANCE.hasServices();\n",
+    "            settings.allow_app_hash = false;\n"
+    "            settings.allow_firebase = false;\n",
+)
+
 # Add the TelePremium entry to the existing Telegram settings profile.
 profile = "TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java"
 
