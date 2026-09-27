@@ -32,6 +32,99 @@ checks = {
     ],
     "TMessagesProj/src/main/java/org/telegram/messenger/TranslateController.java": [
         'getBoolean("translate_button", true)',
+        "return isChatTranslateEnabled();",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/LanguageSelectActivity.java": [
+        "cell.setCheckBoxIcon(0);",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java": [
+        "public SponsoredMessagesInfo getSponsoredMessages(long dialogId)",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java": [
+        "private void addSponsoredMessages(boolean animated)",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/tgnet/ConnectionsManager.java": [
+        "AccountNetworkController",
+        "AccountNetworkController.getInstance().applyProfile(currentAccount);",
+        "hasExplicitProfile(a)",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/AccountNetworkProfile.java": [
+        "MODE_INHERIT",
+        "MODE_MTPROTO",
+        "MODE_SOCKS5",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/AccountNetworkStore.java": [
+        "telepremium_network_account_",
+        "bound_user_id",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/AccountNetworkController.java": [
+        "applyProfile(int account)",
+        "applyInheritedGlobal",
+        "native_setProxySettings",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/LoginActivity.java": [
+        "settings.allow_app_hash = false;",
+        "settings.allow_firebase = false;",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/Components/TranscribeButton.java": [
+        "TelePremiumLocalTranscriber.isSupported()",
+        "TelePremiumLocalTranscriber.transcribe",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TelePremiumLocalTranscriber.java": [
+        "RecognizerIntent.EXTRA_AUDIO_SOURCE",
+        "MediaCodec.createDecoderByType",
+        "SpeechRecognizer.createSpeechRecognizer",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/Cells/AppIconsSelectorCell.java": [
+        "TELEPREMIUM_LOCAL_ICONS_UNLOCKED = true",
+        "!TELEPREMIUM_LOCAL_ICONS_UNLOCKED && icon.premium",
+        "!TELEPREMIUM_LOCAL_ICONS_UNLOCKED && MessagesController.getInstance(currentAccount).premiumFeaturesBlocked()",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java": [
+        "new TelePremiumOverviewActivity()",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumOverviewActivity.java": [
+        "Telegram Premium",
+        "Без рекламы",
+        "Перевод чатов",
+        "Расшифровка голосовых",
+        "new TelePremiumCenterActivity()",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAppearanceActivity.java": [
+        "Масштаб интерфейса",
+        "TelePremiumUiScale.setScalePercent",
+        "activity.recreate()",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TelePremiumUiScale.java": [
+        "DEFAULT_SCALE = 92",
+        "updateConfiguration",
+        "scaledDensity",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java": [
+        "TelePremiumUiScale.apply(applicationContext);",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCenterActivity.java": [
+        "Мультиаккаунты",
+        "Сеть и стабильность",
+        "Файлы",
+        "Масштаб интерфейса",
+        "TelePremiumAppearanceActivity",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAccountCenterActivity.java": [
+        "Центр аккаунтов",
+        "switchToAccount",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkCenterActivity.java": [
+        "Маршруты аккаунтов",
+        "TelePremiumNetworkProfileActivity",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkProfileActivity.java": [
+        "Сохранить и применить",
+        "checkProfile",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumFileCenterActivity.java": [
+        "TelePremium File Center",
+        "TelePremiumDownloadsActivity",
     ],
 }
 
@@ -66,6 +159,35 @@ if shared.exists():
 else:
     failures.append("SharedConfig.java missing")
 
+profile_activity = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java"
+if profile_activity.exists():
+    pdata = profile_activity.read_text(encoding="utf-8")
+    if "businessRow = rowCount++;" in pdata:
+        failures.append("ProfileActivity: Telegram Business row allocation is still present")
+    premium_click = pdata.find("} else if (position == premiumRow) {")
+    premium_snippet = pdata[premium_click:premium_click + 260] if premium_click >= 0 else ""
+    if premium_click < 0 or "new TelePremiumOverviewActivity()" not in premium_snippet:
+        failures.append("ProfileActivity: Premium settings row is not wired to TelePremiumOverviewActivity")
+else:
+    failures.append("ProfileActivity.java missing")
+
+# Verify that the no-ads methods were replaced, not merely that their signatures exist.
+messages_controller = SRC / "TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java"
+if messages_controller.exists():
+    mdata = messages_controller.read_text(encoding="utf-8")
+    s = mdata.find("public SponsoredMessagesInfo getSponsoredMessages(long dialogId)")
+    snippet = mdata[s:s + 180] if s >= 0 else ""
+    if s < 0 or "return null;" not in snippet:
+        failures.append("SponsoredMessagesInfo method is not locally disabled")
+
+chat_activity = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java"
+if chat_activity.exists():
+    cdata = chat_activity.read_text(encoding="utf-8")
+    s = cdata.find("private void addSponsoredMessages(boolean animated)")
+    snippet = cdata[s:s + 160] if s >= 0 else ""
+    if s < 0 or "return;" not in snippet:
+        failures.append("ChatActivity sponsored rendering is not disabled")
+
 if failures:
     print("SOURCE VERIFICATION FAILED")
     for failure in failures:
@@ -76,4 +198,10 @@ print("SOURCE VERIFICATION OK")
 print("Application ID: com.telepremium.messenger")
 print("Account slots: 10 Java / 10 native")
 print("APK updater: frozen")
-print("Telegram translation: native, message control default ON")
+print("Telegram translation: native transport, full-chat client gate unlocked")
+print("Local features: all bundled launcher icons unlocked")
+print("Local Voice-to-Text: Android 13+ system recognizer audio injection")
+print("TelePremium no-ads: sponsored fetching/rendering disabled")
+print("Concept 5: custom Premium overview + Business row removed + center UI")
+print("UI scale: app-wide density/scaledDensity, default 92%")
+print("Login: custom-package Firebase/Play Integrity SMS path disabled; Telegram fallback enabled")

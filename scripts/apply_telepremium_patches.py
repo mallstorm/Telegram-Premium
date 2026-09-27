@@ -133,12 +133,46 @@ replace_method_body(
     "        return false;",
 )
 
-# Translation: keep native Telegram translation and Premium gating, but expose the
-# per-message translate control by default when no user preference exists.
+# Translation: keep Telegram's native translation transport, expose the
+# per-message control by default, and remove the client-side Premium gate from
+# full-chat translation. If Telegram ever enforces this on the server, the
+# request will fail normally instead of spoofing account Premium state.
 replace_once(
     "TMessagesProj/src/main/java/org/telegram/messenger/TranslateController.java",
     'MessagesController.getGlobalMainSettings().getBoolean("translate_button", false)',
     'MessagesController.getGlobalMainSettings().getBoolean("translate_button", true)',
+)
+replace_method_body(
+    "TMessagesProj/src/main/java/org/telegram/messenger/TranslateController.java",
+    "public boolean isFeatureAvailable()",
+    "        return isChatTranslateEnabled();",
+)
+replace_once(
+    "TMessagesProj/src/main/java/org/telegram/ui/LanguageSelectActivity.java",
+    "                        if (value && !getUserConfig().isPremium()) {\n"
+    "                            showDialog(new PremiumFeatureBottomSheet(LanguageSelectActivity.this, PremiumPreviewFragment.PREMIUM_FEATURE_TRANSLATIONS, false));\n"
+    "                            return;\n"
+    "                        }\n",
+    "",
+)
+replace_once(
+    "TMessagesProj/src/main/java/org/telegram/ui/LanguageSelectActivity.java",
+    "                        cell.setCheckBoxIcon(!getUserConfig().isPremium() ? R.drawable.permission_locked : 0);",
+    "                        cell.setCheckBoxIcon(0);",
+)
+
+# TelePremium keeps the no-ads behavior of the original modified client without
+# pretending that the Telegram account itself has a Premium subscription.
+# Stop sponsored-message fetching at the controller and rendering at the chat.
+replace_method_body(
+    "TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java",
+    "public SponsoredMessagesInfo getSponsoredMessages(long dialogId)",
+    "        return null;",
+)
+replace_method_body(
+    "TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java",
+    "private void addSponsoredMessages(boolean animated)",
+    "        return;",
 )
 
 # Ten account slots at source level. Compiling from source propagates this
@@ -210,3 +244,7 @@ replace_once(
 )
 
 print("TelePremium source patches applied successfully.")
+
+# Concept 5 is layered on top of the stable Pass 1-4 source patch set.
+import runpy
+runpy.run_path(str(ROOT / "scripts" / "apply_concept5_patches.py"), run_name="__main__")
