@@ -2,6 +2,7 @@ package org.telegram.ui;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.os.Bundle;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
@@ -13,6 +14,7 @@ import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -96,6 +98,10 @@ public class TelePremiumOverviewActivity extends BaseFragment {
 
         addFeature(content, context, "Цвет имени и профиля", "Цвет, фон профиля и фоновый emoji хранятся локально и отображаются только внутри TelePremium.", R.drawable.menu_premium_main,
                 v -> presentFragment(new PeerColorActivity(0)));
+        addFeature(content, context, "Локальный emoji-статус", "Выбранный статус хранится в TelePremium и не отправляется через Telegram Premium API.", R.drawable.msg_smile_status,
+                v -> openSelfProfile());
+        addFeature(content, context, "Реакция по двойному тапу", "Стандартная или custom emoji-реакция выбирается локально для этого клиента.", R.drawable.msg_reactions,
+                v -> presentFragment(new ReactionsDoubleTapManageActivity()));
         addFeature(content, context, "Истории", "Просмотр и инструменты историй Telegram. Локальные расширения будут подключаться отдельными модулями.", R.drawable.menu_premium_main, null);
         addFeature(content, context, "Файлы и хранилище", "File Center, загрузки всех аккаунтов и управление кэшем.", R.drawable.msg2_folder,
                 v -> presentFragment(new TelePremiumFileCenterActivity()));
@@ -110,6 +116,12 @@ public class TelePremiumOverviewActivity extends BaseFragment {
 
         fragmentView = scroll;
         return fragmentView;
+    }
+
+    private void openSelfProfile() {
+        Bundle args = new Bundle();
+        args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
+        presentFragment(new ProfileActivity(args));
     }
 
     private void addFeature(LinearLayout parent, Context context, String titleText, String valueText, int iconRes, View.OnClickListener listener) {
