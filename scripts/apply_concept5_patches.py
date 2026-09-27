@@ -525,9 +525,80 @@ replace_in_method(
 )
 
 
-# Experimental user color/profile color unlock. Remove only the local Premium
-# gate; do not spoof account Premium state. Telegram still decides server-side.
+# TelePremium Local Premium Core.
+# User appearance is a client-side override and is never sent to Telegram.
+user_object = "TMessagesProj/src/main/java/org/telegram/messenger/UserObject.java"
+
+replace_once(
+    user_object,
+    "import org.telegram.tgnet.TLRPC;\n",
+    "import org.telegram.tgnet.TLRPC;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumPeerAppearanceStore;\n",
+)
+
+replace_once(
+    user_object,
+    """    public static int getColorId(TLRPC.User user) {
+        if (user == null) return 0;
+        if (user.color != null && (user.color.flags & 1) != 0) return user.color.color;
+        return (int) (user.id % 7);
+    }""",
+    """    public static int getColorId(TLRPC.User user) {
+        if (user == null) return 0;
+        int fallback = user.color != null && (user.color.flags & 1) != 0 ? user.color.color : (int) (user.id % 7);
+        return TelePremiumPeerAppearanceStore.getNameColor(user.id, fallback);
+    }""",
+)
+
+replace_once(
+    user_object,
+    """    public static long getEmojiId(TLRPC.User user) {
+        if (user != null && user.color != null && (user.color.flags & 2) != 0) return user.color.background_emoji_id;
+        return 0;
+    }""",
+    """    public static long getEmojiId(TLRPC.User user) {
+        if (user == null) return 0;
+        long fallback = user.color != null && (user.color.flags & 2) != 0 ? user.color.background_emoji_id : 0;
+        return TelePremiumPeerAppearanceStore.getNameEmoji(user.id, fallback);
+    }""",
+)
+
+replace_once(
+    user_object,
+    """    public static int getProfileColorId(TLRPC.User user) {
+        if (user == null) return 0;
+        if (user.profile_color != null && (user.profile_color.flags & 1) != 0) return user.profile_color.color;
+        return -1;
+    }""",
+    """    public static int getProfileColorId(TLRPC.User user) {
+        if (user == null) return 0;
+        int fallback = user.profile_color != null && (user.profile_color.flags & 1) != 0 ? user.profile_color.color : -1;
+        return TelePremiumPeerAppearanceStore.getProfileColor(user.id, fallback);
+    }""",
+)
+
+replace_once(
+    user_object,
+    """    public static long getProfileEmojiId(TLRPC.User user) {
+        if (user != null && user.profile_color != null && (user.profile_color.flags & 2) != 0) return user.profile_color.background_emoji_id;
+        return 0;
+    }""",
+    """    public static long getProfileEmojiId(TLRPC.User user) {
+        if (user == null) return 0;
+        long fallback = user.profile_color != null && (user.profile_color.flags & 2) != 0 ? user.profile_color.background_emoji_id : 0;
+        return TelePremiumPeerAppearanceStore.getProfileEmoji(user.id, fallback);
+    }""",
+)
+
+# Name/profile colors and background emoji are local TelePremium appearance.
 peer_color = "TMessagesProj/src/main/java/org/telegram/ui/PeerColorActivity.java"
+
+replace_once(
+    peer_color,
+    "import org.telegram.messenger.UserObject;\n",
+    "import org.telegram.messenger.UserObject;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumPeerAppearanceStore;\n",
+)
 
 replace_once(
     peer_color,
@@ -565,6 +636,103 @@ replace_once(
     "        if (applying || !isChannel && !getUserConfig().isPremium()) {\n            return;\n        }\n",
     "        if (applying) {\n            return;\n        }\n",
 )
+
+replace_once(
+    peer_color,
+    "        if (!isChannel && hasUnsavedChanged() && getUserConfig().isPremium()) {\n            showUnsavedAlert();\n            return false;\n        }\n",
+    "        if (!isChannel && hasUnsavedChanged()) {\n            showUnsavedAlert();\n            return false;\n        }\n",
+)
+
+replace_once(
+    peer_color,
+    "        if (!isChannel && hasUnsavedChanged() && getUserConfig().isPremium()) {\n            return false;\n        }\n",
+    "        if (!isChannel && hasUnsavedChanged()) {\n            return false;\n        }\n",
+)
+
+replace_in_method(
+    peer_color,
+    "private void apply()",
+    """        if (isChannel) {
+            finishFragment();
+        } else {
+            final TLRPC.User me = getUserConfig().getCurrentUser();
+            if (me.color == null) {
+                me.color = new TLRPC.TL_peerColor();
+                me.color.color = (int) (me.id % 7);
+            }
+            if (namePage.selectedColor != UserObject.getColorId(me) || namePage.selectedEmoji != UserObject.getEmojiId(me)) {
+                applyingName = true;
+                TLRPC.TL_account_updateColor req = new TLRPC.TL_account_updateColor();
+                me.flags2 |= 256;
+                me.color.flags |= 1;
+                req.flags |= 4;
+                req.color = me.color.color = namePage.selectedColor;
+                if (namePage.selectedEmoji != 0) {
+                    req.flags |= 1;
+                    me.color.flags |= 2;
+                    req.background_emoji_id = me.color.background_emoji_id = namePage.selectedEmoji;
+                } else {
+                    me.color.flags &=~ 2;
+                    me.color.background_emoji_id = 0;
+                }
+                getConnectionsManager().sendRequest(req, null);
+            }
+            if (profilePage.selectedColor != UserObject.getProfileColorId(me) || profilePage.selectedEmoji != UserObject.getProfileEmojiId(me)) {
+                applyingProfile = true;
+                if (me.profile_color == null) {
+                    me.profile_color = new TLRPC.TL_peerColor();
+                }
+                TLRPC.TL_account_updateColor req = new TLRPC.TL_account_updateColor();
+                req.for_profile = true;
+                me.flags2 |= 512;
+                if (profilePage.selectedColor < 0) {
+                    me.profile_color.flags &=~ 1;
+                } else {
+                    me.profile_color.flags |= 1;
+                    req.flags |= 4;
+                    req.color = me.profile_color.color = profilePage.selectedColor;
+                }
+                if (profilePage.selectedEmoji != 0) {
+                    req.flags |= 1;
+                    me.profile_color.flags |= 2;
+                    req.background_emoji_id = me.profile_color.background_emoji_id = profilePage.selectedEmoji;
+                } else {
+                    me.profile_color.flags &=~ 2;
+                    me.profile_color.background_emoji_id = 0;
+                }
+                getConnectionsManager().sendRequest(req, null);
+            }
+            getMessagesController().putUser(me, false);
+            getUserConfig().saveConfig(true);
+            finishFragment();
+            showBulletin();
+        }""",
+    """        if (isChannel) {
+            finishFragment();
+        } else {
+            final TLRPC.User me = getUserConfig().getCurrentUser();
+            if (me == null) {
+                return;
+            }
+
+            applyingName = namePage.selectedColor != UserObject.getColorId(me)
+                    || namePage.selectedEmoji != UserObject.getEmojiId(me);
+            applyingProfile = profilePage.selectedColor != UserObject.getProfileColorId(me)
+                    || profilePage.selectedEmoji != UserObject.getProfileEmojiId(me);
+
+            TelePremiumPeerAppearanceStore.save(
+                    me.id,
+                    namePage.selectedColor,
+                    namePage.selectedEmoji,
+                    profilePage.selectedColor,
+                    profilePage.selectedEmoji
+            );
+
+            finishFragment();
+            showBulletin();
+        }""",
+)
+
 
 # Experimental voice-message privacy unlock. Remove only the local Premium
 # gates for Contacts/Nobody and exception rows; normal privacy TL request remains.
