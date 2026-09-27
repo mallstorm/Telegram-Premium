@@ -93,6 +93,13 @@ checks = {
         "new ReactionsDoubleTapManageActivity()",
         "new TelePremiumCenterActivity()",
     ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPremiumRouter.java": [
+        "route(BaseFragment fragment)",
+        "fragment instanceof PremiumPreviewFragment",
+        "new TelePremiumOverviewActivity()",
+        "hideTelegramPremiumUpsell()",
+        "localAnimatedEmojiUnlocked()",
+    ],
     "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAppearanceActivity.java": [
         "Масштаб интерфейса",
         "TelePremiumUiScale.setScalePercent",
@@ -233,6 +240,8 @@ if profile_activity.exists():
     update_snippet = pdata[update_start:update_start + 45000] if update_start >= 0 else ""
     if "if (user.self)" not in update_snippet:
         failures.append("ProfileActivity: self emoji status selector is still Premium-only")
+    if 'textCell.setTextAndIcon("TelePremium"' not in pdata:
+        failures.append("ProfileActivity: settings row still advertises Telegram Premium")
 else:
     failures.append("ProfileActivity.java missing")
 
@@ -252,6 +261,60 @@ if chat_activity.exists():
     snippet = cdata[s:s + 160] if s >= 0 else ""
     if s < 0 or "return;" not in snippet:
         failures.append("ChatActivity sponsored rendering is not disabled")
+
+base_fragment = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/BaseFragment.java"
+if base_fragment.exists():
+    bdata = base_fragment.read_text(encoding="utf-8")
+    if bdata.count("TelePremiumPremiumRouter.route(fragment)") < 4:
+        failures.append("BaseFragment: Telegram Premium fragment routing is incomplete")
+else:
+    failures.append("BaseFragment.java missing")
+
+launch_activity = SRC / "TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
+if launch_activity.exists():
+    ldata = launch_activity.read_text(encoding="utf-8")
+    if ldata.count("TelePremiumPremiumRouter.route(fragment)") < 2:
+        failures.append("LaunchActivity: direct Premium fragment routing is incomplete")
+else:
+    failures.append("LaunchActivity.java missing")
+
+premium_sheet = SRC / "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumFeatureBottomSheet.java"
+if premium_sheet.exists():
+    psdata = premium_sheet.read_text(encoding="utf-8")
+    if "TelePremiumPremiumRouter.openOverview(baseFragment)" not in psdata:
+        failures.append("PremiumFeatureBottomSheet: official Premium upsell is not redirected")
+else:
+    failures.append("PremiumFeatureBottomSheet.java missing")
+
+premium_preview_sheet = SRC / "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumPreviewBottomSheet.java"
+if premium_preview_sheet.exists():
+    ppdata = premium_preview_sheet.read_text(encoding="utf-8")
+    if "TelePremiumPremiumRouter.openOverview(fragment)" not in ppdata:
+        failures.append("PremiumPreviewBottomSheet: official Premium profile sheet is not redirected")
+else:
+    failures.append("PremiumPreviewBottomSheet.java missing")
+
+premium_preview = SRC / "TMessagesProj/src/main/java/org/telegram/ui/PremiumPreviewFragment.java"
+if premium_preview.exists():
+    ppf = premium_preview.read_text(encoding="utf-8")
+    buy = ppf.find("public static void buyPremium(BaseFragment fragment, SubscriptionTier tier, String source, boolean forcePremium, BillingFlowParams.SubscriptionUpdateParams updateParams)")
+    buy_snippet = ppf[buy:buy + 700] if buy >= 0 else ""
+    if "TelePremiumPremiumRouter.hideTelegramPremiumUpsell()" not in buy_snippet or "TelePremiumPremiumRouter.openOverview(fragment)" not in buy_snippet:
+        failures.append("PremiumPreviewFragment.buyPremium can still start Telegram Premium billing")
+else:
+    failures.append("PremiumPreviewFragment.java missing")
+
+emoji_dialog = SRC / "TMessagesProj/src/main/java/org/telegram/ui/SelectAnimatedEmojiDialog.java"
+if emoji_dialog.exists():
+    edata = emoji_dialog.read_text(encoding="utf-8")
+    if "protected boolean allowEmojisForNonPremium()" not in edata or "TelePremiumPremiumRouter.localAnimatedEmojiUnlocked()" not in edata:
+        failures.append("SelectAnimatedEmojiDialog: emoji pack tabs can still show Premium locks")
+    if "header.setText(pack.set.title, false);" not in edata:
+        failures.append("SelectAnimatedEmojiDialog: emoji pack headers can still show Premium locks")
+    if "button.set(pack.set.title, false, pack.installed" not in edata:
+        failures.append("SelectAnimatedEmojiDialog: emoji pack button can still advertise Premium unlock")
+else:
+    failures.append("SelectAnimatedEmojiDialog.java missing")
 
 double_tap = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ReactionsDoubleTapManageActivity.java"
 if double_tap.exists():
@@ -279,6 +342,8 @@ print("Local features: all bundled launcher icons unlocked")
 print("Local appearance: user name/profile colors and background emoji stored only in TelePremium")
 print("Local emoji status: account/user scoped, no account.updateEmojiStatus RPC")
 print("Local double-tap reaction: custom selector enabled without Telegram Premium state")
+print("Premium routing: Telegram subscription previews redirect to TelePremium")
+print("Animated emoji picker: Premium lock chrome removed for local client use")
 print("Local Voice-to-Text: Android 13+ system recognizer audio injection")
 print("TelePremium no-ads: sponsored fetching/rendering disabled")
 print("Concept 5: custom Premium overview + Business row removed + center UI")
