@@ -906,6 +906,184 @@ replace_in_method(
         premiumReactionRow = rowCount++;""",
 )
 
+# TelePremium global Premium-upsell isolation.
+# Never spoof Telegram server entitlement. Instead, route official Telegram
+# subscription preview surfaces to TelePremium and remove local animated-emoji
+# lock chrome from the client-owned picker.
+base_fragment = "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/BaseFragment.java"
+
+replace_once(
+    base_fragment,
+    "import org.telegram.ui.LaunchActivity;\n",
+    "import org.telegram.ui.LaunchActivity;\n"
+    "import org.telegram.ui.TelePremiumPremiumRouter;\n",
+)
+
+replace_in_method(
+    base_fragment,
+    "public boolean presentFragment(BaseFragment fragment)",
+    "        return allowPresentFragment() && parentLayout != null && parentLayout.presentFragment(fragment);",
+    "        fragment = TelePremiumPremiumRouter.route(fragment);\n"
+    "        return allowPresentFragment() && parentLayout != null && parentLayout.presentFragment(fragment);",
+)
+
+replace_in_method(
+    base_fragment,
+    "public boolean presentFragment(BaseFragment fragment, boolean removeLast)",
+    "        return allowPresentFragment() && parentLayout != null && parentLayout.presentFragment(fragment, removeLast);",
+    "        fragment = TelePremiumPremiumRouter.route(fragment);\n"
+    "        return allowPresentFragment() && parentLayout != null && parentLayout.presentFragment(fragment, removeLast);",
+)
+
+replace_in_method(
+    base_fragment,
+    "public boolean presentFragment(BaseFragment fragment, boolean removeLast, boolean forceWithoutAnimation)",
+    "        return allowPresentFragment() && parentLayout != null && parentLayout.presentFragment(fragment, removeLast, forceWithoutAnimation, true, false, null);",
+    "        fragment = TelePremiumPremiumRouter.route(fragment);\n"
+    "        return allowPresentFragment() && parentLayout != null && parentLayout.presentFragment(fragment, removeLast, forceWithoutAnimation, true, false, null);",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "        if (getParentActivity() == null) {",
+    "        fragment = TelePremiumPremiumRouter.route(fragment);\n"
+    "        if (getParentActivity() == null) {",
+)
+
+launch_activity = "TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
+
+replace_in_method(
+    launch_activity,
+    "public void presentFragment(BaseFragment fragment)",
+    "        getActionBarLayout().presentFragment(fragment);",
+    "        getActionBarLayout().presentFragment(TelePremiumPremiumRouter.route(fragment));",
+)
+
+replace_in_method(
+    launch_activity,
+    "public boolean presentFragment(final BaseFragment fragment, final boolean removeLast, boolean forceWithoutAnimation)",
+    "        return getActionBarLayout().presentFragment(fragment, removeLast, forceWithoutAnimation, true, false);",
+    "        return getActionBarLayout().presentFragment(TelePremiumPremiumRouter.route(fragment), removeLast, forceWithoutAnimation, true, false);",
+)
+
+premium_sheet = "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumFeatureBottomSheet.java"
+
+replace_once(
+    premium_sheet,
+    "import org.telegram.ui.PremiumPreviewFragment;\n",
+    "import org.telegram.ui.PremiumPreviewFragment;\n"
+    "import org.telegram.ui.TelePremiumPremiumRouter;\n",
+)
+
+replace_once(
+    premium_sheet,
+    "public class PremiumFeatureBottomSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {\n",
+    """public class PremiumFeatureBottomSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
+
+    @Override
+    public void show() {
+        if (TelePremiumPremiumRouter.hideTelegramPremiumUpsell()) {
+            TelePremiumPremiumRouter.openOverview(baseFragment);
+            return;
+        }
+        super.show();
+    }
+""",
+)
+
+premium_preview_sheet = "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumPreviewBottomSheet.java"
+
+replace_once(
+    premium_preview_sheet,
+    "import org.telegram.ui.PremiumPreviewFragment;\n",
+    "import org.telegram.ui.PremiumPreviewFragment;\n"
+    "import org.telegram.ui.TelePremiumPremiumRouter;\n",
+)
+
+replace_once(
+    premium_preview_sheet,
+    "public class PremiumPreviewBottomSheet extends BottomSheetWithRecyclerListView implements NotificationCenter.NotificationCenterDelegate {\n",
+    """public class PremiumPreviewBottomSheet extends BottomSheetWithRecyclerListView implements NotificationCenter.NotificationCenterDelegate {
+
+    @Override
+    public void show() {
+        if (TelePremiumPremiumRouter.hideTelegramPremiumUpsell()) {
+            TelePremiumPremiumRouter.openOverview(fragment);
+            return;
+        }
+        super.show();
+    }
+""",
+)
+
+premium_preview = "TMessagesProj/src/main/java/org/telegram/ui/PremiumPreviewFragment.java"
+
+replace_in_method(
+    premium_preview,
+    "public static void buyPremium(BaseFragment fragment, SubscriptionTier tier, String source, boolean forcePremium, BillingFlowParams.SubscriptionUpdateParams updateParams)",
+    "        if (BuildVars.IS_BILLING_UNAVAILABLE) {",
+    """        if (TelePremiumPremiumRouter.hideTelegramPremiumUpsell()) {
+            TelePremiumPremiumRouter.openOverview(fragment);
+            return;
+        }
+        if (BuildVars.IS_BILLING_UNAVAILABLE) {""",
+)
+
+# Rename the stock settings entry so the main profile settings no longer
+# advertises Telegram Premium.
+replace_once(
+    profile,
+    "                        textCell.setTextAndIcon(LocaleController.getString(R.string.TelegramPremium), new AnimatedEmojiDrawable.WrapSizeDrawable(PremiumGradient.getInstance().premiumStarMenuDrawable, dp(24), dp(24)), true);",
+    "                        textCell.setTextAndIcon(\"TelePremium\", new AnimatedEmojiDrawable.WrapSizeDrawable(PremiumGradient.getInstance().premiumStarMenuDrawable, dp(24), dp(24)), true);",
+)
+
+emoji_dialog = "TMessagesProj/src/main/java/org/telegram/ui/SelectAnimatedEmojiDialog.java"
+
+replace_once(
+    emoji_dialog,
+    """                @Override
+                protected ColorFilter getEmojiColorFilter() {
+                    return premiumStarColorFilter;
+                }
+
+                @Override
+                protected boolean onTabClick(int index) {""",
+    """                @Override
+                protected ColorFilter getEmojiColorFilter() {
+                    return premiumStarColorFilter;
+                }
+
+                @Override
+                protected boolean allowEmojisForNonPremium() {
+                    return TelePremiumPremiumRouter.localAnimatedEmojiUnlocked();
+                }
+
+                @Override
+                protected boolean onTabClick(int index) {""",
+)
+
+replace_once(
+    emoji_dialog,
+    "                    header.setText(pack.set.title, !pack.free && !UserConfig.getInstance(currentAccount).isPremium() && type != TYPE_AVATAR_CONSTRUCTOR && type != TYPE_SET_REPLY_ICON && type != TYPE_SET_REPLY_ICON_BOTTOM && type != TYPE_CHAT_REACTIONS);",
+    "                    header.setText(pack.set.title, false);",
+)
+
+replace_once(
+    emoji_dialog,
+    """                        button.set(pack.set.title, !pack.free && !UserConfig.getInstance(currentAccount).isPremium(), pack.installed, e -> {
+                            if (!pack.free && !UserConfig.getInstance(currentAccount).isPremium()) {
+                                BaseFragment fragment = LaunchActivity.getLastFragment();
+                                if (fragment != null) {
+                                    fragment.showDialog(new PremiumFeatureBottomSheet(baseFragment, getContext(), currentAccount, PremiumPreviewFragment.PREMIUM_FEATURE_ANIMATED_EMOJI, false));
+                                }
+                                return;
+                            }
+                            Integer p = null;""",
+    """                        button.set(pack.set.title, false, pack.installed, e -> {
+                            Integer p = null;""",
+)
+
 # Experimental voice-message privacy unlock. Remove only the local Premium
 # gates for Contacts/Nobody and exception rows; normal privacy TL request remains.
 privacy_control = "TMessagesProj/src/main/java/org/telegram/ui/PrivacyControlActivity.java"
