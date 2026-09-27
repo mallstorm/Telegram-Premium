@@ -88,6 +88,9 @@ checks = {
         "Без рекламы",
         "Перевод чатов",
         "Расшифровка голосовых",
+        "Локальный emoji-статус",
+        "Реакция по двойному тапу",
+        "new ReactionsDoubleTapManageActivity()",
         "new TelePremiumCenterActivity()",
     ],
     "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAppearanceActivity.java": [
@@ -106,11 +109,19 @@ checks = {
         "getProfileEmoji",
         "public static void save",
     ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TelePremiumEmojiStatusStore.java": [
+        "telepremium_emoji_status",
+        "hasOverride(int account, long userId)",
+        "getDocumentId(int account, long userId",
+        "getStatus(int account, long userId",
+        "public static void save(int account, long userId",
+    ],
     "TMessagesProj/src/main/java/org/telegram/messenger/UserObject.java": [
         "TelePremiumPeerAppearanceStore.getNameColor",
         "TelePremiumPeerAppearanceStore.getNameEmoji",
         "TelePremiumPeerAppearanceStore.getProfileColor",
         "TelePremiumPeerAppearanceStore.getProfileEmoji",
+        "TelePremiumEmojiStatusStore.getDocumentId",
     ],
     "TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java": [
         "TelePremiumUiScale.apply(applicationContext);",
@@ -201,6 +212,28 @@ if profile_activity.exists():
     premium_snippet = pdata[premium_click:premium_click + 260] if premium_click >= 0 else ""
     if premium_click < 0 or "new TelePremiumOverviewActivity()" not in premium_snippet:
         failures.append("ProfileActivity: Premium settings row is not wired to TelePremiumOverviewActivity")
+
+    status_start = pdata.find("public void showStatusSelect()")
+    status_end = pdata.find("private Drawable getEmojiStatusDrawable", status_start)
+    status_snippet = pdata[status_start:status_end] if status_start >= 0 and status_end > status_start else ""
+    if "TelePremiumEmojiStatusStore.save(currentAccount" not in status_snippet:
+        failures.append("ProfileActivity: local emoji status store is not used")
+    if "TL_account_updateEmojiStatus" in status_snippet:
+        failures.append("ProfileActivity: user emoji status still sends Telegram account.updateEmojiStatus")
+    if "if (request != null)" not in status_snippet:
+        failures.append("ProfileActivity: channel-only emoji status request guard is missing")
+
+    drawable_start = pdata.find("private Drawable getEmojiStatusDrawable")
+    drawable_end = pdata.find("private float lastEmojiStatusProgress", drawable_start)
+    drawable_snippet = pdata[drawable_start:drawable_end] if drawable_start >= 0 and drawable_end > drawable_start else ""
+    if "TelePremiumEmojiStatusStore.hasOverride" not in drawable_snippet or "R.drawable.msg_status_set" not in drawable_snippet:
+        failures.append("ProfileActivity: local emoji status rendering hook is missing")
+
+    update_start = pdata.find("private void updateProfileData(boolean reload)")
+    update_end = pdata.find("private Drawable getPremiumCrossfadeDrawable", update_start)
+    update_snippet = pdata[update_start:update_end] if update_start >= 0 and update_end > update_start else ""
+    if "if (user.self)" not in update_snippet:
+        failures.append("ProfileActivity: self emoji status selector is still Premium-only")
 else:
     failures.append("ProfileActivity.java missing")
 
@@ -221,6 +254,17 @@ if chat_activity.exists():
     if s < 0 or "return;" not in snippet:
         failures.append("ChatActivity sponsored rendering is not disabled")
 
+double_tap = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ReactionsDoubleTapManageActivity.java"
+if double_tap.exists():
+    ddata = double_tap.read_text(encoding="utf-8")
+    s = ddata.find("private void updateRows()")
+    e = ddata.find("@Override", s)
+    snippet = ddata[s:e] if s >= 0 and e > s else ""
+    if "premiumReactionRow = rowCount++;" not in snippet or "isPremium()" in snippet:
+        failures.append("ReactionsDoubleTapManageActivity: custom local reaction selector is still Premium-gated")
+else:
+    failures.append("ReactionsDoubleTapManageActivity.java missing")
+
 if failures:
     print("SOURCE VERIFICATION FAILED")
     for failure in failures:
@@ -234,6 +278,8 @@ print("APK updater: frozen")
 print("Telegram translation: native transport, full-chat client gate unlocked")
 print("Local features: all bundled launcher icons unlocked")
 print("Local appearance: user name/profile colors and background emoji stored only in TelePremium")
+print("Local emoji status: account/user scoped, no account.updateEmojiStatus RPC")
+print("Local double-tap reaction: custom selector enabled without Telegram Premium state")
 print("Local Voice-to-Text: Android 13+ system recognizer audio injection")
 print("TelePremium no-ads: sponsored fetching/rendering disabled")
 print("Concept 5: custom Premium overview + Business row removed + center UI")
