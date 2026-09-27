@@ -25,8 +25,14 @@ The client uses Telegram only as the transport/account backend. Features that ca
 - User profile color.
 - Name background emoji.
 - Profile background emoji.
+- Local emoji status for the current user, including optional expiration.
+- Local custom double-tap reaction selection.
 
 The four appearance values above are stored in `TelePremiumPeerAppearanceStore`. They are read through `UserObject` and are not sent with `account.updateColor`.
+
+Emoji status is stored in `TelePremiumEmojiStatusStore`, keyed by account slot + user ID. The user status selector never sends `account.updateEmojiStatus`; only channel status continues to use Telegram's channel RPC. Local status rendering is hooked into `UserObject` and the self-profile UI.
+
+The double-tap reaction is safe to expose locally because Telegram's `MediaDataController.setDoubleTapReaction()` stores the choice in local emoji settings. TelePremium therefore exposes the custom selector without changing Telegram Premium account state.
 
 ## Next local-premium migration groups
 
