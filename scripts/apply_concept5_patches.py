@@ -734,6 +734,179 @@ replace_in_method(
 )
 
 
+# TelePremium local emoji status + local double-tap reaction.
+# These are client-owned settings. User emoji status never calls
+# account.updateEmojiStatus; double-tap reaction already persists locally in
+# MediaDataController's emoji settings.
+replace_once(
+    user_object,
+    "import org.telegram.messenger.telepremium.TelePremiumPeerAppearanceStore;\n",
+    "import org.telegram.messenger.telepremium.TelePremiumPeerAppearanceStore;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumEmojiStatusStore;\n",
+)
+
+replace_once(
+    user_object,
+    """    public static Long getEmojiStatusDocumentId(TLRPC.User user) {
+        if (user == null) {
+            return null;
+        }
+        return getEmojiStatusDocumentId(user.emoji_status);
+    }""",
+    """    public static Long getEmojiStatusDocumentId(TLRPC.User user) {
+        if (user == null) {
+            return null;
+        }
+        Long fallback = getEmojiStatusDocumentId(user.emoji_status);
+        return TelePremiumEmojiStatusStore.getDocumentId(UserConfig.selectedAccount, user.id, fallback);
+    }""",
+)
+
+replace_once(
+    profile,
+    "import org.telegram.messenger.UserObject;\n",
+    "import org.telegram.messenger.UserObject;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumEmojiStatusStore;\n",
+)
+
+replace_in_method(
+    profile,
+    "public void showStatusSelect()",
+    """                TLObject request;
+                if (currentChat == null) {
+                    TLRPC.TL_account_updateEmojiStatus req = new TLRPC.TL_account_updateEmojiStatus();
+                    if (documentId == null) {
+                        req.emoji_status = new TLRPC.TL_emojiStatusEmpty();
+                    } else if (until != null) {
+                        req.emoji_status = new TLRPC.TL_emojiStatusUntil();
+                        ((TLRPC.TL_emojiStatusUntil) req.emoji_status).document_id = documentId;
+                        ((TLRPC.TL_emojiStatusUntil) req.emoji_status).until = until;
+                    } else {
+                        req.emoji_status = new TLRPC.TL_emojiStatus();
+                        ((TLRPC.TL_emojiStatus) req.emoji_status).document_id = documentId;
+                    }
+                    TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(UserConfig.getInstance(currentAccount).getClientUserId());
+                    if (user != null) {
+                        user.emoji_status = req.emoji_status;
+                        MessagesController.getInstance(currentAccount).updateEmojiStatusUntilUpdate(user.id, user.emoji_status);
+                        NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.userEmojiStatusUpdated, user);
+                    }
+                    request = req;
+                } else {""",
+    """                TLObject request = null;
+                if (currentChat == null) {
+                    TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(UserConfig.getInstance(currentAccount).getClientUserId());
+                    if (user != null) {
+                        TelePremiumEmojiStatusStore.save(currentAccount, user.id, documentId, until);
+                        NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.userEmojiStatusUpdated, user);
+                    }
+                } else {""",
+)
+
+replace_in_method(
+    profile,
+    "public void showStatusSelect()",
+    "                ConnectionsManager.getInstance(currentAccount).sendRequest(request, null);",
+    """                if (request != null) {
+                    ConnectionsManager.getInstance(currentAccount).sendRequest(request, null);
+                }""",
+)
+
+replace_in_method(
+    profile,
+    "public void showStatusSelect()",
+    """        TLRPC.User user = getMessagesController().getUser(userId);
+        if (user != null) {
+            popupLayout.setExpireDateHint(DialogObject.getEmojiStatusUntil(user.emoji_status));
+        }""",
+    """        TLRPC.User user = getMessagesController().getUser(userId);
+        if (user != null) {
+            if (user.self && TelePremiumEmojiStatusStore.hasOverride(currentAccount, user.id)) {
+                popupLayout.setExpireDateHint(TelePremiumEmojiStatusStore.getUntil(currentAccount, user.id, 0));
+            } else {
+                popupLayout.setExpireDateHint(DialogObject.getEmojiStatusUntil(user.emoji_status));
+            }
+        }""",
+)
+
+replace_in_method(
+    profile,
+    "private Drawable getEmojiStatusDrawable(TLRPC.EmojiStatus emojiStatus, boolean switchable, boolean animated, int a)",
+    """    private Drawable getEmojiStatusDrawable(TLRPC.EmojiStatus emojiStatus, boolean switchable, boolean animated, int a) {
+        if (emojiStatusDrawable[a] == null) {
+            emojiStatusDrawable[a] = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(nameTextView[a], AndroidUtilities.dp(24), a == 0 ? AnimatedEmojiDrawable.CACHE_TYPE_EMOJI_STATUS : AnimatedEmojiDrawable.CACHE_TYPE_KEYBOARD);
+            if (fragmentViewAttached) {
+                emojiStatusDrawable[a].attach();
+            }
+        }
+        if (emojiStatus instanceof TLRPC.TL_emojiStatus) {
+            emojiStatusDrawable[a].set(((TLRPC.TL_emojiStatus) emojiStatus).document_id, animated);
+        } else if (emojiStatus instanceof TLRPC.TL_emojiStatusUntil && ((TLRPC.TL_emojiStatusUntil) emojiStatus).until > (int) (System.currentTimeMillis() / 1000) && !reportSpam) {
+            emojiStatusDrawable[a].set(((TLRPC.TL_emojiStatusUntil) emojiStatus).document_id, animated);
+        } else {
+            emojiStatusDrawable[a].set(getPremiumCrossfadeDrawable(a), animated);
+        }
+        updateEmojiStatusDrawableColor();
+        return emojiStatusDrawable[a];
+    }""",
+    """    private Drawable getEmojiStatusDrawable(TLRPC.EmojiStatus emojiStatus, boolean switchable, boolean animated, int a) {
+        final boolean selfProfile = userId == UserConfig.getInstance(currentAccount).getClientUserId();
+        final boolean localOverride = selfProfile && TelePremiumEmojiStatusStore.hasOverride(currentAccount, userId);
+        if (localOverride) {
+            emojiStatus = TelePremiumEmojiStatusStore.getStatus(currentAccount, userId, null);
+        }
+        if (emojiStatusDrawable[a] == null) {
+            emojiStatusDrawable[a] = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(nameTextView[a], AndroidUtilities.dp(24), a == 0 ? AnimatedEmojiDrawable.CACHE_TYPE_EMOJI_STATUS : AnimatedEmojiDrawable.CACHE_TYPE_KEYBOARD);
+            if (fragmentViewAttached) {
+                emojiStatusDrawable[a].attach();
+            }
+        }
+        if (emojiStatus instanceof TLRPC.TL_emojiStatus) {
+            emojiStatusDrawable[a].set(((TLRPC.TL_emojiStatus) emojiStatus).document_id, animated);
+        } else if (emojiStatus instanceof TLRPC.TL_emojiStatusUntil && ((TLRPC.TL_emojiStatusUntil) emojiStatus).until > (int) (System.currentTimeMillis() / 1000) && !reportSpam) {
+            emojiStatusDrawable[a].set(((TLRPC.TL_emojiStatusUntil) emojiStatus).document_id, animated);
+        } else if (selfProfile && (localOverride || !getMessagesController().isPremiumUser(getMessagesController().getUser(userId)))) {
+            Drawable statusIcon = ContextCompat.getDrawable(getParentActivity(), R.drawable.msg_status_set).mutate();
+            emojiStatusDrawable[a].set(statusIcon, animated);
+        } else {
+            emojiStatusDrawable[a].set(getPremiumCrossfadeDrawable(a), animated);
+        }
+        updateEmojiStatusDrawableColor();
+        return emojiStatusDrawable[a];
+    }""",
+)
+
+replace_in_method(
+    profile,
+    "private void updateProfileData(boolean reload)",
+    "} else if (getMessagesController().isPremiumUser(user)) {",
+    "} else if (user.self || getMessagesController().isPremiumUser(user)) {",
+    expected=2,
+)
+
+replace_in_method(
+    profile,
+    "private void updateProfileData(boolean reload)",
+    "                if (user.self && getMessagesController().isPremiumUser(user)) {",
+    "                if (user.self) {",
+)
+
+double_tap = "TMessagesProj/src/main/java/org/telegram/ui/ReactionsDoubleTapManageActivity.java"
+
+replace_in_method(
+    double_tap,
+    "private void updateRows()",
+    """        if (UserConfig.getInstance(currentAccount).isPremium()) {
+            reactionsStartRow = -1;
+            premiumReactionRow = rowCount++;
+        } else {
+            premiumReactionRow = -1;
+            reactionsStartRow = rowCount;
+        }""",
+    """        reactionsStartRow = -1;
+        premiumReactionRow = rowCount++;""",
+)
+
 # Experimental voice-message privacy unlock. Remove only the local Premium
 # gates for Contacts/Nobody and exception rows; normal privacy TL request remains.
 privacy_control = "TMessagesProj/src/main/java/org/telegram/ui/PrivacyControlActivity.java"
