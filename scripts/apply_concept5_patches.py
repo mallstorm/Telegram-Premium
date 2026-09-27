@@ -976,20 +976,15 @@ replace_once(
     "import org.telegram.ui.TelePremiumPremiumRouter;\n",
 )
 
-replace_once(
+replace_in_method(
     premium_sheet,
-    "public class PremiumFeatureBottomSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {\n",
-    """public class PremiumFeatureBottomSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
-
-    @Override
-    public void show() {
-        if (TelePremiumPremiumRouter.hideTelegramPremiumUpsell()) {
+    "public void show()",
+    "        super.show();",
+    """        if (TelePremiumPremiumRouter.hideTelegramPremiumUpsell()) {
             TelePremiumPremiumRouter.openOverview(baseFragment);
             return;
         }
-        super.show();
-    }
-""",
+        super.show();""",
 )
 
 premium_preview_sheet = "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumPreviewBottomSheet.java"
@@ -1001,20 +996,15 @@ replace_once(
     "import org.telegram.ui.TelePremiumPremiumRouter;\n",
 )
 
-replace_once(
+replace_in_method(
     premium_preview_sheet,
-    "public class PremiumPreviewBottomSheet extends BottomSheetWithRecyclerListView implements NotificationCenter.NotificationCenterDelegate {\n",
-    """public class PremiumPreviewBottomSheet extends BottomSheetWithRecyclerListView implements NotificationCenter.NotificationCenterDelegate {
-
-    @Override
-    public void show() {
-        if (TelePremiumPremiumRouter.hideTelegramPremiumUpsell()) {
+    "public void show()",
+    "        super.show();",
+    """        if (TelePremiumPremiumRouter.hideTelegramPremiumUpsell()) {
             TelePremiumPremiumRouter.openOverview(fragment);
             return;
         }
-        super.show();
-    }
-""",
+        super.show();""",
 )
 
 premium_preview = "TMessagesProj/src/main/java/org/telegram/ui/PremiumPreviewFragment.java"
