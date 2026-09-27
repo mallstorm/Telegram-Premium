@@ -159,6 +159,20 @@ if shared.exists():
 else:
     failures.append("SharedConfig.java missing")
 
+peer_color = SRC / "TMessagesProj/src/main/java/org/telegram/ui/PeerColorActivity.java"
+if peer_color.exists():
+    pcdata = peer_color.read_text(encoding="utf-8")
+    if "button.setText(isChannel ? buttonUnlocked : (!getUserConfig().isPremium() ? buttonLocked : buttonUnlocked), false);" in pcdata:
+        failures.append("PeerColorActivity: initial Apply button is still locally Premium-locked")
+    if "button.setText(!getUserConfig().isPremium() ? buttonLocked : buttonUnlocked, true);" in pcdata:
+        failures.append("PeerColorActivity: Premium state refresh can re-lock Apply button")
+    if "new PremiumFeatureBottomSheet(PeerColorActivity.this, PremiumPreviewFragment.PREMIUM_FEATURE_NAME_COLOR, true)" in pcdata:
+        failures.append("PeerColorActivity: Apply click still opens the local Premium paywall")
+    if "if (applying || !isChannel && !getUserConfig().isPremium())" in pcdata:
+        failures.append("PeerColorActivity: apply() still has the local Premium guard")
+else:
+    failures.append("PeerColorActivity.java missing")
+
 profile_activity = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ProfileActivity.java"
 if profile_activity.exists():
     pdata = profile_activity.read_text(encoding="utf-8")
