@@ -100,6 +100,18 @@ checks = {
         "updateConfiguration",
         "scaledDensity",
     ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TelePremiumPeerAppearanceStore.java": [
+        "telepremium_peer_appearance",
+        "getNameColor",
+        "getProfileEmoji",
+        "public static void save",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/UserObject.java": [
+        "TelePremiumPeerAppearanceStore.getNameColor",
+        "TelePremiumPeerAppearanceStore.getNameEmoji",
+        "TelePremiumPeerAppearanceStore.getProfileColor",
+        "TelePremiumPeerAppearanceStore.getProfileEmoji",
+    ],
     "TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java": [
         "TelePremiumUiScale.apply(applicationContext);",
     ],
@@ -170,6 +182,13 @@ if peer_color.exists():
         failures.append("PeerColorActivity: Apply click still opens the local Premium paywall")
     if "if (applying || !isChannel && !getUserConfig().isPremium())" in pcdata:
         failures.append("PeerColorActivity: apply() still has the local Premium guard")
+    apply_start = pcdata.find("private void apply()")
+    apply_end = pcdata.find("private void showBulletin()", apply_start)
+    apply_snippet = pcdata[apply_start:apply_end] if apply_start >= 0 and apply_end > apply_start else ""
+    if "TL_account_updateColor" in apply_snippet or "sendRequest(req" in apply_snippet:
+        failures.append("PeerColorActivity: user appearance still sends Telegram account.updateColor")
+    if "TelePremiumPeerAppearanceStore.save(" not in apply_snippet:
+        failures.append("PeerColorActivity: local TelePremium appearance store is not used")
 else:
     failures.append("PeerColorActivity.java missing")
 
@@ -214,6 +233,7 @@ print("Account slots: 10 Java / 10 native")
 print("APK updater: frozen")
 print("Telegram translation: native transport, full-chat client gate unlocked")
 print("Local features: all bundled launcher icons unlocked")
+print("Local appearance: user name/profile colors and background emoji stored only in TelePremium")
 print("Local Voice-to-Text: Android 13+ system recognizer audio injection")
 print("TelePremium no-ads: sponsored fetching/rendering disabled")
 print("Concept 5: custom Premium overview + Business row removed + center UI")
