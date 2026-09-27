@@ -535,6 +535,37 @@ replace_once(
     "            button.setText(buttonUnlocked, false);\n",
 )
 
+replace_once(
+    peer_color,
+    "                button.setText(!getUserConfig().isPremium() ? buttonLocked : buttonUnlocked, true);\n",
+    "                button.setText(buttonUnlocked, true);\n",
+)
+
+replace_once(
+    peer_color,
+    """        if (isChannel) {
+            finishFragment();
+        } else {
+            if (!getUserConfig().isPremium()) {
+                showDialog(new PremiumFeatureBottomSheet(PeerColorActivity.this, PremiumPreviewFragment.PREMIUM_FEATURE_NAME_COLOR, true));
+                return;
+            }
+        }
+
+        apply();""",
+    """        if (isChannel) {
+            finishFragment();
+        }
+
+        apply();""",
+)
+
+replace_once(
+    peer_color,
+    "        if (applying || !isChannel && !getUserConfig().isPremium()) {\n            return;\n        }\n",
+    "        if (applying) {\n            return;\n        }\n",
+)
+
 # Experimental voice-message privacy unlock. Remove only the local Premium
 # gates for Contacts/Nobody and exception rows; normal privacy TL request remains.
 privacy_control = "TMessagesProj/src/main/java/org/telegram/ui/PrivacyControlActivity.java"
