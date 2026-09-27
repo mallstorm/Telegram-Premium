@@ -230,8 +230,7 @@ if profile_activity.exists():
         failures.append("ProfileActivity: local emoji status rendering hook is missing")
 
     update_start = pdata.find("private void updateProfileData(boolean reload)")
-    update_end = pdata.find("private Drawable getPremiumCrossfadeDrawable", update_start)
-    update_snippet = pdata[update_start:update_end] if update_start >= 0 and update_end > update_start else ""
+    update_snippet = pdata[update_start:update_start + 45000] if update_start >= 0 else ""
     if "if (user.self)" not in update_snippet:
         failures.append("ProfileActivity: self emoji status selector is still Premium-only")
 else:
