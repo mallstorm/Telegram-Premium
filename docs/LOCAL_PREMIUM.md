@@ -34,6 +34,17 @@ Emoji status is stored in `TelePremiumEmojiStatusStore`, keyed by account slot +
 
 The double-tap reaction is safe to expose locally because Telegram's `MediaDataController.setDoubleTapReaction()` stores the choice in local emoji settings. TelePremium therefore exposes the custom selector without changing Telegram Premium account state.
 
+## Premium upsell isolation
+
+TelePremium does not open Telegram subscription purchase surfaces.
+
+- Navigation to `PremiumPreviewFragment` is routed to `TelePremiumOverviewActivity`.
+- `PremiumFeatureBottomSheet` and `PremiumPreviewBottomSheet` redirect to the TelePremium overview instead of presenting Telegram billing.
+- `PremiumPreviewFragment.buyPremium(...)` has a backstop that routes to TelePremium and never starts Telegram billing.
+- Animated-emoji pack tabs, headers, and add buttons in the TelePremium picker do not show Telegram Premium lock chrome.
+
+This is UI/routing isolation only. It does not forge Telegram Premium state and does not bypass server-side entitlement checks.
+
 ## Next local-premium migration groups
 
 ### Group A — client/UI features
