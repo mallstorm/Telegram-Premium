@@ -23,7 +23,7 @@ public class TelePremiumOverviewActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle("Telegram Premium");
+        actionBar.setTitle("TelePremium");
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -62,7 +62,7 @@ public class TelePremiumOverviewActivity extends BaseFragment {
         hero.addView(star, new LinearLayout.LayoutParams(AndroidUtilities.dp(92), AndroidUtilities.dp(92)));
 
         TextView title = new TextView(context);
-        title.setText("Telegram Premium");
+        title.setText("TelePremium");
         title.setTextSize(30);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setTextColor(Color.WHITE);
@@ -75,7 +75,7 @@ public class TelePremiumOverviewActivity extends BaseFragment {
         hero.addView(title, titleParams);
 
         TextView subtitle = new TextView(context);
-        subtitle.setText("Локальные Premium-возможности TelePremium без экрана покупки и подписки.");
+        subtitle.setText("Собственные возможности клиента. Локальные функции TelePremium не зависят от статуса Telegram Premium.");
         subtitle.setTextSize(15);
         subtitle.setTextColor(0xEEFFFFFF);
         subtitle.setGravity(Gravity.CENTER);
@@ -94,7 +94,9 @@ public class TelePremiumOverviewActivity extends BaseFragment {
         heroParams.setMargins(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(14));
         content.addView(hero, heroParams);
 
-        addFeature(content, context, "Истории", "Просмотр и инструменты историй Telegram.", R.drawable.menu_premium_main, null);
+        addFeature(content, context, "Цвет имени и профиля", "Цвет, фон профиля и фоновый emoji хранятся локально и отображаются только внутри TelePremium.", R.drawable.menu_premium_main,
+                v -> presentFragment(new PeerColorActivity(0)));
+        addFeature(content, context, "Истории", "Просмотр и инструменты историй Telegram. Локальные расширения будут подключаться отдельными модулями.", R.drawable.menu_premium_main, null);
         addFeature(content, context, "Файлы и хранилище", "File Center, загрузки всех аккаунтов и управление кэшем.", R.drawable.msg2_folder,
                 v -> presentFragment(new TelePremiumFileCenterActivity()));
         addFeature(content, context, "Расширенные возможности клиента", "До 10 аккаунтов, отдельные сетевые профили и локальные функции.", R.drawable.msg2_devices,
