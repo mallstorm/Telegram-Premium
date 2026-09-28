@@ -1230,62 +1230,9 @@ replace_exact(
     expected=2,
 )
 
-# Global shell tint. Theme color lookups are transformed locally; Telegram
-# theme/network/server state remains untouched.
-theme_java = "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/Theme.java"
-
-replace_once(
-    theme_java,
-    "import org.telegram.messenger.UserConfig;\n",
-    "import org.telegram.messenger.UserConfig;\n"
-    "import org.telegram.messenger.telepremium.TelePremiumShellTint;\n",
-)
-
-replace_once(
-    theme_java,
-    """    public static int getColor(int key, ResourcesProvider provider) {
-        if (provider != null) {
-            return provider.getColor(key);
-        }
-        return getColor(key);
-    }""",
-    """    public static int getColor(int key, ResourcesProvider provider) {
-        if (provider != null) {
-            return TelePremiumShellTint.tint(key, provider.getColor(key));
-        }
-        return getColor(key);
-    }""",
-)
-
-replace_once(
-    theme_java,
-    """    public static int getColor(int key) {
-        return getColor(key, null, false);
-    }""",
-    """    public static int getColor(int key) {
-        return TelePremiumShellTint.tint(key, getColor(key, null, false));
-    }""",
-)
-
-replace_once(
-    theme_java,
-    """    public static int getColor(int key, boolean[] isDefault) {
-        return getColor(key, isDefault, false);
-    }""",
-    """    public static int getColor(int key, boolean[] isDefault) {
-        return TelePremiumShellTint.tint(key, getColor(key, isDefault, false));
-    }""",
-)
-
-replace_once(
-    theme_java,
-    """    public static int getNonAnimatedColor(int key) {
-        return getColor(key, null, true);
-    }""",
-    """    public static int getNonAnimatedColor(int key) {
-        return TelePremiumShellTint.tint(key, getColor(key, null, true));
-    }""",
-)
+# TelePremium shell tint is intentionally NOT installed in Theme.getColor().
+# The base Telegram theme remains authoritative for chat/content colors.
+# Tinting is applied only to explicit shell surfaces below.
 
 # Chat Settings: replace the Auto-Night row with a continuous TelePremium
 # shell-tint slider while keeping Telegram's theme presets available.
