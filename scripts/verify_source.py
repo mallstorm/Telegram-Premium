@@ -346,10 +346,49 @@ else:
 theme_java = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/Theme.java"
 if theme_java.exists():
     tdata = theme_java.read_text(encoding="utf-8")
-    if tdata.count("TelePremiumShellTint.tint") < 4:
-        failures.append("Theme.java: TelePremium shell tint hook is incomplete")
+    if "TelePremiumShellTint.tint" in tdata:
+        failures.append("Theme.java: global shell tint hook must not touch chat/content colors")
 else:
     failures.append("Theme.java missing")
+
+base_fragment_shell = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/BaseFragment.java"
+if base_fragment_shell.exists():
+    bfdata = base_fragment_shell.read_text(encoding="utf-8")
+    create = bfdata.find("public ActionBar createActionBar(Context context)")
+    snippet = bfdata[create:create + 2200] if create >= 0 else ""
+    if "TelePremiumShellTint.actionBarBackground" not in snippet:
+        failures.append("BaseFragment: top action bar is not shell-tinted")
+    if "TelePremiumShellTint.foreground" not in snippet:
+        failures.append("BaseFragment: action bar auto-contrast foreground is missing")
+else:
+    failures.append("BaseFragment.java missing for shell tint verification")
+
+launch_shell = SRC / "TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
+if launch_shell.exists():
+    ldata = launch_shell.read_text(encoding="utf-8")
+    if ldata.count("TelePremiumShellTint.drawerBackground") < 4:
+        failures.append("LaunchActivity: drawer background tint hooks are incomplete")
+    if "TelePremiumShellTint.navigationBarBackground" not in ldata:
+        failures.append("LaunchActivity: bottom navigation bar shell tint is missing")
+else:
+    failures.append("LaunchActivity.java missing for shell tint verification")
+
+for rel, needle in [
+    ("TMessagesProj/src/main/java/org/telegram/ui/Cells/DrawerActionCell.java", "TelePremiumShellTint.drawerColor"),
+    ("TMessagesProj/src/main/java/org/telegram/ui/Cells/DrawerUserCell.java", "TelePremiumShellTint.drawerColor"),
+    ("TMessagesProj/src/main/java/org/telegram/ui/Cells/DrawerProfileCell.java", "TelePremiumShellTint.drawerColor"),
+]:
+    p = SRC / rel
+    if not p.exists() or needle not in p.read_text(encoding="utf-8"):
+        failures.append(f"{rel}: drawer auto-contrast shell tint hook is missing")
+
+dialogs_shell = SRC / "TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java"
+if dialogs_shell.exists():
+    ddata = dialogs_shell.read_text(encoding="utf-8")
+    if "TelePremiumShellTint.actionBarBackground" not in ddata:
+        failures.append("DialogsActivity: chat-list top chrome is not shell-tinted")
+else:
+    failures.append("DialogsActivity.java missing for shell tint verification")
 
 theme_activity = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ThemeActivity.java"
 if theme_activity.exists():
@@ -412,7 +451,7 @@ print("Local double-tap reaction: custom selector enabled without Telegram Premi
 print("Premium routing: Telegram subscription previews redirect to TelePremium")
 print("Animated emoji picker: Premium lock chrome removed for local client use")
 print("Premium purchase UI: hidden globally; Stars flows untouched")
-print("Shell tint: continuous white-to-black multicolor slider in Chat Settings")
+print("Shell tint: drawer + top/bottom chrome only; chat list and messages stay on base theme with automatic foreground contrast")
 print("Local Voice-to-Text: Android 13+ system recognizer audio injection")
 print("TelePremium no-ads: sponsored fetching/rendering disabled")
 print("Concept 5: custom Premium overview + Business row removed + center UI")
