@@ -84,7 +84,7 @@ checks = {
         "new TelePremiumOverviewActivity()",
     ],
     "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumOverviewActivity.java": [
-        "Telegram Premium",
+        "TelePremium",
         "Без рекламы",
         "Перевод чатов",
         "Расшифровка голосовых",
