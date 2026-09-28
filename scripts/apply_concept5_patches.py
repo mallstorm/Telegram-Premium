@@ -1293,8 +1293,8 @@ theme_activity = "TMessagesProj/src/main/java/org/telegram/ui/ThemeActivity.java
 
 replace_once(
     theme_activity,
-    "import org.telegram.ui.Cells.TextSizeCell;\n",
-    "import org.telegram.ui.Cells.TextSizeCell;\n"
+    "import org.telegram.ui.Cells.TextSettingsCell;\n",
+    "import org.telegram.ui.Cells.TextSettingsCell;\n"
     "import org.telegram.ui.Cells.TelePremiumShellTintCell;\n",
 )
 
