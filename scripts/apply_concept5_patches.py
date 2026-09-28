@@ -1137,6 +1137,257 @@ replace_once(
                             Integer p = null;""",
 )
 
+# TelePremium hard isolation from Telegram Premium purchase UI.
+# Stars are deliberately untouched: Stars live in org.telegram.ui.Stars and
+# continue to use Telegram's official Stars flows.
+action_bar_layout = "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/ActionBarLayout.java"
+
+replace_once(
+    action_bar_layout,
+    "import org.telegram.ui.LaunchActivity;\n",
+    "import org.telegram.ui.LaunchActivity;\n"
+    "import org.telegram.ui.TelePremiumPremiumRouter;\n",
+)
+
+replace_in_method(
+    action_bar_layout,
+    "public boolean presentFragment(NavigationParams params)",
+    "        BaseFragment fragment = params.fragment;",
+    """        BaseFragment fragment = TelePremiumPremiumRouter.route(params.fragment);
+        if (fragment != params.fragment) {
+            params.fragment = fragment;
+        }""",
+)
+
+premium_lock = "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumLockIconView.java"
+
+replace_in_method(
+    premium_lock,
+    "protected void onDraw(Canvas canvas)",
+    "        if (waitingImage) {",
+    """        if (type != TYPE_GIFT_LOCK) {
+            return;
+        }
+        if (waitingImage) {""",
+)
+
+premium_button = "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumButtonView.java"
+
+replace_in_method(
+    premium_button,
+    "public void setButton(String text, View.OnClickListener clickListener, boolean animated)",
+    "        if (!isButtonTextSet && animated) {",
+    """        setVisibility(View.GONE);
+        clickListener = null;
+        if (!isButtonTextSet && animated) {""",
+)
+
+emoji_tabs = "TMessagesProj/src/main/java/org/telegram/ui/Components/EmojiTabsStrip.java"
+
+replace_once(
+    emoji_tabs,
+    """                if (currentType == SelectAnimatedEmojiDialog.TYPE_AVATAR_CONSTRUCTOR || currentType == SelectAnimatedEmojiDialog.TYPE_CHAT_REACTIONS || currentType == SelectAnimatedEmojiDialog.TYPE_SET_REPLY_ICON || currentType == SelectAnimatedEmojiDialog.TYPE_SET_REPLY_ICON_BOTTOM) {
+                    currentPackButton.setLock(null, false);
+                } else if (!isPremium && !free) {
+                    currentPackButton.setLock(true, false);
+                } else if (!this.isInstalled(newPack)) {
+                    currentPackButton.setLock(false, false);
+                } else {
+                    currentPackButton.setLock(null, false);
+                }""",
+    """                currentPackButton.setLock(null, false);""",
+)
+
+replace_in_method(
+    emoji_dialog,
+    "public boolean onItemClick(View view, int position, float x, float y)",
+    "                if (view instanceof ImageViewEmoji && (type == TYPE_REACTIONS || type == TYPE_EXPANDABLE_REACTIONS)) {",
+    "                if (view instanceof ImageViewEmoji && (type == TYPE_REACTIONS || type == TYPE_EXPANDABLE_REACTIONS)) {",
+)
+
+replace_once(
+    emoji_dialog,
+    "                    if (!imageViewEmoji.isDefaultReaction && !UserConfig.getInstance(currentAccount).isPremium()) {",
+    "                    if (!imageViewEmoji.isDefaultReaction && !TelePremiumPremiumRouter.localAnimatedEmojiUnlocked() && !UserConfig.getInstance(currentAccount).isPremium()) {",
+)
+
+replace_once(
+    emoji_dialog,
+    "                if (!UserConfig.getInstance(currentAccount).isPremium() && type == TYPE_EFFECTS && currentReaction.isEffect && currentReaction.premium) {",
+    "                if (!TelePremiumPremiumRouter.localAnimatedEmojiUnlocked() && !UserConfig.getInstance(currentAccount).isPremium() && type == TYPE_EFFECTS && currentReaction.isEffect && currentReaction.premium) {",
+    expected=2,
+)
+
+# Global shell tint. Theme color lookups are transformed locally; Telegram
+# theme/network/server state remains untouched.
+theme_java = "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/Theme.java"
+
+replace_once(
+    theme_java,
+    "import org.telegram.messenger.UserConfig;\n",
+    "import org.telegram.messenger.UserConfig;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumShellTint;\n",
+)
+
+replace_once(
+    theme_java,
+    """    public static int getColor(int key, ResourcesProvider provider) {
+        if (provider != null) {
+            return provider.getColor(key);
+        }
+        return getColor(key);
+    }""",
+    """    public static int getColor(int key, ResourcesProvider provider) {
+        if (provider != null) {
+            return TelePremiumShellTint.tint(key, provider.getColor(key));
+        }
+        return getColor(key);
+    }""",
+)
+
+replace_once(
+    theme_java,
+    """    public static int getColor(int key) {
+        return getColor(key, null, false);
+    }""",
+    """    public static int getColor(int key) {
+        return TelePremiumShellTint.tint(key, getColor(key, null, false));
+    }""",
+)
+
+replace_once(
+    theme_java,
+    """    public static int getColor(int key, boolean[] isDefault) {
+        return getColor(key, isDefault, false);
+    }""",
+    """    public static int getColor(int key, boolean[] isDefault) {
+        return TelePremiumShellTint.tint(key, getColor(key, isDefault, false));
+    }""",
+)
+
+replace_once(
+    theme_java,
+    """    public static int getNonAnimatedColor(int key) {
+        return getColor(key, null, true);
+    }""",
+    """    public static int getNonAnimatedColor(int key) {
+        return TelePremiumShellTint.tint(key, getColor(key, null, true));
+    }""",
+)
+
+# Chat Settings: replace the Auto-Night row with a continuous TelePremium
+# shell-tint slider while keeping Telegram's theme presets available.
+theme_activity = "TMessagesProj/src/main/java/org/telegram/ui/ThemeActivity.java"
+
+replace_once(
+    theme_activity,
+    "import org.telegram.ui.Cells.TextSizeCell;\n",
+    "import org.telegram.ui.Cells.TextSizeCell;\n"
+    "import org.telegram.ui.Cells.TelePremiumShellTintCell;\n",
+)
+
+replace_once(
+    theme_activity,
+    "    private int nightThemeRow;\n",
+    "    private int nightThemeRow;\n"
+    "    private int shellTintRow;\n",
+)
+
+replace_once(
+    theme_activity,
+    "        nightThemeRow = -1;\n",
+    "        nightThemeRow = -1;\n"
+    "        shellTintRow = -1;\n",
+)
+
+replace_once(
+    theme_activity,
+    """            nightThemeRow = rowCount++;
+            browserRow = rowCount++;""",
+    """            shellTintRow = rowCount++;
+            browserRow = rowCount++;""",
+)
+
+replace_once(
+    theme_activity,
+    "        private final static int TYPE_CHOOSE_COLOR = 21;\n",
+    "        private final static int TYPE_CHOOSE_COLOR = 21;\n"
+    "        private final static int TYPE_SHELL_TINT = 22;\n",
+)
+
+replace_once(
+    theme_activity,
+    "                    type == TYPE_TEXT_PREFERENCE || type == 18 || type == TYPE_APP_ICON || type == TYPE_CHOOSE_COLOR;\n",
+    "                    type == TYPE_TEXT_PREFERENCE || type == 18 || type == TYPE_APP_ICON || type == TYPE_CHOOSE_COLOR;\n",
+)
+
+replace_once(
+    theme_activity,
+    """                case TYPE_CHOOSE_COLOR:
+                    view = new PeerColorActivity.ChangeNameColorCell(currentAccount, 0, mContext, getResourceProvider());
+                    break;""",
+    """                case TYPE_CHOOSE_COLOR:
+                    view = new PeerColorActivity.ChangeNameColorCell(currentAccount, 0, mContext, getResourceProvider());
+                    break;
+                case TYPE_SHELL_TINT: {
+                    TelePremiumShellTintCell tintCell = new TelePremiumShellTintCell(mContext);
+                    tintCell.setOnTintChanged(() -> {
+                        if (fragmentView != null) {
+                            fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+                        }
+                        if (listView != null) {
+                            listView.setGlowColor(Theme.getColor(Theme.key_actionBarDefault));
+                            listView.invalidate();
+                        }
+                        if (actionBar != null) {
+                            actionBar.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefault));
+                            actionBar.setTitleColor(Theme.getColor(Theme.key_actionBarDefaultTitle));
+                        }
+                        notifyDataSetChanged();
+                        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needCheckSystemBarColors);
+                    });
+                    view = tintCell;
+                    break;
+                }""",
+)
+
+replace_once(
+    theme_activity,
+    """                case TYPE_CHOOSE_COLOR: {
+                    PeerColorActivity.ChangeNameColorCell cell = (PeerColorActivity.ChangeNameColorCell) holder.itemView;
+                    cell.set(getUserConfig().getCurrentUser());
+                }""",
+    """                case TYPE_CHOOSE_COLOR: {
+                    PeerColorActivity.ChangeNameColorCell cell = (PeerColorActivity.ChangeNameColorCell) holder.itemView;
+                    cell.set(getUserConfig().getCurrentUser());
+                    break;
+                }
+                case TYPE_SHELL_TINT: {
+                    ((TelePremiumShellTintCell) holder.itemView).updateColors();
+                    break;
+                }""",
+)
+
+replace_once(
+    theme_activity,
+    """            } else if (position == changeUserColor) {
+                return TYPE_CHOOSE_COLOR;
+            }
+            return TYPE_TEXT_SETTING;""",
+    """            } else if (position == changeUserColor) {
+                return TYPE_CHOOSE_COLOR;
+            } else if (position == shellTintRow) {
+                return TYPE_SHELL_TINT;
+            }
+            return TYPE_TEXT_SETTING;""",
+)
+
+replace_once(
+    theme_activity,
+    "new Class[]{TextSettingsCell.class, TextCheckCell.class, HeaderCell.class, BrightnessControlCell.class, ThemeTypeCell.class, TextSizeCell.class, BubbleRadiusCell.class, ChatListCell.class, NotificationsCheckCell.class, ThemesHorizontalListCell.class, TintRecyclerListView.class, TextCell.class, PeerColorActivity.ChangeNameColorCell.class, SwipeGestureSettingsView.class, DefaultThemesPreviewCell.class, AppIconsSelectorCell.class}",
+    "new Class[]{TextSettingsCell.class, TextCheckCell.class, HeaderCell.class, BrightnessControlCell.class, ThemeTypeCell.class, TextSizeCell.class, BubbleRadiusCell.class, ChatListCell.class, NotificationsCheckCell.class, ThemesHorizontalListCell.class, TintRecyclerListView.class, TextCell.class, PeerColorActivity.ChangeNameColorCell.class, SwipeGestureSettingsView.class, DefaultThemesPreviewCell.class, AppIconsSelectorCell.class, TelePremiumShellTintCell.class}",
+)
+
 # Experimental voice-message privacy unlock. Remove only the local Premium
 # gates for Contacts/Nobody and exception rows; normal privacy TL request remains.
 privacy_control = "TMessagesProj/src/main/java/org/telegram/ui/PrivacyControlActivity.java"
