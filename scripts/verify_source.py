@@ -123,6 +123,17 @@ checks = {
         "getStatus(int account, long userId",
         "public static void save(int account, long userId",
     ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TelePremiumShellTint.java": [
+        "telepremium_shell_tint",
+        "getTargetColor",
+        "public static int tint",
+        "putInt(KEY_POSITION",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/Cells/TelePremiumShellTintCell.java": [
+        "Оттенок оболочки",
+        "Белый → тёплые оттенки → цветные → чёрный",
+        "TelePremiumShellTint.setPosition",
+    ],
     "TMessagesProj/src/main/java/org/telegram/messenger/UserObject.java": [
         "TelePremiumPeerAppearanceStore.getNameColor",
         "TelePremiumPeerAppearanceStore.getNameEmoji",
@@ -294,6 +305,62 @@ if premium_preview_sheet.exists():
 else:
     failures.append("PremiumPreviewBottomSheet.java missing")
 
+action_bar_layout = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/ActionBarLayout.java"
+if action_bar_layout.exists():
+    adata = action_bar_layout.read_text(encoding="utf-8")
+    s = adata.find("public boolean presentFragment(NavigationParams params)")
+    snippet = adata[s:s + 500] if s >= 0 else ""
+    if "TelePremiumPremiumRouter.route(params.fragment)" not in snippet:
+        failures.append("ActionBarLayout: global Premium fragment routing is missing")
+else:
+    failures.append("ActionBarLayout.java missing")
+
+premium_button = SRC / "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumButtonView.java"
+if premium_button.exists():
+    pbdata = premium_button.read_text(encoding="utf-8")
+    s = pbdata.find("public void setButton(String text, View.OnClickListener clickListener, boolean animated)")
+    snippet = pbdata[s:s + 500] if s >= 0 else ""
+    if "setVisibility(View.GONE);" not in snippet:
+        failures.append("PremiumButtonView: Telegram Premium purchase button can still be shown")
+else:
+    failures.append("PremiumButtonView.java missing")
+
+premium_lock = SRC / "TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/PremiumLockIconView.java"
+if premium_lock.exists():
+    pldata = premium_lock.read_text(encoding="utf-8")
+    s = pldata.find("protected void onDraw(Canvas canvas)")
+    snippet = pldata[s:s + 260] if s >= 0 else ""
+    if "type != TYPE_GIFT_LOCK" not in snippet:
+        failures.append("PremiumLockIconView: Premium lock chrome is still drawable")
+else:
+    failures.append("PremiumLockIconView.java missing")
+
+emoji_tabs = SRC / "TMessagesProj/src/main/java/org/telegram/ui/Components/EmojiTabsStrip.java"
+if emoji_tabs.exists():
+    etdata = emoji_tabs.read_text(encoding="utf-8")
+    if "else if (!isPremium && !free)" in etdata:
+        failures.append("EmojiTabsStrip: Premium emoji tab locks remain")
+else:
+    failures.append("EmojiTabsStrip.java missing")
+
+theme_java = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/Theme.java"
+if theme_java.exists():
+    tdata = theme_java.read_text(encoding="utf-8")
+    if tdata.count("TelePremiumShellTint.tint") < 4:
+        failures.append("Theme.java: TelePremium shell tint hook is incomplete")
+else:
+    failures.append("Theme.java missing")
+
+theme_activity = SRC / "TMessagesProj/src/main/java/org/telegram/ui/ThemeActivity.java"
+if theme_activity.exists():
+    thdata = theme_activity.read_text(encoding="utf-8")
+    if "TelePremiumShellTintCell" not in thdata or "shellTintRow = rowCount++;" not in thdata:
+        failures.append("ThemeActivity: shell tint slider is missing")
+    if "nightThemeRow = rowCount++;" in thdata:
+        failures.append("ThemeActivity: Auto-Night row still occupies the shell tint slot")
+else:
+    failures.append("ThemeActivity.java missing")
+
 premium_preview = SRC / "TMessagesProj/src/main/java/org/telegram/ui/PremiumPreviewFragment.java"
 if premium_preview.exists():
     ppf = premium_preview.read_text(encoding="utf-8")
@@ -344,6 +411,8 @@ print("Local emoji status: account/user scoped, no account.updateEmojiStatus RPC
 print("Local double-tap reaction: custom selector enabled without Telegram Premium state")
 print("Premium routing: Telegram subscription previews redirect to TelePremium")
 print("Animated emoji picker: Premium lock chrome removed for local client use")
+print("Premium purchase UI: hidden globally; Stars flows untouched")
+print("Shell tint: continuous white-to-black multicolor slider in Chat Settings")
 print("Local Voice-to-Text: Android 13+ system recognizer audio injection")
 print("TelePremium no-ads: sponsored fetching/rendering disabled")
 print("Concept 5: custom Premium overview + Business row removed + center UI")
