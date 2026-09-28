@@ -75,57 +75,75 @@ public final class TelePremiumShellTint {
         }
     }
 
+    /**
+     * Legacy Theme hook kept intentionally as a no-op. Shell tint must never
+     * recolor chat content, message bubbles, dialog content or general cells.
+     */
     public static int tint(int key, int color) {
-        if (!isEnabled()) {
-            return color;
-        }
-
-        int target = getTargetColor(getPosition());
-
-        if (key == Theme.key_windowBackgroundWhite) {
-            return shellColor(color, target, 0.90f, 0.00f);
-        }
-        if (key == Theme.key_windowBackgroundGray) {
-            return shellColor(color, target, 0.88f, -0.045f);
-        }
-        if (key == Theme.key_actionBarDefault || key == Theme.key_actionBarDefaultArchived) {
-            return shellColor(color, target, 0.92f, -0.025f);
-        }
-        if (key == Theme.key_dialogBackground) {
-            return shellColor(color, target, 0.91f, 0.015f);
-        }
-        if (key == Theme.key_dialogBackgroundGray || key == Theme.key_actionBarDefaultSubmenuBackground) {
-            return shellColor(color, target, 0.88f, -0.035f);
-        }
-
-        if (key == Theme.key_windowBackgroundWhiteBlackText
-                || key == Theme.key_actionBarDefaultTitle
-                || key == Theme.key_actionBarDefaultIcon
-                || key == Theme.key_actionBarDefaultSubmenuItem
-                || key == Theme.key_actionBarDefaultSubmenuItemIcon) {
-            return foreground(target, false, color);
-        }
-
-        if (key == Theme.key_windowBackgroundWhiteGrayText
-                || key == Theme.key_windowBackgroundWhiteGrayText2
-                || key == Theme.key_windowBackgroundWhiteHintText
-                || key == Theme.key_windowBackgroundWhiteValueText) {
-            return foreground(target, true, color);
-        }
-
-        if (key == Theme.key_divider || key == Theme.key_windowBackgroundGrayShadow) {
-            return divider(target, color);
-        }
-
-        if (key == Theme.key_windowBackgroundWhiteBlueText4
-                || key == Theme.key_windowBackgroundWhiteBlueIcon
-                || key == Theme.key_switchTrackChecked
-                || key == Theme.key_player_progress
-                || key == Theme.key_radioBackgroundChecked) {
-            return accentColor(color, target, getPosition());
-        }
-
         return color;
+    }
+
+    public static int actionBarBackground(int base) {
+        if (!isEnabled()) {
+            return base;
+        }
+        return shellColor(base, getTargetColor(getPosition()), 0.92f, -0.02f);
+    }
+
+    public static int navigationBarBackground(int base) {
+        if (!isEnabled()) {
+            return base;
+        }
+        return shellColor(base, getTargetColor(getPosition()), 0.94f, -0.04f);
+    }
+
+    public static int drawerBackground(int base) {
+        if (!isEnabled()) {
+            return base;
+        }
+        return shellColor(base, getTargetColor(getPosition()), 0.90f, -0.025f);
+    }
+
+    public static int foreground(int fallback) {
+        if (!isEnabled()) {
+            return fallback;
+        }
+        return foreground(getTargetColor(getPosition()), false, fallback);
+    }
+
+    public static int secondaryForeground(int fallback) {
+        if (!isEnabled()) {
+            return fallback;
+        }
+        return foreground(getTargetColor(getPosition()), true, fallback);
+    }
+
+    public static int selector(int fallback) {
+        if (!isEnabled()) {
+            return fallback;
+        }
+        int target = getTargetColor(getPosition());
+        double luminance = (0.2126 * Color.red(target) + 0.7152 * Color.green(target) + 0.0722 * Color.blue(target)) / 255.0;
+        return luminance > 0.58 ? 0x1F101820 : 0x24FFFFFF;
+    }
+
+    public static int drawerColor(int key, int fallback) {
+        if (!isEnabled()) {
+            return fallback;
+        }
+        if (key == Theme.key_chats_menuBackground || key == Theme.key_chats_menuTopBackground || key == Theme.key_chats_menuTopBackgroundCats) {
+            return drawerBackground(fallback);
+        }
+        if (key == Theme.key_chats_menuName || key == Theme.key_chats_menuItemText) {
+            return foreground(fallback);
+        }
+        if (key == Theme.key_chats_menuPhone || key == Theme.key_chats_menuPhoneCats) {
+            return secondaryForeground(fallback);
+        }
+        if (key == Theme.key_chats_menuItemIcon) {
+            return secondaryForeground(fallback);
+        }
+        return fallback;
     }
 
     public static int getTargetColor(int position) {
