@@ -947,8 +947,71 @@ replace_in_method(
     base_fragment,
     "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
     "        if (getParentActivity() == null) {",
-    "        fragment = TelePremiumPremiumRouter.route(fragment);\n"
+    "        final BaseFragment routedFragment = TelePremiumPremiumRouter.route(fragment);\n"
     "        if (getParentActivity() == null) {",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "        fragment.onTransitionAnimationStart(true, false);",
+    "        routedFragment.onTransitionAnimationStart(true, false);",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "        bottomSheet[0] = new BottomSheet(getParentActivity(), true, fragment.getResourceProvider()) {",
+    "        bottomSheet[0] = new BottomSheet(getParentActivity(), true, routedFragment.getResourceProvider()) {",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "                actionBarLayout[0].addFragmentToStack(fragment);",
+    "                actionBarLayout[0].addFragmentToStack(routedFragment);",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "                    fragment.onPause();\n                    fragment.onFragmentDestroy();",
+    "                    routedFragment.onPause();\n                    routedFragment.onFragmentDestroy();",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "                    fixNavigationBar(Theme.getColor(Theme.key_dialogBackgroundGray, fragment.getResourceProvider()));",
+    "                    fixNavigationBar(Theme.getColor(Theme.key_dialogBackgroundGray, routedFragment.getResourceProvider()));",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "                AndroidUtilities.setLightStatusBar(getWindow(), fragment.isLightStatusBar());",
+    "                AndroidUtilities.setLightStatusBar(getWindow(), routedFragment.isLightStatusBar());",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "                fragment.onBottomSheetCreated();",
+    "                routedFragment.onBottomSheetCreated();",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "                fragment.onTransitionAnimationEnd(true, false);",
+    "                routedFragment.onTransitionAnimationEnd(true, false);",
+)
+
+replace_in_method(
+    base_fragment,
+    "public INavigationLayout[] showAsSheet(BaseFragment fragment, BottomSheetParams params)",
+    "        fragment.setParentDialog(bottomSheet[0]);",
+    "        routedFragment.setParentDialog(bottomSheet[0]);",
 )
 
 launch_activity = "TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
