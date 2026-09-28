@@ -1357,6 +1357,7 @@ replace_once(
                         }
                         notifyDataSetChanged();
                         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needCheckSystemBarColors);
+                        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.didSetNewTheme, false, false);
                     });
                     view = tintCell;
                     break;
@@ -1398,6 +1399,179 @@ replace_once(
     theme_activity,
     "new Class[]{TextSettingsCell.class, TextCheckCell.class, HeaderCell.class, BrightnessControlCell.class, ThemeTypeCell.class, TextSizeCell.class, BubbleRadiusCell.class, ChatListCell.class, NotificationsCheckCell.class, ThemesHorizontalListCell.class, TintRecyclerListView.class, TextCell.class, PeerColorActivity.ChangeNameColorCell.class, SwipeGestureSettingsView.class, DefaultThemesPreviewCell.class, AppIconsSelectorCell.class}",
     "new Class[]{TextSettingsCell.class, TextCheckCell.class, HeaderCell.class, BrightnessControlCell.class, ThemeTypeCell.class, TextSizeCell.class, BubbleRadiusCell.class, ChatListCell.class, NotificationsCheckCell.class, ThemesHorizontalListCell.class, TintRecyclerListView.class, TextCell.class, PeerColorActivity.ChangeNameColorCell.class, SwipeGestureSettingsView.class, DefaultThemesPreviewCell.class, AppIconsSelectorCell.class, TelePremiumShellTintCell.class}",
+)
+
+# Scope TelePremium shell tint to chrome only: drawer, main top bar and
+# navigation bar. General Theme lookups stay untouched so chat/content colors
+# remain controlled exclusively by the selected Telegram theme.
+base_fragment = "TMessagesProj/src/main/java/org/telegram/ui/ActionBar/BaseFragment.java"
+
+replace_once(
+    base_fragment,
+    "import org.telegram.messenger.UserConfig;\n",
+    "import org.telegram.messenger.UserConfig;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumShellTint;\n",
+)
+
+replace_in_method(
+    base_fragment,
+    "public ActionBar createActionBar(Context context)",
+    "        actionBar.setBackgroundColor(getThemedColor(Theme.key_actionBarDefault));",
+    "        actionBar.setBackgroundColor(TelePremiumShellTint.actionBarBackground(getThemedColor(Theme.key_actionBarDefault)));",
+)
+
+replace_in_method(
+    base_fragment,
+    "public ActionBar createActionBar(Context context)",
+    "        actionBar.setItemsBackgroundColor(getThemedColor(Theme.key_actionBarDefaultSelector), false);",
+    "        actionBar.setItemsBackgroundColor(TelePremiumShellTint.selector(getThemedColor(Theme.key_actionBarDefaultSelector)), false);",
+)
+
+replace_in_method(
+    base_fragment,
+    "public ActionBar createActionBar(Context context)",
+    "        actionBar.setItemsColor(getThemedColor(Theme.key_actionBarDefaultIcon), false);",
+    "        actionBar.setItemsColor(TelePremiumShellTint.foreground(getThemedColor(Theme.key_actionBarDefaultIcon)), false);",
+)
+
+launch_activity = "TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
+
+replace_once(
+    launch_activity,
+    "import org.telegram.messenger.UserConfig;\n",
+    "import org.telegram.messenger.UserConfig;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumShellTint;\n",
+)
+
+replace_exact(
+    launch_activity,
+    "        sideMenu.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));",
+    "        sideMenu.setBackgroundColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
+    expected=1,
+)
+
+replace_exact(
+    launch_activity,
+    "        sideMenuContainer.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));",
+    "        sideMenuContainer.setBackgroundColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
+    expected=1,
+)
+
+replace_exact(
+    launch_activity,
+    "                        sideMenuContainer.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));",
+    "                        sideMenuContainer.setBackgroundColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
+    expected=1,
+)
+
+replace_exact(
+    launch_activity,
+    "                    sideMenu.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));",
+    "                    sideMenu.setBackgroundColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
+    expected=1,
+)
+
+replace_exact(
+    launch_activity,
+    "                    sideMenu.setGlowColor(Theme.getColor(Theme.key_chats_menuBackground));",
+    "                    sideMenu.setGlowColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
+    expected=1,
+)
+
+replace_once(
+    launch_activity,
+    "                int color = currentFragment != null && useCurrentFragment ? currentFragment.getNavigationBarColor() : Theme.getColor(Theme.key_windowBackgroundGray, null, true);",
+    "                int color = currentFragment != null && useCurrentFragment ? currentFragment.getNavigationBarColor() : Theme.getColor(Theme.key_windowBackgroundGray, null, true);\n"
+    "                color = TelePremiumShellTint.navigationBarBackground(color);",
+)
+
+drawer_action = "TMessagesProj/src/main/java/org/telegram/ui/Cells/DrawerActionCell.java"
+replace_once(
+    drawer_action,
+    "import org.telegram.messenger.UserConfig;\n",
+    "import org.telegram.messenger.UserConfig;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumShellTint;\n",
+)
+replace_exact(
+    drawer_action,
+    "        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chats_menuItemIcon), PorterDuff.Mode.SRC_IN));",
+    "        imageView.setColorFilter(new PorterDuffColorFilter(TelePremiumShellTint.drawerColor(Theme.key_chats_menuItemIcon, Theme.getColor(Theme.key_chats_menuItemIcon)), PorterDuff.Mode.SRC_IN));",
+    expected=1,
+)
+replace_exact(
+    drawer_action,
+    "        textView.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));",
+    "        textView.setTextColor(TelePremiumShellTint.drawerColor(Theme.key_chats_menuItemText, Theme.getColor(Theme.key_chats_menuItemText)));",
+    expected=2,
+)
+
+drawer_user = "TMessagesProj/src/main/java/org/telegram/ui/Cells/DrawerUserCell.java"
+replace_once(
+    drawer_user,
+    "import org.telegram.messenger.UserConfig;\n",
+    "import org.telegram.messenger.UserConfig;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumShellTint;\n",
+)
+replace_exact(
+    drawer_user,
+    "        textView.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));",
+    "        textView.setTextColor(TelePremiumShellTint.drawerColor(Theme.key_chats_menuItemText, Theme.getColor(Theme.key_chats_menuItemText)));",
+    expected=2,
+)
+
+drawer_profile = "TMessagesProj/src/main/java/org/telegram/ui/Cells/DrawerProfileCell.java"
+replace_once(
+    drawer_profile,
+    "import org.telegram.messenger.UserConfig;\n",
+    "import org.telegram.messenger.UserConfig;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumShellTint;\n",
+)
+replace_in_method(
+    drawer_profile,
+    "public Integer applyBackground(boolean force)",
+    "            setBackgroundColor(Theme.getColor(backgroundKey));",
+    "            setBackgroundColor(TelePremiumShellTint.drawerColor(backgroundKey, Theme.getColor(backgroundKey)));",
+)
+replace_exact(
+    drawer_profile,
+    "        nameTextView.setTextColor(Theme.getColor(Theme.key_chats_menuName));",
+    "        nameTextView.setTextColor(TelePremiumShellTint.drawerColor(Theme.key_chats_menuName, Theme.getColor(Theme.key_chats_menuName)));",
+    expected=1,
+)
+replace_exact(
+    drawer_profile,
+    "            phoneTextView.setTextColor(Theme.getColor(Theme.key_chats_menuPhone));",
+    "            phoneTextView.setTextColor(TelePremiumShellTint.drawerColor(Theme.key_chats_menuPhone, Theme.getColor(Theme.key_chats_menuPhone)));",
+    expected=1,
+)
+
+dialogs_activity = "TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java"
+replace_once(
+    dialogs_activity,
+    "import org.telegram.messenger.UserConfig;\n",
+    "import org.telegram.messenger.UserConfig;\n"
+    "import org.telegram.messenger.telepremium.TelePremiumShellTint;\n",
+)
+replace_exact(
+    dialogs_activity,
+    "            actionBar.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefault));",
+    "            actionBar.setBackgroundColor(TelePremiumShellTint.actionBarBackground(Theme.getColor(Theme.key_actionBarDefault)));",
+    expected=2,
+)
+replace_once(
+    dialogs_activity,
+    "        actionBarDefaultPaint.setColor(Theme.getColor(folderId == 0 ? Theme.key_actionBarDefault : Theme.key_actionBarDefaultArchived));",
+    "        actionBarDefaultPaint.setColor(TelePremiumShellTint.actionBarBackground(Theme.getColor(folderId == 0 ? Theme.key_actionBarDefault : Theme.key_actionBarDefaultArchived)));",
+)
+replace_once(
+    dialogs_activity,
+    "            actionBar.setTitleColor(Theme.getColor(Theme.key_actionBarDefaultArchivedTitle));",
+    "            actionBar.setTitleColor(TelePremiumShellTint.foreground(Theme.getColor(Theme.key_actionBarDefaultArchivedTitle)));",
+)
+replace_once(
+    dialogs_activity,
+    "            actionBar.setItemsColor(Theme.getColor(Theme.key_actionBarDefaultArchivedIcon), false);",
+    "            actionBar.setItemsColor(TelePremiumShellTint.foreground(Theme.getColor(Theme.key_actionBarDefaultArchivedIcon)), false);",
 )
 
 # Experimental voice-message privacy unlock. Remove only the local Premium
