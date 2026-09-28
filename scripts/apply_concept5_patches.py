@@ -30,6 +30,18 @@ def replace_once(rel, old, new):
     print(f"patched: {rel}")
 
 
+def replace_exact(rel, old, new, expected):
+    p, data = read(rel)
+    if new in data and old not in data:
+        print(f"already patched: {rel}")
+        return
+    count = data.count(old)
+    if count != expected:
+        raise SystemExit(f"{rel}: expected {expected} source matches, found {count}")
+    write(p, data.replace(old, new))
+    print(f"patched: {rel}")
+
+
 def method_bounds(data, signature):
     start = data.find(signature)
     if start < 0:
@@ -1211,7 +1223,7 @@ replace_once(
     "                    if (!imageViewEmoji.isDefaultReaction && !TelePremiumPremiumRouter.localAnimatedEmojiUnlocked() && !UserConfig.getInstance(currentAccount).isPremium()) {",
 )
 
-replace_once(
+replace_exact(
     emoji_dialog,
     "                if (!UserConfig.getInstance(currentAccount).isPremium() && type == TYPE_EFFECTS && currentReaction.isEffect && currentReaction.premium) {",
     "                if (!TelePremiumPremiumRouter.localAnimatedEmojiUnlocked() && !UserConfig.getInstance(currentAccount).isPremium() && type == TYPE_EFFECTS && currentReaction.isEffect && currentReaction.premium) {",
