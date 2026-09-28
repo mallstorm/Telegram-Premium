@@ -65,6 +65,56 @@ jobs:
       - name: Apply TelePremium patches
         run: python3 scripts/apply_telepremium_patches.py
 
+      - name: Inject Telegram API credentials
+        working-directory: upstream/Telegram
+        shell: bash
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          set -euo pipefail
+          test -n "${TELEGRAM_API_ID:-}" || { echo "TELEGRAM_API_ID secret is missing"; exit 1; }
+          test -n "${TELEGRAM_API_HASH:-}" || { echo "TELEGRAM_API_HASH secret is missing"; exit 1; }
+
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          api_id = os.environ["TELEGRAM_API_ID"].strip()
+          api_hash = os.environ["TELEGRAM_API_HASH"].strip()
+
+          if not api_id.isdigit() or int(api_id) <= 0:
+              raise SystemExit("TELEGRAM_API_ID must be a positive integer")
+          if not re.fullmatch(r"[0-9a-fA-F]{32}", api_hash):
+              raise SystemExit("TELEGRAM_API_HASH must be a 32-character hexadecimal string")
+
+          path = Path("TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java")
+          data = path.read_text(encoding="utf-8")
+
+          data, id_count = re.subn(
+              r"public static int APP_ID = \d+;",
+              f"public static int APP_ID = {api_id};",
+              data,
+              count=1,
+          )
+          data, hash_count = re.subn(
+              r'public static String APP_HASH = "[0-9a-fA-F]+";',
+              f'public static String APP_HASH = "{api_hash}";',
+              data,
+              count=1,
+          )
+
+          if id_count != 1 or hash_count != 1:
+              raise SystemExit("Could not inject Telegram API credentials into BuildVars.java")
+
+          path.write_text(data, encoding="utf-8")
+
+          if re.search(r"public static int APP_ID = 4;", data):
+              raise SystemExit("Refusing to build with Telegram public APP_ID=4")
+          print("Telegram API credentials injected from GitHub Secrets")
+          PY
+
       - name: Verify source invariants
         run: python3 scripts/verify_source.py
 
