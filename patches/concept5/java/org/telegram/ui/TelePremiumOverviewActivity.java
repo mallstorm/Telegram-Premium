@@ -77,7 +77,7 @@ public class TelePremiumOverviewActivity extends BaseFragment {
         hero.addView(title, titleParams);
 
         TextView subtitle = new TextView(context);
-        subtitle.setText("Собственные возможности клиента. Локальные функции TelePremium не зависят от статуса Telegram Premium.");
+        subtitle.setText("Собственные возможности клиента. Локальные функции работают внутри TelePremium без экранов покупки подписки.");
         subtitle.setTextSize(15);
         subtitle.setTextColor(0xEEFFFFFF);
         subtitle.setGravity(Gravity.CENTER);
@@ -98,7 +98,7 @@ public class TelePremiumOverviewActivity extends BaseFragment {
 
         addFeature(content, context, "Цвет имени и профиля", "Цвет, фон профиля и фоновый emoji хранятся локально и отображаются только внутри TelePremium.", R.drawable.menu_premium_main,
                 v -> presentFragment(new PeerColorActivity(0)));
-        addFeature(content, context, "Локальный emoji-статус", "Выбранный статус хранится в TelePremium и не отправляется через Telegram Premium API.", R.drawable.msg_smile_status,
+        addFeature(content, context, "Локальный emoji-статус", "Выбранный статус хранится локально в TelePremium и не отправляется как серверная подписочная функция.", R.drawable.msg_smile_status,
                 v -> openSelfProfile());
         addFeature(content, context, "Реакция по двойному тапу", "Стандартная или custom emoji-реакция выбирается локально для этого клиента.", R.drawable.msg_reactions,
                 v -> presentFragment(new ReactionsDoubleTapManageActivity()));
