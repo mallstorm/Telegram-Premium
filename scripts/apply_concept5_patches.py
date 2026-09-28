@@ -1447,28 +1447,14 @@ replace_exact(
     launch_activity,
     "        sideMenu.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));",
     "        sideMenu.setBackgroundColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
-    expected=1,
+    expected=2,
 )
 
 replace_exact(
     launch_activity,
     "        sideMenuContainer.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));",
     "        sideMenuContainer.setBackgroundColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
-    expected=1,
-)
-
-replace_exact(
-    launch_activity,
-    "                        sideMenuContainer.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));",
-    "                        sideMenuContainer.setBackgroundColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
-    expected=1,
-)
-
-replace_exact(
-    launch_activity,
-    "                    sideMenu.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));",
-    "                    sideMenu.setBackgroundColor(TelePremiumShellTint.drawerBackground(Theme.getColor(Theme.key_chats_menuBackground)));",
-    expected=1,
+    expected=2,
 )
 
 replace_exact(
