@@ -98,6 +98,25 @@ public final class TelePremiumShellTint {
             return shellColor(color, target, 0.88f, -0.035f);
         }
 
+        if (key == Theme.key_windowBackgroundWhiteBlackText
+                || key == Theme.key_actionBarDefaultTitle
+                || key == Theme.key_actionBarDefaultIcon
+                || key == Theme.key_actionBarDefaultSubmenuItem
+                || key == Theme.key_actionBarDefaultSubmenuItemIcon) {
+            return foreground(target, false, color);
+        }
+
+        if (key == Theme.key_windowBackgroundWhiteGrayText
+                || key == Theme.key_windowBackgroundWhiteGrayText2
+                || key == Theme.key_windowBackgroundWhiteHintText
+                || key == Theme.key_windowBackgroundWhiteValueText) {
+            return foreground(target, true, color);
+        }
+
+        if (key == Theme.key_divider || key == Theme.key_windowBackgroundGrayShadow) {
+            return divider(target, color);
+        }
+
         if (key == Theme.key_windowBackgroundWhiteBlueText4
                 || key == Theme.key_windowBackgroundWhiteBlueIcon
                 || key == Theme.key_switchTrackChecked
@@ -124,6 +143,18 @@ public final class TelePremiumShellTint {
         hsv[2] = clamp01(hsv[2] + valueShift);
         int rgb = Color.HSVToColor(hsv);
         return (Color.alpha(base) << 24) | (rgb & 0x00FFFFFF);
+    }
+
+    private static int foreground(int target, boolean secondary, int fallback) {
+        double luminance = (0.2126 * Color.red(target) + 0.7152 * Color.green(target) + 0.0722 * Color.blue(target)) / 255.0;
+        int alpha = secondary ? 0xB0 : 0xF2;
+        int rgb = luminance > 0.58 ? 0x0015181C : 0x00F5F7FA;
+        return (alpha << 24) | rgb;
+    }
+
+    private static int divider(int target, int fallback) {
+        double luminance = (0.2126 * Color.red(target) + 0.7152 * Color.green(target) + 0.0722 * Color.blue(target)) / 255.0;
+        return luminance > 0.58 ? 0x24101820 : 0x32FFFFFF;
     }
 
     private static int accentColor(int base, int target, int position) {
