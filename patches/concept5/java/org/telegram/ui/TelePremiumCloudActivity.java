@@ -48,6 +48,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         fragmentView=scroll;
         cloud=TelePremiumCloudManager.getInstance(account);
         payloads=new CloudPayloadRepository(account);
+        payloads.setDedupLookup(sha256 -> cloud.findByHash(sha256));
         showStatus(context, "Синхронизация облака…");
         cloud.bootstrap(error -> {
             if(error!=null) showStatus(context, "Не удалось синхронизировать: "+error);
