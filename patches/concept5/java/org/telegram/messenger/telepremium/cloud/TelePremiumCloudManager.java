@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 public final class TelePremiumCloudManager {
     private static final TelePremiumCloudManager[] INSTANCES = new TelePremiumCloudManager[UserConfig.MAX_ACCOUNT_COUNT];
@@ -18,6 +19,8 @@ public final class TelePremiumCloudManager {
     private final int account;
     private final TelegramCloudMetadataStore store;
     private CloudSnapshot snapshot;
+    private final String clientId=UUID.randomUUID().toString();
+    private final CloudConflictResolver conflictResolver=new CloudConflictResolver();
 
     private TelePremiumCloudManager(int account) {
         this.account=account; this.store=new TelegramCloudMetadataStore(account);
@@ -26,10 +29,12 @@ public final class TelePremiumCloudManager {
     public CloudSnapshot getSnapshot() { return snapshot; }
 
     public void bootstrap(Callback callback) {
-        store.loadLatest((loaded, error) -> {
+        store.loadGenerations((generations, error) -> {
             if (error != null) { callback.onComplete(error); return; }
+            CloudSnapshot loaded=new CloudRecoveryEngine().recover(generations);
             if (loaded != null) { snapshot=loaded; callback.onComplete(null); return; }
             snapshot=new CloudSnapshot();
+            snapshot.clientId=clientId;
             TLRPC.User user=UserConfig.getInstance(account).getCurrentUser();
             snapshot.ownerUserId=user == null ? 0 : user.id;
             snapshot.generation=1;
@@ -78,7 +83,12 @@ public final class TelePremiumCloudManager {
     }
 
     private void commit(Callback callback) {
-        snapshot.generation++;
-        store.save(snapshot, error -> callback.onComplete(error));
+        final long expected=snapshot.generation;
+        store.loadLatest((remote,error)->{
+            if(error!=null){callback.onComplete(error);return;}
+            if(remote!=null && remote.generation>expected){snapshot=conflictResolver.choose(snapshot,remote);callback.onComplete("Облако изменено на другом устройстве. Выполнена синхронизация; повторите действие.");return;}
+            snapshot.generation=expected+1; snapshot.journalGeneration++; snapshot.clientId=clientId;
+            store.save(snapshot, saveError -> callback.onComplete(saveError));
+        });
     }
 }
