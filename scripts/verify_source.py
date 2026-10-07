@@ -156,6 +156,31 @@ checks = {
         "TelePremium File Center",
         "TelePremiumDownloadsActivity",
     ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java": [
+        "Синхронизация облака",
+        "Новая папка",
+        "TelePremiumCloudManager.getInstance",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudNode.java": [
+        "public String sha256",
+        "telegramMessageId",
+        "telegramDocumentId",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelegramCloudMetadataStore.java": [
+        "#TELEPREMIUM_CLOUD_V1",
+        "TL_messages_getHistory",
+        "TL_messages_sendMessage",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java": [
+        "findByHash",
+        "public void copy",
+        "trashItems",
+        "favorites",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudFileHasher.java": [
+        "SHA-256",
+        "FileInputStream",
+    ],
 }
 
 failures = []
