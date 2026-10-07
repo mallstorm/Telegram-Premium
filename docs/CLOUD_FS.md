@@ -110,3 +110,19 @@ Implemented:
 - source-verifier enforcement of the payload path.
 
 A logical Cloud file is therefore committed only after Telegram has acknowledged its backing document. Duplicate content can reuse an existing Telegram payload identity instead of uploading bytes again.
+
+
+## Pass 3B — download/offline lifecycle
+
+Implemented:
+- resolve a cloud payload after reinstall from its persisted Telegram message identity;
+- obtain the current Telegram Document instead of persisting transient file references;
+- download through the upstream FileLoader;
+- observe Telegram fileLoaded/fileLoadFailed notifications;
+- Cloud-only, Downloading, Offline and Error states;
+- File Center state badges;
+- explicit Keep offline/download action;
+- Release local space deletes only the local FileLoader copy and never the Telegram message/document;
+- verifier coverage for the complete download/offline lifecycle.
+
+This closes the durable round-trip: a committed file can be rediscovered from cloud metadata after login, resolved to its Telegram document and downloaded again without any local database or original filesystem path.
