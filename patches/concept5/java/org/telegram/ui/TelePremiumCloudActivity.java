@@ -1,6 +1,9 @@
 package org.telegram.ui;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.content.DialogInterface;
 import android.view.View;
 import android.widget.EditText;
@@ -12,6 +15,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.messenger.telepremium.cloud.CloudNode;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager;
+import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -26,6 +30,8 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private final String folderName;
     private LinearLayout content;
     private TelePremiumCloudManager cloud;
+    private CloudPayloadRepository payloads;
+    private static final int PICK_FILE=7301;
 
     public TelePremiumCloudActivity(int account) { this(account, "root", "Облако"); }
     private TelePremiumCloudActivity(int account, String folderId, String folderName) {
@@ -41,6 +47,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         scroll.addView(content);
         fragmentView=scroll;
         cloud=TelePremiumCloudManager.getInstance(account);
+        payloads=new CloudPayloadRepository(account);
         showStatus(context, "Синхронизация облака…");
         cloud.bootstrap(error -> {
             if(error!=null) showStatus(context, "Не удалось синхронизировать: "+error);
@@ -51,6 +58,12 @@ public class TelePremiumCloudActivity extends BaseFragment {
 
     private void render(Context context) {
         content.removeAllViews();
+        TextCell upload=new TextCell(context, getResourceProvider());
+        upload.setTextAndValue("＋ Загрузить файл", "Выбрать файл на устройстве", true);
+        upload.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        upload.setOnClickListener(v -> { Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT); i.addCategory(Intent.CATEGORY_OPENABLE); i.setType("*/*"); startActivityForResult(i,PICK_FILE); });
+        content.addView(upload,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(58)));
+
         TextCell create=new TextCell(context, getResourceProvider());
         create.setTextAndValue("＋ Новая папка", "Создать каталог в TelePremium Cloud", true);
         create.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
@@ -73,6 +86,17 @@ public class TelePremiumCloudActivity extends BaseFragment {
             cell.setOnLongClickListener(v -> { showNodeMenu(context,node); return true; });
             content.addView(cell,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(58)));
         }
+    }
+
+    @Override public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        super.onActivityResultFragment(requestCode,resultCode,data);
+        if(requestCode!=PICK_FILE || resultCode!=Activity.RESULT_OK || data==null || data.getData()==null) return;
+        Uri uri=data.getData(); String mime=getParentActivity().getContentResolver().getType(uri);
+        showStatus(getParentActivity(),"Подготовка и загрузка файла…");
+        payloads.importUri(uri,folderId,uri.getLastPathSegment(),mime,(node,error)-> {
+            if(error!=null){showStatus(getParentActivity(),"Ошибка загрузки: "+error);return;}
+            cloud.addFile(node,commitError->render(getParentActivity()));
+        });
     }
 
     private void createFolder(Context context) {
