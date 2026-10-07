@@ -40,3 +40,5 @@ jobs:
           name: TelePremium-Cloud-APK
           path: artifacts/*.apk
           if-no-files-found: warn
+
+# compile-fix trigger
