@@ -160,6 +160,8 @@ checks = {
         "Синхронизация облака",
         "Новая папка",
         "TelePremiumCloudManager.getInstance",
+        "ACTION_OPEN_DOCUMENT",
+        "payloads.importUri",
     ],
     "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudNode.java": [
         "public String sha256",
@@ -180,6 +182,12 @@ checks = {
     "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudFileHasher.java": [
         "SHA-256",
         "FileInputStream",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudPayloadRepository.java": [
+        "SendMessagesHelper.prepareSendingDocument",
+        "NotificationCenter.messageReceivedByServer",
+        "telegramDocumentId",
+        "setDedupLookup",
     ],
 }
 
