@@ -182,6 +182,20 @@ Telegram's built-in APK updater is intentionally frozen:
 
 This affects only Telegram's application APK updater. Telegram protocol configuration, DC configuration and normal network operation remain enabled.
 
+## TelePremium Cloud FS
+
+File Center now contains the first persistent TelePremium Cloud FS implementation.
+
+- Account-scoped cloud hierarchy.
+- Telegram Saved Messages is used as the durable metadata backend.
+- Automatic bootstrap after login.
+- Stable UUID nodes and nested virtual folders.
+- Persistent rename, favorites and trash state.
+- Cloud generations are recovered without relying on local application data.
+- The hierarchy can be rediscovered after clearing app data or reinstalling and signing back into the same Telegram account.
+
+Architecture and implementation status: `docs/CLOUD_FS.md`.
+
 ## Source layout
 
 - `upstream/Telegram` — pinned official Telegram Android source.
