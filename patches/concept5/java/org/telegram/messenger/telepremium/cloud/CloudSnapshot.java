@@ -12,6 +12,8 @@ public final class CloudSnapshot {
     public long ownerUserId;
     public long generation;
     public long updatedAt;
+    public String clientId;
+    public long journalGeneration;
     public final List<CloudNode> nodes = new ArrayList<>();
 
     public String encode() throws Exception {
@@ -21,6 +23,8 @@ public final class CloudSnapshot {
         root.put("ownerUserId", ownerUserId);
         root.put("generation", generation);
         root.put("updatedAt", updatedAt);
+        root.put("clientId", clientId);
+        root.put("journalGeneration", journalGeneration);
         JSONArray a = new JSONArray();
         for (CloudNode n : nodes) a.put(n.toJson());
         root.put("nodes", a);
@@ -33,6 +37,7 @@ public final class CloudSnapshot {
         CloudSnapshot s = new CloudSnapshot();
         s.cloudId=root.getString("cloudId"); s.ownerUserId=root.optLong("ownerUserId");
         s.generation=root.optLong("generation"); s.updatedAt=root.optLong("updatedAt");
+        s.clientId=root.optString("clientId", null); s.journalGeneration=root.optLong("journalGeneration");
         JSONArray a=root.optJSONArray("nodes");
         if (a != null) for(int i=0;i<a.length();i++) s.nodes.add(CloudNode.fromJson(a.getJSONObject(i)));
         return s;
