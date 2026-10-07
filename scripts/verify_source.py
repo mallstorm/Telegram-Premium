@@ -189,6 +189,24 @@ checks = {
         "telegramDocumentId",
         "setDedupLookup",
     ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudRecoveryEngine.java": [
+        "checker.check(s).ok()",
+        "s.generation>best.generation",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudConflictResolver.java": [
+        "remote.generation>local.generation",
+        "isConflict",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudJournalEntry.java": [
+        "operationId",
+        "generation",
+        "clientId",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudDiagnosticsActivity.java": [
+        "Диагностика облака",
+        "Ошибки целостности",
+        "cloud.checkIntegrity()",
+    ],
     "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudIntegrityChecker.java": [
         "duplicateIds",
         "orphanNodes",
