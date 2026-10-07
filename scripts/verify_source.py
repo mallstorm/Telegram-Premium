@@ -189,6 +189,20 @@ checks = {
         "telegramDocumentId",
         "setDedupLookup",
     ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudIntegrityChecker.java": [
+        "duplicateIds",
+        "orphanNodes",
+        "cycles",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudFolderPickerActivity.java": [
+        "Выбрать эту папку",
+        "onFolder",
+    ],
+    "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudSpecialActivity.java": [
+        "Корзина",
+        "Избранное",
+        "cloud.restore",
+    ],
     "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudDownloadManager.java": [
         "TL_messages_getMessages",
         "FileLoader.getInstance(account).loadFile",
