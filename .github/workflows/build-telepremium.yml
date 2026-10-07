@@ -22,7 +22,7 @@ jobs:
           java-version: '17'
       - name: Align Gradle wrapper with Android Gradle Plugin
         run: |
-          sed -i -E 's#gradle-[0-9.]+-(all|bin)\\.zip#gradle-8.6-all.zip#' upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's/gradle-7.0.2-bin.zip/gradle-8.6-bin.zip/' upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
           grep distributionUrl upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
 
       - name: Apply TelePremium patches
