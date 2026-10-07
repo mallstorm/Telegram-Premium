@@ -20,6 +20,9 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     private Pending pending;
 
     public interface ImportCallback { void onComplete(CloudNode node, String error); }
+    public interface DedupLookup { CloudNode find(String sha256); }
+    private DedupLookup dedupLookup;
+    public void setDedupLookup(DedupLookup lookup){this.dedupLookup=lookup;}
     private static final class Pending {
         CloudNode node; File temp; ImportCallback callback;
         Pending(CloudNode node, File temp, ImportCallback callback){this.node=node;this.temp=temp;this.callback=callback;}
@@ -40,6 +43,11 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                     byte[] b=new byte[1024*1024]; int n; while((n=in.read(b))>0) out.write(b,0,n);
                 }
                 CloudNode node=CloudNode.file(parentId,safe,mime,temp.length(),CloudFileHasher.sha256(temp));
+                CloudNode existing=dedupLookup==null?null:dedupLookup.find(node.sha256);
+                if(existing!=null && existing.telegramDocumentId!=0){
+                    node.telegramDocumentId=existing.telegramDocumentId; node.telegramMessageId=existing.telegramMessageId;
+                    temp.delete(); AndroidUtilities.runOnUIThread(() -> callback.onComplete(node,null)); return;
+                }
                 File staged=temp;
                 AndroidUtilities.runOnUIThread(() -> sendToSavedMessages(node,staged,callback));
             } catch(Exception e) {
