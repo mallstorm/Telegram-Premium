@@ -119,14 +119,22 @@ public class TelePremiumCloudActivity extends BaseFragment {
     }
 
     private void showNodeMenu(Context context, CloudNode node) {
-        CharSequence[] items=node.type==CloudNode.TYPE_FILE ? new CharSequence[]{"Переименовать",node.favorite?"Убрать из избранного":"В избранное","Скачать / хранить офлайн","Освободить место","В корзину"} : new CharSequence[]{"Переименовать",node.favorite?"Убрать из избранного":"В избранное","В корзину"};
+        CharSequence[] items=node.type==CloudNode.TYPE_FILE ? new CharSequence[]{"Переименовать",node.favorite?"Убрать из избранного":"В избранное","Скачать / хранить офлайн","Освободить место","Переместить","Копировать","В корзину"} : new CharSequence[]{"Переименовать",node.favorite?"Убрать из избранного":"В избранное","Переместить","Копировать","В корзину"};
         new AlertDialog.Builder(context).setItems(items,(d,which)-> {
             if(which==0) rename(context,node);
             else if(which==1) cloud.toggleFavorite(node,error->render(context));
             else if(node.type==CloudNode.TYPE_FILE && which==2) downloads.download(node,(state,file,error)->render(context));
             else if(node.type==CloudNode.TYPE_FILE && which==3) { downloads.releaseOffline(node); cloud.rename(node,node.name,error->render(context)); }
+            else if((node.type==CloudNode.TYPE_FILE && which==4)||(node.type==CloudNode.TYPE_FOLDER && which==2)) pickDestination(node,false,context);
+            else if((node.type==CloudNode.TYPE_FILE && which==5)||(node.type==CloudNode.TYPE_FOLDER && which==3)) pickDestination(node,true,context);
             else cloud.trash(node,error->render(context));
         }).show();
+    }
+
+    private void pickDestination(CloudNode node, boolean copy, Context context) {
+        presentFragment(new TelePremiumCloudFolderPickerActivity(account,"root",copy?"Копировать в":"Переместить в",target->{
+            if(copy) cloud.copy(node,target,error->render(context)); else cloud.move(node,target,error->render(context));
+        }));
     }
 
     private void rename(Context context, CloudNode node) {
