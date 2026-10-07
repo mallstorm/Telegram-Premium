@@ -95,3 +95,18 @@ Implemented:
 - source verifier coverage for Cloud FS core.
 
 The physical Telegram document-send binding is intentionally kept behind `CloudPayloadRepository`. It must use the upstream Telegram send/file infrastructure; no parallel HTTP transport is allowed.
+
+
+## Pass 3 — Telegram payload binding
+
+Implemented:
+- Android Storage Access Framework file selection from Cloud folders;
+- streaming staging and SHA-256 calculation;
+- pre-upload deduplication against existing CloudNode payload bindings;
+- document send through Telegram's existing `SendMessagesHelper.prepareSendingDocument` path to Saved Messages;
+- confirmation through Telegram `messageReceivedByServer` before the logical file is committed;
+- persistence of Telegram message/document identity in CloudNode;
+- temporary staging cleanup after server confirmation;
+- source-verifier enforcement of the payload path.
+
+A logical Cloud file is therefore committed only after Telegram has acknowledged its backing document. Duplicate content can reuse an existing Telegram payload identity instead of uploading bytes again.
