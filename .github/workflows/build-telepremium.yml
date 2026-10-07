@@ -20,6 +20,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Align Gradle wrapper with Android Gradle Plugin
+        run: |
+          sed -i 's/gradle-7.0.2-bin.zip/gradle-8.6-bin.zip/' upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+          grep distributionUrl upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+
       - name: Apply TelePremium patches
         run: |
           python3 scripts/apply_telepremium_patches.py
@@ -28,6 +33,20 @@ jobs:
         working-directory: upstream/Telegram
         run: |
           chmod +x gradlew
+          python3 - <<'PY'
+import json
+p='TMessagesProj_App/google-services.json'
+with open(p, encoding='utf-8') as f:
+    d=json.load(f)
+clients=d.get('client', [])
+if clients:
+    base=clients[0]
+    clone=json.loads(json.dumps(base))
+    clone.setdefault('client_info', {}).setdefault('android_client_info', {})['package_name']='com.telepremium.messenger.beta'
+    d['client'].append(clone)
+    with open(p,'w',encoding='utf-8') as f:
+        json.dump(d,f,separators=(',',':'))
+PY
           ./gradlew TMessagesProj_App:assembleDebug --stacktrace
       - name: Collect APK
         if: always()
@@ -40,3 +59,5 @@ jobs:
           name: TelePremium-Cloud-APK
           path: artifacts/*.apk
           if-no-files-found: warn
+
+# compile-fix trigger
