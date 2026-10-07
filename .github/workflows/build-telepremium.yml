@@ -33,7 +33,7 @@ jobs:
         working-directory: upstream/Telegram
         run: |
           chmod +x gradlew
-          ./gradlew TMessagesProj_App:assembleDebug --stacktrace
+          ./gradlew TMessagesProj_App:assembleDebug -x TMessagesProj_App:processAfatDebugGoogleServices --stacktrace
       - name: Collect APK
         if: always()
         run: |
