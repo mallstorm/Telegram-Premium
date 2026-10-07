@@ -16,6 +16,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.telepremium.cloud.CloudNode;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager;
 import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;
+import org.telegram.messenger.telepremium.cloud.CloudDownloadManager;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -31,6 +32,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private LinearLayout content;
     private TelePremiumCloudManager cloud;
     private CloudPayloadRepository payloads;
+    private CloudDownloadManager downloads;
     private static final int PICK_FILE=7301;
 
     public TelePremiumCloudActivity(int account) { this(account, "root", "Облако"); }
@@ -49,6 +51,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         cloud=TelePremiumCloudManager.getInstance(account);
         payloads=new CloudPayloadRepository(account);
         payloads.setDedupLookup(sha256 -> cloud.findByHash(sha256));
+        downloads=new CloudDownloadManager(account);
         showStatus(context, "Синхронизация облака…");
         cloud.bootstrap(error -> {
             if(error!=null) showStatus(context, "Не удалось синхронизировать: "+error);
@@ -78,11 +81,17 @@ public class TelePremiumCloudActivity extends BaseFragment {
         }
         for(CloudNode node:nodes) {
             TextCell cell=new TextCell(context, getResourceProvider());
-            String value=node.type==CloudNode.TYPE_FOLDER ? "Папка · ☁" : humanSize(node.size)+" · ☁";
+            String state=node.offlineState==CloudDownloadManager.OFFLINE_AVAILABLE?"✓ Offline":node.offlineState==CloudDownloadManager.DOWNLOADING?"Скачивание":"☁";
+            String value=node.type==CloudNode.TYPE_FOLDER ? "Папка · ☁" : humanSize(node.size)+" · "+state;
             cell.setTextAndValue((node.type==CloudNode.TYPE_FOLDER ? "📁 " : "📄 ")+node.name, value, true);
             cell.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
             cell.setOnClickListener(v -> {
                 if(node.type==CloudNode.TYPE_FOLDER) presentFragment(new TelePremiumCloudActivity(account,node.id,node.name));
+                else downloads.download(node,(state,file,error)-> {
+                    if(error!=null) showStatus(context,"Ошибка: "+error);
+                    else if(state==CloudDownloadManager.DOWNLOADING) showStatus(context,"Скачивание "+node.name+"…");
+                    else render(context);
+                });
             });
             cell.setOnLongClickListener(v -> { showNodeMenu(context,node); return true; });
             content.addView(cell,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(58)));
@@ -110,10 +119,12 @@ public class TelePremiumCloudActivity extends BaseFragment {
     }
 
     private void showNodeMenu(Context context, CloudNode node) {
-        CharSequence[] items=new CharSequence[]{"Переименовать",node.favorite?"Убрать из избранного":"В избранное","В корзину"};
+        CharSequence[] items=node.type==CloudNode.TYPE_FILE ? new CharSequence[]{"Переименовать",node.favorite?"Убрать из избранного":"В избранное","Скачать / хранить офлайн","Освободить место","В корзину"} : new CharSequence[]{"Переименовать",node.favorite?"Убрать из избранного":"В избранное","В корзину"};
         new AlertDialog.Builder(context).setItems(items,(d,which)-> {
             if(which==0) rename(context,node);
             else if(which==1) cloud.toggleFavorite(node,error->render(context));
+            else if(node.type==CloudNode.TYPE_FILE && which==2) downloads.download(node,(state,file,error)->render(context));
+            else if(node.type==CloudNode.TYPE_FILE && which==3) { downloads.releaseOffline(node); cloud.rename(node,node.name,error->render(context)); }
             else cloud.trash(node,error->render(context));
         }).show();
     }
