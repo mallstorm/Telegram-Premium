@@ -126,3 +126,25 @@ Implemented:
 - verifier coverage for the complete download/offline lifecycle.
 
 This closes the durable round-trip: a committed file can be rediscovered from cloud metadata after login, resolved to its Telegram document and downloaded again without any local database or original filesystem path.
+
+
+## Pass 4 — filesystem UX and integrity
+
+Implemented:
+- dedicated Favorites and Trash projections in File Center;
+- restore from Trash;
+- recursive folder destination picker;
+- metadata-only Move;
+- logical Copy with payload reuse;
+- filename search API;
+- virtual category API for images, video, audio, documents, APK and archives;
+- Telegram payload reference counting primitive;
+- permanent metadata deletion primitive separated from physical payload deletion;
+- integrity checker for duplicate UUIDs, orphan parent links and directory cycles;
+- source verifier coverage for the new filesystem layer.
+
+### Deletion invariant
+A logical CloudNode may be removed independently. A Telegram payload must not be physically deleted while another live CloudNode references the same Telegram document. This is required for deduplication and logical copies.
+
+### Integrity invariant
+The root and every active descendant must form an acyclic parent graph. Duplicate UUIDs, missing parents and cycles are treated as Cloud FS corruption and must be surfaced to recovery before destructive operations.
