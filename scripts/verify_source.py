@@ -189,6 +189,13 @@ checks = {
         "telegramDocumentId",
         "setDedupLookup",
     ],
+    "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudDownloadManager.java": [
+        "TL_messages_getMessages",
+        "FileLoader.getInstance(account).loadFile",
+        "NotificationCenter.fileLoaded",
+        "OFFLINE_AVAILABLE",
+        "file.delete()",
+    ],
 }
 
 failures = []
