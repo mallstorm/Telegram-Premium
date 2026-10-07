@@ -54,7 +54,7 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
         hero.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         content.addView(hero);
 
-        TextView section = new TextView(context);
+        TextCell cloud = addCell(content, context, "Облако", "Папки и файлы · восстановление после переустановки");\n        cloud.setOnClickListener(v -> presentFragment(new TelePremiumCloudActivity(currentAccount)));\n\n        TextView section = new TextView(context);
         section.setText("Загрузки по аккаунтам");
         section.setTextSize(14);
         section.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -90,7 +90,7 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
         downloadSettings.setOnClickListener(v -> presentFragment(new DataSettingsActivity()));
 
         TextView hint = new TextView(context);
-        hint.setText("На этом этапе File Center объединяет доступ к загрузкам всех аккаунтов. Единый локальный индекс PDF/DOCX/ZIP/APK/видео будет добавлен на этапе Pass 5E без дублирования самих файлов.");
+        hint.setText("TelePremium Cloud хранит структуру в Telegram Cloud. Локальные данные используются как кэш: после очистки данных или переустановки структура восстанавливается после входа в аккаунт.");
         hint.setTextSize(13);
         hint.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         hint.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(16), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
