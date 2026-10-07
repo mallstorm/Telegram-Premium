@@ -15,6 +15,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
     private final int account;
     private CloudNode activeNode;
     private TLRPC.Document activeDocument;
+    private TLRPC.Document lastResolvedDocument;
     private Callback activeCallback;
 
     public interface Callback { void onState(int state, File file, String error); }
@@ -33,6 +34,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
             TLRPC.Message m=((TLRPC.messages_Messages)response).messages.get(0);
             if(m.media==null || m.media.document==null){callback.onState(ERROR,null,"Telegram document отсутствует");return;}
             TLRPC.Document d=m.media.document;
+            lastResolvedDocument=d;
             File existing=FileLoader.getInstance(account).getPathToAttach(d,true);
             if(existing.exists()){node.offlineState=OFFLINE_AVAILABLE;callback.onState(OFFLINE_AVAILABLE,existing,null);return;}
             activeNode=node;activeDocument=d;activeCallback=callback;node.offlineState=DOWNLOADING;
@@ -45,9 +47,13 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
 
     public boolean releaseOffline(CloudNode node) {
         if(node==null || node.telegramMessageId==0)return false;
-        if(activeNode==node && activeDocument!=null) FileLoader.getInstance(account).cancelLoadFile(activeDocument);
-        node.offlineState=CLOUD_ONLY;
-        return true;
+        TLRPC.Document d=(activeNode==node?activeDocument:lastResolvedDocument);
+        if(d==null || d.id!=node.telegramDocumentId)return false;
+        FileLoader.getInstance(account).cancelLoadFile(d);
+        File file=FileLoader.getInstance(account).getPathToAttach(d,true);
+        boolean ok=!file.exists() || file.delete();
+        if(ok) node.offlineState=CLOUD_ONLY;
+        return ok;
     }
 
     @Override public void didReceivedNotification(int id,int accountId,Object... args) {
