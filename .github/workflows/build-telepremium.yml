@@ -19,7 +19,12 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
+      - name: Align Gradle wrapper with Android Gradle Plugin
+        run: |
+          sed -i -E 's#gradle-[0-9.]+-(all|bin)\\.zip#gradle-8.6-all.zip#' upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+          grep distributionUrl upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+
       - name: Apply TelePremium patches
         run: |
           python3 scripts/apply_telepremium_patches.py
