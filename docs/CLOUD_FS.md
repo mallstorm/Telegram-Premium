@@ -148,3 +148,23 @@ A logical CloudNode may be removed independently. A Telegram payload must not be
 
 ### Integrity invariant
 The root and every active descendant must form an acyclic parent graph. Duplicate UUIDs, missing parents and cycles are treated as Cloud FS corruption and must be surfaced to recovery before destructive operations.
+
+
+## Pass 5 — recovery, generations and multi-device safety
+
+Implemented:
+- operation journal model with operation UUID, node UUID, generation, client ID, timestamp and payload;
+- snapshot clientId and journalGeneration fields;
+- retrieval of multiple persisted Cloud FS generations;
+- recovery engine selects the newest structurally valid generation;
+- conflict resolver compares cloudId/generation/updatedAt;
+- commits re-read remote generation before publishing a new generation;
+- stale clients do not silently overwrite a newer remote generation;
+- diagnostics UI exposes Cloud ID, generation, node count and integrity errors;
+- verifier coverage for recovery/conflict/diagnostics.
+
+### Commit rule
+Before committing generation N+1, the client verifies the currently persisted remote generation. If another device has already advanced the cloud beyond the local base generation, the local mutation is not blindly published; the client adopts the newer state and asks the operation to be retried.
+
+### Recovery rule
+Bootstrap examines available generations and ignores structurally invalid snapshots. The highest valid generation is selected. This means a malformed latest record does not make the whole Cloud FS undiscoverable.
