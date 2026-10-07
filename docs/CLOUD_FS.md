@@ -78,3 +78,20 @@ Required follow-up implementation:
 ## Security
 
 No auth keys, session tokens, passcodes or credentials may be written to Cloud FS metadata.
+
+
+## Pass 2 — payload foundation and filesystem operations
+
+Implemented:
+- file-node metadata for SHA-256, original name and offline state;
+- streaming SHA-256 calculation;
+- Android URI import staging without loading the whole file into memory;
+- deduplication lookup by SHA-256;
+- logical copy reusing an existing Telegram payload binding;
+- move support through parentId mutation;
+- global favorites projection;
+- trash projection and restore primitive;
+- transfer-state model;
+- source verifier coverage for Cloud FS core.
+
+The physical Telegram document-send binding is intentionally kept behind `CloudPayloadRepository`. It must use the upstream Telegram send/file infrastructure; no parallel HTTP transport is allowed.
