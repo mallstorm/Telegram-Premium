@@ -24,8 +24,11 @@ public final class CloudNode {
     public long size;
     public long telegramMessageId;
     public long telegramDocumentId;
+    public String sha256;
+    public String originalName;
+    public int offlineState;
 
-    public static CloudNode folder(String parentId, String name) {
+    public static CloudNode file(String parentId, String name, String mimeType, long size, String sha256) {\n        CloudNode n = new CloudNode();\n        n.id = UUID.randomUUID().toString(); n.parentId = parentId; n.type = TYPE_FILE; n.name = name;\n        n.originalName = name; n.mimeType = mimeType; n.size = size; n.sha256 = sha256;\n        n.createdAt = n.modifiedAt = System.currentTimeMillis();\n        return n;\n    }\n\n    public static CloudNode folder(String parentId, String name) {
         CloudNode n = new CloudNode();
         n.id = UUID.randomUUID().toString();
         n.parentId = parentId;
@@ -40,7 +43,7 @@ public final class CloudNode {
         o.put("id", id); o.put("parentId", parentId); o.put("type", type); o.put("name", name);
         o.put("createdAt", createdAt); o.put("modifiedAt", modifiedAt); o.put("deletedAt", deletedAt);
         o.put("state", state); o.put("favorite", favorite); o.put("mimeType", mimeType);
-        o.put("size", size); o.put("telegramMessageId", telegramMessageId); o.put("telegramDocumentId", telegramDocumentId);
+        o.put("size", size); o.put("telegramMessageId", telegramMessageId); o.put("telegramDocumentId", telegramDocumentId);\n        o.put("sha256", sha256); o.put("originalName", originalName); o.put("offlineState", offlineState);
         return o;
     }
 
@@ -50,7 +53,7 @@ public final class CloudNode {
         n.name=o.optString("name"); n.createdAt=o.optLong("createdAt"); n.modifiedAt=o.optLong("modifiedAt");
         n.deletedAt=o.optLong("deletedAt"); n.state=o.optInt("state"); n.favorite=o.optBoolean("favorite");
         n.mimeType=o.optString("mimeType", null); n.size=o.optLong("size");
-        n.telegramMessageId=o.optLong("telegramMessageId"); n.telegramDocumentId=o.optLong("telegramDocumentId");
+        n.telegramMessageId=o.optLong("telegramMessageId"); n.telegramDocumentId=o.optLong("telegramDocumentId");\n        n.sha256=o.optString("sha256", null); n.originalName=o.optString("originalName", null); n.offlineState=o.optInt("offlineState");
         return n;
     }
 }
