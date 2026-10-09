@@ -5,7 +5,6 @@ import shutil
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "upstream" / "Telegram"
 PATCH_ROOT = ROOT / "patches" / "concept5" / "java"
-RESOURCE_ROOT = ROOT / "patches" / "concept5" / "res"
 
 
 def read(rel):
@@ -88,15 +87,6 @@ def copy_concept_sources():
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         print(f"copied: {rel}")
-    resource_destination = SRC / "TMessagesProj" / "src" / "main" / "res"
-    for source in RESOURCE_ROOT.rglob("*"):
-        if not source.is_file():
-            continue
-        rel = source.relative_to(RESOURCE_ROOT)
-        target = resource_destination / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, target)
-        print(f"copied resource: {rel}")
 
 
 if not SRC.exists():
@@ -106,48 +96,6 @@ if not SRC.exists():
     )
 
 copy_concept_sources()
-
-# Telegram sends updateLoginToken to the unauthorised account slot immediately
-# after another device accepts the QR code. Surface it to the QR login dialog so
-# it can exchange the accepted token before the display token is rotated.
-replace_once(
-    "TMessagesProj/src/main/java/org/telegram/messenger/NotificationCenter.java",
-    "    public static final int didUpdateConnectionState = totalEvents++;\n",
-    "    public static final int didUpdateConnectionState = totalEvents++;\n"
-    "    public static final int didReceiveLoginToken = totalEvents++;\n",
-)
-
-replace_once(
-    "TMessagesProj/src/main/java/org/telegram/messenger/MessagesController.java",
-    "            if (baseUpdate instanceof TLRPC.TL_updateNewMessage || baseUpdate instanceof TLRPC.TL_updateNewChannelMessage || baseUpdate instanceof TLRPC.TL_updateNewScheduledMessage) {",
-    "            if (baseUpdate instanceof TLRPC.TL_updateLoginToken) {\n"
-    "                AndroidUtilities.runOnUIThread(() -> getNotificationCenter().postNotificationName(NotificationCenter.didReceiveLoginToken));\n"
-    "                continue;\n"
-    "            } else if (baseUpdate instanceof TLRPC.TL_updateNewMessage || baseUpdate instanceof TLRPC.TL_updateNewChannelMessage || baseUpdate instanceof TLRPC.TL_updateNewScheduledMessage) {",
-)
-
-# Put the cloud next to Saved Messages in the drawer of every active profile.
-drawer = "TMessagesProj/src/main/java/org/telegram/ui/Adapters/DrawerLayoutAdapter.java"
-replace_once(
-    drawer,
-    "        items.add(new Item(11, LocaleController.getString(R.string.SavedMessages), savedIcon));\n"
-    "        items.add(new Item(8, LocaleController.getString(R.string.Settings), settingsIcon));",
-    "        items.add(new Item(11, LocaleController.getString(R.string.SavedMessages), savedIcon));\n"
-    "        items.add(new Item(18, \"Облако\", R.drawable.msg2_folder));\n"
-    "        items.add(new Item(8, LocaleController.getString(R.string.Settings), settingsIcon));",
-)
-
-launch_drawer = "TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
-replace_once(
-    launch_drawer,
-    "                } else if (id == 13) {\n"
-    "                    Browser.openUrl(LaunchActivity.this, LocaleController.getString(R.string.TelegramFeaturesUrl));",
-    "                } else if (id == 18) {\n"
-    "                    presentFragment(new TelePremiumCloudActivity(currentAccount));\n"
-    "                    drawerLayoutContainer.closeDrawer(false);\n"
-    "                } else if (id == 13) {\n"
-    "                    Browser.openUrl(LaunchActivity.this, LocaleController.getString(R.string.TelegramFeaturesUrl));",
-)
 
 # Login face: keep phone number as the primary screen and expose the two
 # alternative methods only from the agreed three-dot menu.
@@ -195,9 +143,7 @@ replace_once(
                     .setItems(new CharSequence[]{"Войти по QR-коду", "Войти с Passkey"}, (dialog, which) -> {
                         if (which == 0) {
                             new TelePremiumQrLoginDialog(getParentActivity(), currentAccount, (auth, error) -> {
-                                if (error != null && error.contains("SESSION_PASSWORD_NEEDED")) {
-                                    requestTelePremiumPassword();
-                                } else if (error != null) {
+                                if (error != null) {
                                     needShowAlert("QR-код", error);
                                 } else if (auth != null) {
                                     onAuthSuccess(auth);
@@ -221,33 +167,29 @@ replace_once(
                 cancelTelePremiumPasskey = null;
                 if ("CANCELLED".equals(error) || "EMPTY".equals(error)) return;
                 if (error != null && error.contains("SESSION_PASSWORD_NEEDED")) {
-                    requestTelePremiumPassword();
+                    TLRPC.TL_account_getPassword req = new TLRPC.TL_account_getPassword();
+                    ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, requestError) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (requestError == null) {
+                            TLRPC.account_Password password = (TLRPC.account_Password) response;
+                            if (!TwoStepVerificationActivity.canHandleCurrentPassword(password, true)) {
+                                AlertsCreator.showUpdateAppAlert(getParentActivity(), getString("UpdateAppAlert", R.string.UpdateAppAlert), true);
+                                return;
+                            }
+                            Bundle bundle = new Bundle();
+                            SerializedData data = new SerializedData(password.getObjectSize());
+                            password.serializeToStream(data);
+                            bundle.putString("password", Utilities.bytesToHex(data.toByteArray()));
+                            setPage(VIEW_PASSWORD, true, bundle, false);
+                        } else {
+                            needShowAlert(getString(R.string.RestorePasswordNoEmailTitle), requestError.text);
+                        }
+                    }), ConnectionsManager.RequestFlagFailOnServerErrors | ConnectionsManager.RequestFlagWithoutLogin);
                 } else if (error != null) {
                     needShowAlert("Passkey", error);
                 } else if (auth instanceof TLRPC.TL_auth_authorization) {
                     onAuthSuccess((TLRPC.TL_auth_authorization) auth);
                 }
             });
-        }
-
-        private void requestTelePremiumPassword() {
-            TLRPC.TL_account_getPassword req = new TLRPC.TL_account_getPassword();
-            ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, requestError) -> AndroidUtilities.runOnUIThread(() -> {
-                if (requestError == null) {
-                    TLRPC.account_Password password = (TLRPC.account_Password) response;
-                    if (!TwoStepVerificationActivity.canHandleCurrentPassword(password, true)) {
-                        AlertsCreator.showUpdateAppAlert(getParentActivity(), getString("UpdateAppAlert", R.string.UpdateAppAlert), true);
-                        return;
-                    }
-                    Bundle bundle = new Bundle();
-                    SerializedData data = new SerializedData(password.getObjectSize());
-                    password.serializeToStream(data);
-                    bundle.putString("password", Utilities.bytesToHex(data.toByteArray()));
-                    setPage(VIEW_PASSWORD, true, bundle, false);
-                } else {
-                    needShowAlert(getString(R.string.RestorePasswordNoEmailTitle), requestError.text);
-                }
-            }), ConnectionsManager.RequestFlagFailOnServerErrors | ConnectionsManager.RequestFlagWithoutLogin);
         }
 
         @Override
@@ -1337,4 +1279,3 @@ p.write_text(src.replace(old_voice_lock, new_voice_lock), encoding="utf-8")
 print(f"patched: {privacy_control} :: removed {count} voice privacy lock icons")
 
 print("TelePremium Concept 5 patches applied successfully.")
-

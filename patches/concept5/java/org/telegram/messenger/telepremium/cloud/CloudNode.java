@@ -10,8 +10,6 @@ public final class CloudNode {
     public static final int TYPE_FILE = 1;
     public static final int STATE_ACTIVE = 0;
     public static final int STATE_TRASHED = 1;
-    /** Persistent tombstone. It prevents an older cloud generation from resurrecting a deleted node. */
-    public static final int STATE_DELETED = 2;
 
     public String id;
     public String parentId;
@@ -69,4 +67,3 @@ public final class CloudNode {
         return n;
     }
 }
-

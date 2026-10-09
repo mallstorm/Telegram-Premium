@@ -2,7 +2,7 @@ name: Build TelePremium APK
 
 on:
   push:
-    branches: [ main, release/api-id-20261008 ]
+    branches: [ main ]
   workflow_dispatch:
   pull_request:
     branches: [ main ]

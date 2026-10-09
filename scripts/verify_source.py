@@ -153,8 +153,8 @@ checks = {
         "checkProfile",
     ],
     "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumFileCenterActivity.java": [
-        "Облако по профилям",
-        "new TelePremiumCloudActivity(-1)",
+        "TelePremium File Center",
+        "TelePremiumDownloadsActivity",
     ],
     "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java": [
         "Синхронизация облака",
@@ -162,21 +162,11 @@ checks = {
         "TelePremiumCloudManager.getInstance",
         "ACTION_OPEN_DOCUMENT",
         "payloads.importUri",
-        "Все аккаунты",
-        "AndroidUtilities.openForView",
-        "Удалить окончательно?",
-        "Фильтры",
-        "Мои папки",
-        "Все файлы",
-        "startDragAndDrop",
-        "Последние файлы",
-        "compactCount",
     ],
     "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudNode.java": [
         "public String sha256",
         "telegramMessageId",
         "telegramDocumentId",
-        "STATE_DELETED",
     ],
     "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelegramCloudMetadataStore.java": [
         "#TELEPREMIUM_CLOUD_V1",
@@ -188,10 +178,6 @@ checks = {
         "public void copy",
         "trashItems",
         "favorites",
-        "TL_messages_deleteMessages",
-        "setTreeState",
-        "public List<CloudNode> allFiles()",
-        "public int countFiles(String folderId)",
     ],
     "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudFileHasher.java": [
         "SHA-256",
@@ -474,4 +460,3 @@ print("TelePremium no-ads: sponsored fetching/rendering disabled")
 print("Concept 5: custom Premium overview + Business row removed + center UI")
 print("UI scale: app-wide density/scaledDensity, default 92%")
 print("Login: custom-package Firebase/Play Integrity SMS path disabled; Telegram fallback enabled")
-
