@@ -31,7 +31,8 @@ public final class TelegramCloudMetadataStore {
                     if (m.message == null || !m.message.startsWith(PREFIX)) continue;
                     try {
                         CloudSnapshot candidate = CloudSnapshot.decode(m.message.substring(PREFIX.length()));
-                        if (best == null || candidate.generation > best.generation) best = candidate;
+                        if (best == null || candidate.generation > best.generation ||
+                                candidate.generation == best.generation && candidate.updatedAt > best.updatedAt) best = candidate;
                     } catch (Exception ignore) {}
                 }
             }
@@ -65,3 +66,4 @@ public final class TelegramCloudMetadataStore {
         }
     }
 }
+

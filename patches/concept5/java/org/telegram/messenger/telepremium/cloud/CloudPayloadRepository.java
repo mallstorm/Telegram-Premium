@@ -1,6 +1,7 @@
 package org.telegram.messenger.telepremium.cloud;
 
 import android.net.Uri;
+import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLoader;
@@ -24,8 +25,8 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     private DedupLookup dedupLookup;
     public void setDedupLookup(DedupLookup lookup){this.dedupLookup=lookup;}
     private static final class Pending {
-        CloudNode node; File temp; ImportCallback callback;
-        Pending(CloudNode node, File temp, ImportCallback callback){this.node=node;this.temp=temp;this.callback=callback;}
+        CloudNode node; ImportCallback callback;
+        Pending(CloudNode node, ImportCallback callback){this.node=node;this.callback=callback;}
     }
 
     public CloudPayloadRepository(int account){this.account=account;}
@@ -48,8 +49,8 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                     node.telegramDocumentId=existing.telegramDocumentId; node.telegramMessageId=existing.telegramMessageId;
                     temp.delete(); AndroidUtilities.runOnUIThread(() -> callback.onComplete(node,null)); return;
                 }
-                File staged=temp;
-                AndroidUtilities.runOnUIThread(() -> sendToSavedMessages(node,staged,callback));
+                temp.delete();
+                AndroidUtilities.runOnUIThread(() -> sendToSavedMessages(node,uri,callback));
             } catch(Exception e) {
                 if(temp!=null) temp.delete(); FileLog.e(e);
                 AndroidUtilities.runOnUIThread(() -> callback.onComplete(null,e.getMessage()));
@@ -57,15 +58,15 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         });
     }
 
-    private void sendToSavedMessages(CloudNode node, File file, ImportCallback callback) {
-        pending=new Pending(node,file,callback);
+    private void sendToSavedMessages(CloudNode node, Uri uri, ImportCallback callback) {
+        pending=new Pending(node,callback);
         NotificationCenter.getInstance(account).addObserver(this,NotificationCenter.messageReceivedByServer);
         long selfId=UserConfig.getInstance(account).getClientUserId();
         SendMessagesHelper.prepareSendingDocument(
-                account,
-                file.getAbsolutePath(),
-                file.getAbsolutePath(),
+                AccountInstance.getInstance(account),
                 null,
+                null,
+                uri,
                 node.name,
                 node.mimeType,
                 selfId,
@@ -73,8 +74,13 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                 null,
                 null,
                 null,
+                null,
                 false,
-                0
+                0,
+                null,
+                null,
+                0,
+                false
         );
     }
 
@@ -90,7 +96,6 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
             pending.node.telegramDocumentId=message.media.document.id;
             Pending done=pending; pending=null;
             NotificationCenter.getInstance(account).removeObserver(this,NotificationCenter.messageReceivedByServer);
-            if(done.temp!=null) done.temp.delete();
             done.callback.onComplete(done.node,null);
         } catch(Exception e) {
             FileLog.e(e);
@@ -105,7 +110,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         if(pending==null)return;
         Pending done=pending; pending=null;
         NotificationCenter.getInstance(account).removeObserver(this,NotificationCenter.messageReceivedByServer);
-        if(done.temp!=null)done.temp.delete();
         done.callback.onComplete(null,"Отменено");
     }
 }
+

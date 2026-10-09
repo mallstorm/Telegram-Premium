@@ -19,16 +19,17 @@ import com.google.zxing.common.BitMatrix;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 
-public class TelePremiumQrLoginDialog extends Dialog {
+public class TelePremiumQrLoginDialog extends Dialog implements NotificationCenter.NotificationCenterDelegate {
     private final int account;
     private final Utilities.Callback2<TLRPC.TL_auth_authorization,String> done;
-    private ImageView qr; private TextView status; private boolean stopped; private Runnable refresh;
+    private ImageView qr; private TextView status; private boolean stopped; private boolean requesting; private Runnable refresh;
 
     public TelePremiumQrLoginDialog(Context context,int account,Utilities.Callback2<TLRPC.TL_auth_authorization,String> done){
         super(context,android.R.style.Theme_Material_Light_NoActionBar); this.account=account; this.done=done;
@@ -42,22 +43,32 @@ public class TelePremiumQrLoginDialog extends Dialog {
         TextView help=new TextView(getContext()); help.setText("Откройте Telegram на уже авторизованном устройстве → Настройки → Устройства → Подключить устройство и отсканируйте этот код."); help.setTextSize(16); help.setTextColor(0xff555555); help.setGravity(Gravity.CENTER); LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);hp.setMargins(dp(24),dp(16),dp(24),dp(20));root.addView(help,hp);
         qr=new ImageView(getContext()); root.addView(qr,new LinearLayout.LayoutParams(dp(280),dp(280)));
         status=new TextView(getContext()); status.setText("Получаем код…"); status.setTextSize(15); status.setTextColor(0xff777777); status.setGravity(Gravity.CENTER); LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,-2);sp.setMargins(0,dp(18),0,0);root.addView(status,sp);
-        setContentView(root,new ViewGroup.LayoutParams(-1,-1)); requestToken();
+        setContentView(root,new ViewGroup.LayoutParams(-1,-1));
+        NotificationCenter.getInstance(account).addObserver(this,NotificationCenter.didReceiveLoginToken);
+        requestToken();
     }
     private int dp(int v){return AndroidUtilities.dp(v);}
     private void requestToken(){
-        if(stopped)return; TLRPC.TL_auth_exportLoginToken req=new TLRPC.TL_auth_exportLoginToken(); req.api_id=BuildVars.APP_ID; req.api_hash=BuildVars.APP_HASH;
+        if(stopped||requesting)return; requesting=true; TLRPC.TL_auth_exportLoginToken req=new TLRPC.TL_auth_exportLoginToken(); req.api_id=BuildVars.APP_ID; req.api_hash=BuildVars.APP_HASH;
         for(int i=0;i<UserConfig.MAX_ACCOUNT_COUNT;i++){UserConfig u=UserConfig.getInstance(i);if(u.isClientActivated())req.except_ids.add(u.getClientUserId());}
-        ConnectionsManager.getInstance(account).sendRequest(req,(res,err)->AndroidUtilities.runOnUIThread(()->handle(res,err==null?null:err.text)),ConnectionsManager.RequestFlagWithoutLogin);
+        ConnectionsManager.getInstance(account).sendRequest(req,(res,err)->AndroidUtilities.runOnUIThread(()->{requesting=false;handle(res,err==null?null:err.text);}),ConnectionsManager.RequestFlagWithoutLogin);
     }
     private void handle(TLObject res,String err){
         if(stopped)return;
-        if(err!=null){status.setText("Ошибка: "+err); schedule(3000);return;}
-        if(res instanceof TLRPC.TL_auth_loginToken){TLRPC.TL_auth_loginToken t=(TLRPC.TL_auth_loginToken)res; String data="tg://login?token="+Base64.encodeToString(t.token,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING); render(data); status.setText("Ожидание сканирования…"); long ms=Math.max(3000L,Math.min(20000L,(t.expires-System.currentTimeMillis()/1000L-2L)*1000L));schedule(ms);}
+        if(err!=null){
+            if(err.contains("SESSION_PASSWORD_NEEDED")){
+                dismiss();
+                done.run(null,"SESSION_PASSWORD_NEEDED");
+                return;
+            }
+            status.setText("Ошибка: "+err); schedule(3000);return;
+        }
+        if(res instanceof TLRPC.TL_auth_loginToken){TLRPC.TL_auth_loginToken t=(TLRPC.TL_auth_loginToken)res; String data="tg://login?token="+Base64.encodeToString(t.token,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING); render(data); status.setText("Ожидание сканирования…"); long ms=Math.max(1000L,(t.expires-System.currentTimeMillis()/1000L-1L)*1000L);schedule(ms);}
         else if(res instanceof TLRPC.TL_auth_loginTokenMigrateTo){TLRPC.TL_auth_loginTokenMigrateTo m=(TLRPC.TL_auth_loginTokenMigrateTo)res;TLRPC.TL_auth_importLoginToken q=new TLRPC.TL_auth_importLoginToken();q.token=m.token;ConnectionsManager.getInstance(account).sendRequest(q,(r,e)->AndroidUtilities.runOnUIThread(()->handle(r,e==null?null:e.text)),null,null,ConnectionsManager.RequestFlagWithoutLogin,m.dc_id,ConnectionsManager.ConnectionTypeGeneric,true);}
         else if(res instanceof TLRPC.TL_auth_loginTokenSuccess){TLRPC.auth_Authorization a=((TLRPC.TL_auth_loginTokenSuccess)res).authorization;if(a instanceof TLRPC.TL_auth_authorization){dismiss();done.run((TLRPC.TL_auth_authorization)a,null);}else done.run(null,"Unsupported authorization response");}
     }
     private void schedule(long delay){if(refresh!=null)AndroidUtilities.cancelRunOnUIThread(refresh);refresh=this::requestToken;AndroidUtilities.runOnUIThread(refresh,delay);}
+    @Override public void didReceivedNotification(int id,int notificationAccount,Object...args){if(id==NotificationCenter.didReceiveLoginToken&&notificationAccount==account&&!stopped){AndroidUtilities.runOnUIThread(()->{if(refresh!=null)AndroidUtilities.cancelRunOnUIThread(refresh);status.setText("QR-код принят. Завершаем вход…");requestToken();});}}
     private void render(String text){try{Bitmap b=new QRCodeWriter().encode(text,700,700,null,null);qr.setImageBitmap(b);}catch(Exception e){FileLog.e(e);status.setText("Не удалось создать QR-код");}}
-    @Override public void dismiss(){stopped=true;if(refresh!=null)AndroidUtilities.cancelRunOnUIThread(refresh);super.dismiss();}
+    @Override public void dismiss(){stopped=true;if(refresh!=null)AndroidUtilities.cancelRunOnUIThread(refresh);NotificationCenter.getInstance(account).removeObserver(this,NotificationCenter.didReceiveLoginToken);super.dismiss();}
 }

@@ -2,7 +2,7 @@ name: Build TelePremium APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, release/api-id-20261008 ]
   workflow_dispatch:
   pull_request:
     branches: [ main ]
@@ -12,6 +12,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
+      - name: Free runner disk for Telegram native build
+        run: |
+          df -h
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          if [ -n "${ANDROID_HOME:-}" ]; then
+            sudo rm -rf "$ANDROID_HOME/system-images"
+            if [ -d "$ANDROID_HOME/ndk" ]; then
+              find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d ! -name '21.4.7075529' -exec sudo rm -rf {} \;
+            fi
+          fi
+          df -h
+          available_kb=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR==2 {print $4}')
+          if [ "$available_kb" -lt 26214400 ]; then
+            echo "::error::Telegram native build requires at least 25 GiB of free disk"
+            exit 1
+          fi
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -20,23 +36,104 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Align Gradle wrapper with Android Gradle Plugin
+        run: |
+          sed -i 's/gradle-7.0.2-bin.zip/gradle-8.6-bin.zip/' upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+          grep distributionUrl upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+
       - name: Apply TelePremium patches
         run: |
+          java scripts/CheckJavaSyntax.java
           python3 scripts/apply_telepremium_patches.py
           python3 scripts/verify_source.py
-      - name: Build APK
+      - name: Inject Telegram API credentials
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: python3 scripts/configure_telegram_api.py
+      - name: Configure arm64 APK for Android phone
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("upstream/Telegram")
+          app = root / "TMessagesProj_App/build.gradle"
+          text = app.read_text()
+          filters = 'abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"'
+          if filters not in text:
+              raise SystemExit("Expected upstream app ABI filters not found")
+          app.write_text(text.replace(filters, 'abiFilters "arm64-v8a"'))
+          core = root / "TMessagesProj/build.gradle"
+          text = core.read_text()
+          if "android {" not in text:
+              raise SystemExit("Expected upstream Android library configuration not found")
+          core.write_text(text.replace("android {", 'android {\n    defaultConfig { ndk { abiFilters "arm64-v8a" } }', 1))
+          PY
+      - name: Prepare Gradle build
         working-directory: upstream/Telegram
         run: |
           chmod +x gradlew
-          ./gradlew TMessagesProj_App:assembleDebug --stacktrace
-      - name: Collect APK
+          python3 - <<'PYCONFIG'
+          import copy
+          import json
+          from pathlib import Path
+          path = Path("TMessagesProj_App/google-services.json")
+          config = json.loads(path.read_text())
+          clients = config.get("client", [])
+          if not clients:
+              raise SystemExit("Google Services configuration has no client")
+          packages = {c["client_info"]["android_client_info"]["package_name"] for c in clients}
+          for package in ("com.telepremium.messenger", "com.telepremium.messenger.beta"):
+              if package not in packages:
+                  client = copy.deepcopy(clients[0])
+                  client["client_info"]["android_client_info"]["package_name"] = package
+                  clients.append(client)
+          path.write_text(json.dumps(config))
+          PYCONFIG
+          mkdir -p "$GITHUB_WORKSPACE/diagnostics"
+      - name: Check release resources and Java before native build
+        working-directory: upstream/Telegram
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=1m 20m ./gradlew :TMessagesProj_App:processAfatReleaseResources :TMessagesProj:compileReleaseJavaWithJavac --stacktrace --console=plain 2>&1 | tee "$GITHUB_WORKSPACE/diagnostics/gradle-java.log"
+          compile_status=${PIPESTATUS[0]}
+          set -e
+          echo "$compile_status" > "$GITHUB_WORKSPACE/diagnostics/java-exit-code.txt"
+          exit "$compile_status"
+      - name: Build APK
+        working-directory: upstream/Telegram
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=2m 65m ./gradlew TMessagesProj_App:assembleAfatRelease --stacktrace --console=plain 2>&1 | tee "$GITHUB_WORKSPACE/diagnostics/gradle-build.log"
+          build_status=${PIPESTATUS[0]}
+          set -e
+          echo "$build_status" > "$GITHUB_WORKSPACE/diagnostics/gradle-exit-code.txt"
+          exit "$build_status"
+      - name: Save build diagnostics
         if: always()
+        run: |
+          mkdir -p diagnostics
+          df -h > diagnostics/disk.txt
+          free -h > diagnostics/memory.txt
+          git rev-parse HEAD > diagnostics/commit.txt
+          git submodule status > diagnostics/submodules.txt
+          find upstream/Telegram -type f -path '*/build/reports/*' -name '*.html' -exec cp --parents {} diagnostics/ \;
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TelePremium-Build-Diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: diagnostics/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Collect APK
+        if: success()
         run: |
           mkdir -p artifacts
           find upstream/Telegram -type f -name '*.apk' -exec cp {} artifacts/ \; || true
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
           name: TelePremium-Cloud-APK
           path: artifacts/*.apk
           if-no-files-found: warn
+
+

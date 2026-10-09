@@ -45,17 +45,11 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
                 ScrollView.LayoutParams.WRAP_CONTENT
         ));
 
-        TextView hero = new TextView(context);
-        hero.setText("TelePremium File Center\nФайлы и загрузки всех аккаунтов");
-        hero.setTextSize(20);
-        hero.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        hero.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-        hero.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(18), AndroidUtilities.dp(21), AndroidUtilities.dp(18));
-        hero.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-        content.addView(hero);
+        TextCell cloud = addCell(content, context, "Облако", "Файлы всех подключённых профилей");
+        cloud.setOnClickListener(v -> presentFragment(new TelePremiumCloudActivity(-1)));
 
-        TextCell cloud = addCell(content, context, "Облако", "Папки и файлы · восстановление после переустановки");\n        cloud.setOnClickListener(v -> presentFragment(new TelePremiumCloudActivity(currentAccount)));\n\n        TextView section = new TextView(context);
-        section.setText("Загрузки по аккаунтам");
+        TextView section = new TextView(context);
+        section.setText("Облако по профилям");
         section.setTextSize(14);
         section.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         section.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
@@ -71,8 +65,8 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
             TLRPC.User user = config.getCurrentUser();
             String name = user == null ? "Аккаунт " + (account + 1) : UserObject.getUserName(user);
 
-            TextCell cell = addCell(content, context, name, "Загрузки и скачанные файлы");
-            cell.setOnClickListener(v -> presentFragment(new TelePremiumDownloadsActivity(accountId)));
+            TextCell cell = addCell(content, context, name, "Папки и файлы профиля");
+            cell.setOnClickListener(v -> presentFragment(new TelePremiumCloudActivity(accountId)));
         }
 
         TextView tools = new TextView(context);
@@ -89,13 +83,6 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
         TextCell downloadSettings = addCell(content, context, "Настройки загрузок", "Автозагрузка, мобильная сеть и Wi-Fi");
         downloadSettings.setOnClickListener(v -> presentFragment(new DataSettingsActivity()));
 
-        TextView hint = new TextView(context);
-        hint.setText("TelePremium Cloud хранит структуру в Telegram Cloud. Локальные данные используются как кэш: после очистки данных или переустановки структура восстанавливается после входа в аккаунт.");
-        hint.setTextSize(13);
-        hint.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
-        hint.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(16), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
-        content.addView(hint);
-
         fragmentView = scrollView;
         return fragmentView;
     }
@@ -111,3 +98,4 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
         return cell;
     }
 }
+

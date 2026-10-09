@@ -10,6 +10,8 @@ public final class CloudNode {
     public static final int TYPE_FILE = 1;
     public static final int STATE_ACTIVE = 0;
     public static final int STATE_TRASHED = 1;
+    /** Persistent tombstone. It prevents an older cloud generation from resurrecting a deleted node. */
+    public static final int STATE_DELETED = 2;
 
     public String id;
     public String parentId;
@@ -28,7 +30,15 @@ public final class CloudNode {
     public String originalName;
     public int offlineState;
 
-    public static CloudNode file(String parentId, String name, String mimeType, long size, String sha256) {\n        CloudNode n = new CloudNode();\n        n.id = UUID.randomUUID().toString(); n.parentId = parentId; n.type = TYPE_FILE; n.name = name;\n        n.originalName = name; n.mimeType = mimeType; n.size = size; n.sha256 = sha256;\n        n.createdAt = n.modifiedAt = System.currentTimeMillis();\n        return n;\n    }\n\n    public static CloudNode folder(String parentId, String name) {
+    public static CloudNode file(String parentId, String name, String mimeType, long size, String sha256) {
+        CloudNode n = new CloudNode();
+        n.id = UUID.randomUUID().toString(); n.parentId = parentId; n.type = TYPE_FILE; n.name = name;
+        n.originalName = name; n.mimeType = mimeType; n.size = size; n.sha256 = sha256;
+        n.createdAt = n.modifiedAt = System.currentTimeMillis();
+        return n;
+    }
+
+    public static CloudNode folder(String parentId, String name) {
         CloudNode n = new CloudNode();
         n.id = UUID.randomUUID().toString();
         n.parentId = parentId;
@@ -43,7 +53,8 @@ public final class CloudNode {
         o.put("id", id); o.put("parentId", parentId); o.put("type", type); o.put("name", name);
         o.put("createdAt", createdAt); o.put("modifiedAt", modifiedAt); o.put("deletedAt", deletedAt);
         o.put("state", state); o.put("favorite", favorite); o.put("mimeType", mimeType);
-        o.put("size", size); o.put("telegramMessageId", telegramMessageId); o.put("telegramDocumentId", telegramDocumentId);\n        o.put("sha256", sha256); o.put("originalName", originalName); o.put("offlineState", offlineState);
+        o.put("size", size); o.put("telegramMessageId", telegramMessageId); o.put("telegramDocumentId", telegramDocumentId);
+        o.put("sha256", sha256); o.put("originalName", originalName); o.put("offlineState", offlineState);
         return o;
     }
 
@@ -53,7 +64,9 @@ public final class CloudNode {
         n.name=o.optString("name"); n.createdAt=o.optLong("createdAt"); n.modifiedAt=o.optLong("modifiedAt");
         n.deletedAt=o.optLong("deletedAt"); n.state=o.optInt("state"); n.favorite=o.optBoolean("favorite");
         n.mimeType=o.optString("mimeType", null); n.size=o.optLong("size");
-        n.telegramMessageId=o.optLong("telegramMessageId"); n.telegramDocumentId=o.optLong("telegramDocumentId");\n        n.sha256=o.optString("sha256", null); n.originalName=o.optString("originalName", null); n.offlineState=o.optInt("offlineState");
+        n.telegramMessageId=o.optLong("telegramMessageId"); n.telegramDocumentId=o.optLong("telegramDocumentId");
+        n.sha256=o.optString("sha256", null); n.originalName=o.optString("originalName", null); n.offlineState=o.optInt("offlineState");
         return n;
     }
 }
+
