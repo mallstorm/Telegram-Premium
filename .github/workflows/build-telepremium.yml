@@ -2,7 +2,7 @@ name: Build TelePremium APK
 
 on:
   push:
-    branches: [ main, release/api-id-20261008 ]
+    branches: [ main, release/api-id-20261008, feature/themes-cloud-v2 ]
   workflow_dispatch:
   pull_request:
     branches: [ main ]
@@ -45,7 +45,23 @@ jobs:
         run: |
           java scripts/CheckJavaSyntax.java
           python3 scripts/apply_telepremium_patches.py
+          python3 scripts/apply_themes_cloud_v2.py
+          python3 scripts/apply_themes_cloud_v2_visibility.py
+          python3 scripts/apply_visual_transfer_v3.py
+          python3 scripts/apply_drawer_body_artwork.py
+          python3 scripts/apply_theme_isolation_cloud_security_v4.py
+          python3 scripts/cloud_v2_verify_compat.py
           python3 scripts/verify_source.py
+          python3 scripts/verify_themes_cloud_v2.py
+          python3 scripts/verify_visual_transfer_v3.py
+          python3 scripts/verify_theme_isolation_cloud_security_v4.py
+          python3 scripts/apply_product_polish_v5.py
+          python3 scripts/verify_product_polish_v5.py
+          python3 scripts/apply_cloud_streaming_v6.py
+          python3 scripts/verify_cloud_streaming_v6.py
+          python3 scripts/apply_media_center_v7.py
+          python3 scripts/verify_media_center_v7.py
+          grep -q 'TelePremiumThemeArtwork.drawerBody' upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/DrawerLayoutContainer.java
       - name: Inject Telegram API credentials
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
@@ -80,7 +96,7 @@ jobs:
           config = json.loads(path.read_text())
           clients = config.get("client", [])
           if not clients:
-              raise SystemExit("Google Services configuration has no client")
+            raise SystemExit("Google Services configuration has no client")
           packages = {c["client_info"]["android_client_info"]["package_name"] for c in clients}
           for package in ("com.telepremium.messenger", "com.telepremium.messenger.beta"):
               if package not in packages:
@@ -135,5 +151,3 @@ jobs:
           name: TelePremium-Cloud-APK
           path: artifacts/*.apk
           if-no-files-found: warn
-
-
