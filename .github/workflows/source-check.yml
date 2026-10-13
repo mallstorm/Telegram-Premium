@@ -2,7 +2,7 @@ name: Source Check
 
 on:
   push:
-    branches: [ main, bootstrap-source, concept5-pass5, feature/themes-cloud-v2 ]
+    branches: [ main, bootstrap-source, concept5-pass5, feature/themes-cloud-v2, sync-v10-20261013 ]
   pull_request:
   workflow_dispatch:
 
