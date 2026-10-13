@@ -2,7 +2,7 @@ name: Source Check
 
 on:
   push:
-    branches: [ main, bootstrap-source, concept5-pass5 ]
+    branches: [ main, bootstrap-source, concept5-pass5, feature/themes-cloud-v2 ]
   pull_request:
   workflow_dispatch:
 
@@ -16,11 +16,26 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
-      - name: Apply TelePremium patches
-        run: python3 scripts/apply_telepremium_patches.py
-
-      - name: Verify source invariants
-        run: python3 scripts/verify_source.py
+      - name: Apply and verify TelePremium patches
+        run: |
+          python3 scripts/apply_telepremium_patches.py
+          python3 scripts/apply_themes_cloud_v2.py
+          python3 scripts/apply_themes_cloud_v2_visibility.py
+          python3 scripts/apply_visual_transfer_v3.py
+          python3 scripts/apply_drawer_body_artwork.py
+          python3 scripts/apply_theme_isolation_cloud_security_v4.py
+          python3 scripts/cloud_v2_verify_compat.py
+          python3 scripts/verify_source.py
+          python3 scripts/verify_themes_cloud_v2.py
+          python3 scripts/verify_visual_transfer_v3.py
+          python3 scripts/verify_theme_isolation_cloud_security_v4.py
+          python3 scripts/apply_product_polish_v5.py
+          python3 scripts/verify_product_polish_v5.py
+          python3 scripts/apply_cloud_streaming_v6.py
+          python3 scripts/verify_cloud_streaming_v6.py
+          python3 scripts/apply_media_center_v7.py
+          python3 scripts/verify_media_center_v7.py
+          grep -q 'TelePremiumThemeArtwork.drawerBody' upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/DrawerLayoutContainer.java
 
       - name: Show pinned upstream revision
         run: git -C upstream/Telegram rev-parse HEAD
