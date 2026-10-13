@@ -44,7 +44,14 @@ import java.io.File;
 import java.util.List;
 import java.util.Locale;
 
-/** TelePremium Media Center player base. V10 MX-like behavior is applied by apply_media_center_v7.py. */
+/**
+ * TelePremium Media Center player.
+ *
+ * Portrait inherits the active TelePremium shell theme. Landscape keeps video
+ * pixels neutral while its transient chrome derives accent/surface values from
+ * the same shell. Seeking is gesture-driven: double tap the left/right half to
+ * jump -/+10 seconds; transport controls live only in the bottom bar.
+ */
 public class TelePremiumPlayerActivity extends Activity implements TelePremiumPlaybackController.Listener {
     public static final String EXTRA_PATH = "telepremium_player_path";
     public static final String EXTRA_NAME = "telepremium_player_name";
@@ -244,6 +251,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         FrameLayout.LayoutParams top = new FrameLayout.LayoutParams(-1, dp(72), Gravity.TOP);
         root.addView(topChrome, top);
 
+        // Deliberately no center transport controls. Video remains unobstructed;
+        // left/right double tap performs -/+10s and play/pause stays in bottom bar.
         bottomChrome = createBottomControls(true);
         FrameLayout.LayoutParams bottom = new FrameLayout.LayoutParams(-1, dp(122), Gravity.BOTTOM);
         root.addView(bottomChrome, bottom);
@@ -269,6 +278,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         titleView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         row.addView(titleView, new LinearLayout.LayoutParams(0, -1, 1f));
 
+        // Speed is intentionally absent here. It exists only in the bottom control row.
         hwButton = transparentButton("HW", 13);
         hwButton.setTextColor(chromeText);
         row.addView(hwButton, new LinearLayout.LayoutParams(dp(48), dp(42)));

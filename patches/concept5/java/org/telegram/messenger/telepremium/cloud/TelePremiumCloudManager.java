@@ -47,10 +47,15 @@ public final class TelePremiumCloudManager {
             if (error != null) { callback.onComplete(error); return; }
             CloudSnapshot loaded=new CloudRecoveryEngine().recover(generations);
             if (loaded != null) { snapshot=loaded; callback.onComplete(null); return; }
-            snapshot=new CloudSnapshot(); snapshot.clientId=clientId;
+            snapshot=new CloudSnapshot();
+            snapshot.clientId=clientId;
             TLRPC.User user=UserConfig.getInstance(account).getCurrentUser();
-            snapshot.ownerUserId=user == null ? 0 : user.id; snapshot.generation=1;
-            CloudNode root=CloudNode.folder(null, "Облако"); root.id="root"; snapshot.nodes.add(root); commit(callback);
+            snapshot.ownerUserId=user == null ? 0 : user.id;
+            snapshot.generation=1;
+            CloudNode root=CloudNode.folder(null, "Облако");
+            root.id="root";
+            snapshot.nodes.add(root);
+            commit(callback);
         });
     }
 
@@ -61,7 +66,8 @@ public final class TelePremiumCloudManager {
             boolean parent = parentId == null ? n.parentId == null : parentId.equals(n.parentId);
             if(parent && !"root".equals(n.id) && (trash ? n.state==CloudNode.STATE_TRASHED : n.state==CloudNode.STATE_ACTIVE)) out.add(n);
         }
-        Collections.sort(out, Comparator.comparingInt((CloudNode n)->n.type).thenComparing(n->n.name.toLowerCase())); return out;
+        Collections.sort(out, Comparator.comparingInt((CloudNode n)->n.type).thenComparing(n->n.name.toLowerCase()));
+        return out;
     }
 
     public CloudNode findByHash(String sha256) {
@@ -70,7 +76,10 @@ public final class TelePremiumCloudManager {
         return null;
     }
 
-    public void addFile(CloudNode node, Callback callback) { if(snapshot==null) { callback.onComplete("Cloud is not ready"); return; } snapshot.nodes.add(node); commit(callback); }
+    public void addFile(CloudNode node, Callback callback) {
+        if(snapshot==null) { callback.onComplete("Cloud is not ready"); return; }
+        snapshot.nodes.add(node); commit(callback);
+    }
 
     public void copy(CloudNode source, String parentId, Callback callback) {
         CloudNode n = source.type==CloudNode.TYPE_FOLDER ? CloudNode.folder(parentId, source.name + " (копия)") : CloudNode.file(parentId, source.name, source.mimeType, source.size, source.sha256);
@@ -79,65 +88,158 @@ public final class TelePremiumCloudManager {
     }
 
     public List<CloudNode> trashItems() {
-        if(snapshot==null) return Collections.emptyList(); ArrayList<CloudNode> out=new ArrayList<>();
-        for(CloudNode n:snapshot.nodes) { if(n.state!=CloudNode.STATE_TRASHED) continue; CloudNode parent=findById(n.parentId); if(parent==null || parent.state!=CloudNode.STATE_TRASHED) out.add(n); }
+        if(snapshot==null) return Collections.emptyList();
+        ArrayList<CloudNode> out=new ArrayList<>();
+        for(CloudNode n:snapshot.nodes) {
+            if(n.state!=CloudNode.STATE_TRASHED) continue;
+            CloudNode parent=findById(n.parentId);
+            if(parent==null || parent.state!=CloudNode.STATE_TRASHED) out.add(n);
+        }
         return out;
     }
 
-    public List<CloudNode> favorites() { if(snapshot==null) return Collections.emptyList(); ArrayList<CloudNode> out=new ArrayList<>(); for(CloudNode n:snapshot.nodes) if(n.favorite && n.state==CloudNode.STATE_ACTIVE) out.add(n); return out; }
-    public List<CloudNode> allFiles() { if(snapshot==null) return Collections.emptyList(); ArrayList<CloudNode> out=new ArrayList<>(); for(CloudNode n:snapshot.nodes) if(n.type==CloudNode.TYPE_FILE && n.state==CloudNode.STATE_ACTIVE) out.add(n); return out; }
-    public int countFiles(String folderId) { if(snapshot==null || folderId==null) return 0; return countFiles(folderId,new HashSet<>()); }
-    private int countFiles(String folderId,HashSet<String> visited) { if(!visited.add(folderId))return 0; int count=0; for(CloudNode n:snapshot.nodes){ if(n.state!=CloudNode.STATE_ACTIVE || !folderId.equals(n.parentId))continue; if(n.type==CloudNode.TYPE_FILE)count++;else count+=countFiles(n.id,visited);} return count; }
+    public List<CloudNode> favorites() {
+        if(snapshot==null) return Collections.emptyList();
+        ArrayList<CloudNode> out=new ArrayList<>(); for(CloudNode n:snapshot.nodes) if(n.favorite && n.state==CloudNode.STATE_ACTIVE) out.add(n); return out;
+    }
+
+    public List<CloudNode> allFiles() {
+        if(snapshot==null) return Collections.emptyList();
+        ArrayList<CloudNode> out=new ArrayList<>();
+        for(CloudNode n:snapshot.nodes) if(n.type==CloudNode.TYPE_FILE && n.state==CloudNode.STATE_ACTIVE) out.add(n);
+        return out;
+    }
+
+    public int countFiles(String folderId) {
+        if(snapshot==null || folderId==null) return 0;
+        return countFiles(folderId,new HashSet<>());
+    }
+
+    private int countFiles(String folderId,HashSet<String> visited) {
+        if(!visited.add(folderId))return 0;
+        int count=0;
+        for(CloudNode n:snapshot.nodes){
+            if(n.state!=CloudNode.STATE_ACTIVE || !folderId.equals(n.parentId))continue;
+            if(n.type==CloudNode.TYPE_FILE)count++;else count+=countFiles(n.id,visited);
+        }
+        return count;
+    }
 
     public List<CloudNode> search(String query) {
-        if(snapshot==null || query==null) return Collections.emptyList(); String q=query.trim().toLowerCase(); ArrayList<CloudNode> out=new ArrayList<>();
-        for(CloudNode n:snapshot.nodes) if(n.state==CloudNode.STATE_ACTIVE && !"root".equals(n.id) && n.name!=null && n.name.toLowerCase().contains(q)) out.add(n); return out;
+        if(snapshot==null || query==null) return Collections.emptyList();
+        String q=query.trim().toLowerCase(); ArrayList<CloudNode> out=new ArrayList<>();
+        for(CloudNode n:snapshot.nodes) if(n.state==CloudNode.STATE_ACTIVE && !"root".equals(n.id) && n.name!=null && n.name.toLowerCase().contains(q)) out.add(n);
+        return out;
     }
 
     public List<CloudNode> category(String kind) {
         if(snapshot==null)return Collections.emptyList(); ArrayList<CloudNode> out=new ArrayList<>();
         for(CloudNode n:snapshot.nodes){if(n.type!=CloudNode.TYPE_FILE||n.state!=CloudNode.STATE_ACTIVE)continue; String x=(n.name==null?"":n.name).toLowerCase(); String m=n.mimeType==null?"":n.mimeType;
             boolean hit=("images".equals(kind)&&m.startsWith("image/")) || ("video".equals(kind)&&m.startsWith("video/")) || ("audio".equals(kind)&&m.startsWith("audio/")) || ("apk".equals(kind)&&x.endsWith(".apk")) || ("archives".equals(kind)&&(x.endsWith(".zip")||x.endsWith(".rar")||x.endsWith(".7z")||x.endsWith(".tar")||x.endsWith(".gz")||x.endsWith(".tgz")||x.endsWith(".bz2")||x.endsWith(".xz"))) || ("documents".equals(kind)&&(m.startsWith("text/")||x.endsWith(".pdf")||x.endsWith(".doc")||x.endsWith(".docx")||x.endsWith(".xls")||x.endsWith(".xlsx")||x.endsWith(".ppt")||x.endsWith(".pptx")||x.endsWith(".epub")||x.endsWith(".rtf")));
-            if(hit)out.add(n);} return out;
+            if(hit)out.add(n);}
+        return out;
     }
 
-    public int payloadReferenceCount(CloudNode node) { if(snapshot==null||node==null||node.telegramDocumentId==0)return 0; int count=0; for(CloudNode n:snapshot.nodes)if(n.telegramDocumentId==node.telegramDocumentId && n.state!=CloudNode.STATE_DELETED)count++; return count; }
+    public int payloadReferenceCount(CloudNode node) {
+        if(snapshot==null||node==null||node.telegramDocumentId==0)return 0; int count=0;
+        for(CloudNode n:snapshot.nodes)if(n.telegramDocumentId==node.telegramDocumentId && n.state!=CloudNode.STATE_DELETED)count++; return count;
+    }
 
     public void deleteMetadataPermanently(CloudNode node, Callback callback) {
         if(snapshot==null||node==null){callback.onComplete("Cloud is not ready");return;}
-        long now=System.currentTimeMillis(); HashSet<Integer> payloadMessages=new HashSet<>(); markDeleted(node,now,payloadMessages);
-        commit(error->{ if(error!=null){callback.onComplete(error);return;} ArrayList<Integer> orphanMessages=new ArrayList<>(); for(Integer messageId:payloadMessages)if(!hasLiveReference(messageId))orphanMessages.add(messageId); deletePayloadMessages(orphanMessages,callback); });
+        long now=System.currentTimeMillis();
+        HashSet<Integer> payloadMessages=new HashSet<>();
+        markDeleted(node,now,payloadMessages);
+        commit(error->{
+            if(error!=null){callback.onComplete(error);return;}
+            ArrayList<Integer> orphanMessages=new ArrayList<>();
+            for(Integer messageId:payloadMessages)if(!hasLiveReference(messageId))orphanMessages.add(messageId);
+            deletePayloadMessages(orphanMessages,callback);
+        });
     }
 
     public CloudIntegrityChecker.Result checkIntegrity(){return new CloudIntegrityChecker().check(snapshot);}
-    public void createFolder(String parentId, String name, Callback callback) { if(snapshot==null) { callback.onComplete("Cloud is not ready"); return; } snapshot.nodes.add(CloudNode.folder(parentId, name)); commit(callback); }
-    public void rename(CloudNode node, String name, Callback callback) { node.name=name; node.modifiedAt=System.currentTimeMillis(); commit(callback); }
-    public void move(CloudNode node, String parentId, Callback callback) { node.parentId=parentId; node.modifiedAt=System.currentTimeMillis(); commit(callback); }
-    public void trash(CloudNode node, Callback callback) { long now=System.currentTimeMillis(); setTreeState(node,CloudNode.STATE_TRASHED,now); commit(callback); }
-    public void restore(CloudNode node, Callback callback) { long now=System.currentTimeMillis(); CloudNode parent=findById(node.parentId); if(parent==null || parent.state!=CloudNode.STATE_ACTIVE) node.parentId="root"; setTreeState(node,CloudNode.STATE_ACTIVE,now); commit(callback); }
-    public void toggleFavorite(CloudNode node, Callback callback) { node.favorite=!node.favorite; node.modifiedAt=System.currentTimeMillis(); commit(callback); }
 
-    private CloudNode findById(String id) { if(snapshot==null||id==null)return null; for(CloudNode n:snapshot.nodes)if(id.equals(n.id))return n; return null; }
-    private void setTreeState(CloudNode root,int state,long now) { root.state=state; root.modifiedAt=now; root.deletedAt=state==CloudNode.STATE_ACTIVE?0:now; if(root.type!=CloudNode.TYPE_FOLDER)return; for(CloudNode child:snapshot.nodes)if(root.id.equals(child.parentId))setTreeState(child,state,now); }
-    private void markDeleted(CloudNode root,long now,HashSet<Integer> payloadMessages) { root.state=CloudNode.STATE_DELETED; root.favorite=false; root.modifiedAt=now; root.deletedAt=now; if(root.telegramMessageId!=0)payloadMessages.add((int)root.telegramMessageId); if(root.type!=CloudNode.TYPE_FOLDER)return; for(CloudNode child:snapshot.nodes)if(root.id.equals(child.parentId))markDeleted(child,now,payloadMessages); }
-    private boolean hasLiveReference(int messageId) { for(CloudNode n:snapshot.nodes)if(n.telegramMessageId==messageId && n.state!=CloudNode.STATE_DELETED)return true; return false; }
+    public void createFolder(String parentId, String name, Callback callback) {
+        if(snapshot==null) { callback.onComplete("Cloud is not ready"); return; }
+        snapshot.nodes.add(CloudNode.folder(parentId, name));
+        commit(callback);
+    }
+
+    public void rename(CloudNode node, String name, Callback callback) {
+        node.name=name; node.modifiedAt=System.currentTimeMillis(); commit(callback);
+    }
+
+    public void move(CloudNode node, String parentId, Callback callback) {
+        node.parentId=parentId; node.modifiedAt=System.currentTimeMillis(); commit(callback);
+    }
+
+    public void trash(CloudNode node, Callback callback) {
+        long now=System.currentTimeMillis();
+        setTreeState(node,CloudNode.STATE_TRASHED,now); commit(callback);
+    }
+
+    public void restore(CloudNode node, Callback callback) {
+        long now=System.currentTimeMillis();
+        CloudNode parent=findById(node.parentId);
+        if(parent==null || parent.state!=CloudNode.STATE_ACTIVE) node.parentId="root";
+        setTreeState(node,CloudNode.STATE_ACTIVE,now); commit(callback);
+    }
+
+    public void toggleFavorite(CloudNode node, Callback callback) {
+        node.favorite=!node.favorite; node.modifiedAt=System.currentTimeMillis(); commit(callback);
+    }
+
+    private CloudNode findById(String id) {
+        if(snapshot==null||id==null)return null;
+        for(CloudNode n:snapshot.nodes)if(id.equals(n.id))return n;
+        return null;
+    }
+
+    private void setTreeState(CloudNode root,int state,long now) {
+        root.state=state; root.modifiedAt=now; root.deletedAt=state==CloudNode.STATE_ACTIVE?0:now;
+        if(root.type!=CloudNode.TYPE_FOLDER)return;
+        for(CloudNode child:snapshot.nodes)if(root.id.equals(child.parentId))setTreeState(child,state,now);
+    }
+
+    private void markDeleted(CloudNode root,long now,HashSet<Integer> payloadMessages) {
+        root.state=CloudNode.STATE_DELETED; root.favorite=false; root.modifiedAt=now; root.deletedAt=now;
+        if(root.telegramMessageId!=0)payloadMessages.add((int)root.telegramMessageId);
+        if(root.type!=CloudNode.TYPE_FOLDER)return;
+        for(CloudNode child:snapshot.nodes)if(root.id.equals(child.parentId))markDeleted(child,now,payloadMessages);
+    }
+
+    private boolean hasLiveReference(int messageId) {
+        for(CloudNode n:snapshot.nodes)if(n.telegramMessageId==messageId && n.state!=CloudNode.STATE_DELETED)return true;
+        return false;
+    }
 
     private void deletePayloadMessages(ArrayList<Integer> messageIds,Callback callback) {
         if(messageIds.isEmpty()){callback.onComplete(null);return;}
         peerManager.ensure((dialogId,error)->{
             if(error!=null || peerManager.getInputChannel()==null){callback.onComplete(error==null?"Cloud service peer unavailable":error);return;}
-            TLRPC.TL_channels_deleteMessages req=new TLRPC.TL_channels_deleteMessages(); req.channel=peerManager.getInputChannel(); req.id.addAll(messageIds);
-            ConnectionsManager.getInstance(account).sendRequest(req,(response,requestError)-> AndroidUtilities.runOnUIThread(()->callback.onComplete(requestError==null?null:requestError.text)));
+            TLRPC.TL_channels_deleteMessages req=new TLRPC.TL_channels_deleteMessages();
+            req.channel=peerManager.getInputChannel();
+            req.id.addAll(messageIds);
+            ConnectionsManager.getInstance(account).sendRequest(req,(response,requestError)->
+                    AndroidUtilities.runOnUIThread(()->callback.onComplete(requestError==null?null:requestError.text)));
         });
     }
 
-    private void commit(Callback callback) { commitMerged(callback, 0); }
+    private void commit(Callback callback) {
+        commitMerged(callback, 0);
+    }
+
     private void commitMerged(Callback callback, int attempt) {
         store.loadLatest((remote,error)->{
             if(error!=null){callback.onComplete(error);return;}
             if(remote!=null) snapshot=conflictResolver.merge(snapshot,remote);
-            snapshot.generation=Math.max(snapshot.generation,remote==null?0:remote.generation)+1; snapshot.journalGeneration++; snapshot.clientId=clientId;
-            store.save(snapshot, saveError -> { if (saveError != null && attempt < 2) commitMerged(callback, attempt + 1); else callback.onComplete(saveError); });
+            snapshot.generation=Math.max(snapshot.generation,remote==null?0:remote.generation)+1;
+            snapshot.journalGeneration++; snapshot.clientId=clientId;
+            store.save(snapshot, saveError -> {
+                if (saveError != null && attempt < 2) commitMerged(callback, attempt + 1);
+                else callback.onComplete(saveError);
+            });
         });
     }
 }

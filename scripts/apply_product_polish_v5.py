@@ -69,46 +69,95 @@ def remove_method(rel, signature):
     print(f"removed: {rel} :: {signature}")
 
 
+# 1) Keep chat/channel bubbles wide when the global shell is scaled down.
+# Pinned Telegram has slightly different repetition counts between the tablet
+# and phone branches, so replace every matching invariant instead of assuming
+# a fixed count. The verifier below checks that all four width families land.
 chat = "TMessagesProj/src/main/java/org/telegram/ui/Cells/ChatMessageCell.java"
-replace_once(chat,"import org.telegram.messenger.Utilities;\n","import org.telegram.messenger.Utilities;\nimport org.telegram.messenger.telepremium.TelePremiumUiScale;\n")
-replace_all(chat,"maxWidth = AndroidUtilities.getMinTabletSide() - AndroidUtilities.dp(122);","maxWidth = AndroidUtilities.getMinTabletSide() - TelePremiumUiScale.chatInsetPx(getContext(), 122);")
-replace_all(chat,"maxWidth = Math.min(getParentWidth(), AndroidUtilities.displaySize.y) - AndroidUtilities.dp(122);","maxWidth = Math.min(getParentWidth(), AndroidUtilities.displaySize.y) - TelePremiumUiScale.chatInsetPx(getContext(), 122);")
-replace_all(chat,"maxWidth = AndroidUtilities.getMinTabletSide() - AndroidUtilities.dp(80);","maxWidth = AndroidUtilities.getMinTabletSide() - TelePremiumUiScale.chatInsetPx(getContext(), 80);")
-replace_all(chat,"maxWidth = Math.min(getParentWidth(), AndroidUtilities.displaySize.y) - AndroidUtilities.dp(80);","maxWidth = Math.min(getParentWidth(), AndroidUtilities.displaySize.y) - TelePremiumUiScale.chatInsetPx(getContext(), 80);")
+replace_once(
+    chat,
+    "import org.telegram.messenger.Utilities;\n",
+    "import org.telegram.messenger.Utilities;\nimport org.telegram.messenger.telepremium.TelePremiumUiScale;\n",
+)
+replace_all(
+    chat,
+    "maxWidth = AndroidUtilities.getMinTabletSide() - AndroidUtilities.dp(122);",
+    "maxWidth = AndroidUtilities.getMinTabletSide() - TelePremiumUiScale.chatInsetPx(getContext(), 122);",
+)
+replace_all(
+    chat,
+    "maxWidth = Math.min(getParentWidth(), AndroidUtilities.displaySize.y) - AndroidUtilities.dp(122);",
+    "maxWidth = Math.min(getParentWidth(), AndroidUtilities.displaySize.y) - TelePremiumUiScale.chatInsetPx(getContext(), 122);",
+)
+replace_all(
+    chat,
+    "maxWidth = AndroidUtilities.getMinTabletSide() - AndroidUtilities.dp(80);",
+    "maxWidth = AndroidUtilities.getMinTabletSide() - TelePremiumUiScale.chatInsetPx(getContext(), 80);",
+)
+replace_all(
+    chat,
+    "maxWidth = Math.min(getParentWidth(), AndroidUtilities.displaySize.y) - AndroidUtilities.dp(80);",
+    "maxWidth = Math.min(getParentWidth(), AndroidUtilities.displaySize.y) - TelePremiumUiScale.chatInsetPx(getContext(), 80);",
+)
 
+# 2) Remove the old Recent files bottom sheet from Cloud completely.
 cloud = "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java"
 path, text = read(cloud)
 for line in (
-    "    private LinearLayout recentSheet;\n","    private LinearLayout recentList;\n","    private TextView recentCount;\n","    private TextView recentArrow;\n","    private boolean recentExpanded;\n","    private float recentTouchY;\n","    private float recentStartTranslation;\n","    private boolean recentDragging;\n","    private static final int RECENT_SHEET_HEIGHT_DP = 420;\n","    private static final int RECENT_SHEET_PEEK_DP = 68;\n",
-): text = text.replace(line, "")
+    "    private LinearLayout recentSheet;\n",
+    "    private LinearLayout recentList;\n",
+    "    private TextView recentCount;\n",
+    "    private TextView recentArrow;\n",
+    "    private boolean recentExpanded;\n",
+    "    private float recentTouchY;\n",
+    "    private float recentStartTranslation;\n",
+    "    private boolean recentDragging;\n",
+    "    private static final int RECENT_SHEET_HEIGHT_DP = 420;\n",
+    "    private static final int RECENT_SHEET_PEEK_DP = 68;\n",
+):
+    text = text.replace(line, "")
 text = text.replace("        createRecentSheet(root);\n", "")
 text = text.replace("AndroidUtilities.dp(152)", "AndroidUtilities.dp(88)", 1)
 text = text.replace("            showRecentSheet(false);\n", "")
 text = text.replace("        showRecentSheet(false);\n", "")
-text = text.replace("            addCategories();\n            addUserFolders();\n            updateRecentSheet();\n            showRecentSheet(true);\n            return;","            addCategories();\n            addUserFolders();\n            return;")
+text = text.replace(
+    "            addCategories();\n            addUserFolders();\n            updateRecentSheet();\n            showRecentSheet(true);\n            return;",
+    "            addCategories();\n            addUserFolders();\n            return;",
+)
 path.write_text(text, encoding="utf-8")
-for signature in ("private void createRecentSheet(FrameLayout root)","private boolean onRecentSheetTouch(MotionEvent event)","private void setRecentExpanded(boolean expanded, boolean animate)","private void showRecentSheet(boolean show)","private void updateRecentSheet()"):
+for signature in (
+    "private void createRecentSheet(FrameLayout root)",
+    "private boolean onRecentSheetTouch(MotionEvent event)",
+    "private void setRecentExpanded(boolean expanded, boolean animate)",
+    "private void showRecentSheet(boolean show)",
+    "private void updateRecentSheet()",
+):
     remove_method(cloud, signature)
 
+# 3) Prefer the built-in TelePremium player for audio/video downloaded from Cloud.
 path, text = read(cloud)
 old_open = '''            if(file==null || !file.exists())setSyncText("Скачанный файл не найден в кэше",false);\n            else if(!AndroidUtilities.openForView(file,item.node.name,resolvedMime(item.node),getParentActivity(),getResourceProvider(),false))\n                setSyncText("Нет приложения для открытия этого формата",false);'''
 new_open = '''            if(file==null || !file.exists())setSyncText("Скачанный файл не найден в кэше",false);\n            else {\n                String mime = resolvedMime(item.node);\n                if (TelePremiumPlayerActivity.canHandle(item.node.name, mime)) {\n                    TelePremiumPlayerActivity.open(getParentActivity(), file, item.node.name, mime);\n                } else if(!AndroidUtilities.openForView(file,item.node.name,mime,getParentActivity(),getResourceProvider(),false)) {\n                    setSyncText("Нет приложения для открытия этого формата",false);\n                }\n            }'''
 if new_open not in text:
     count = text.count(old_open)
-    if count != 1: raise SystemExit(f"{cloud}: Cloud open block expected once, found {count}")
+    if count != 1:
+        raise SystemExit(f"{cloud}: Cloud open block expected once, found {count}")
     text = text.replace(old_open, new_open, 1)
 path.write_text(text, encoding="utf-8")
 print("patched Cloud media opening")
 
+# 4) Register the native player as an Android VIEW handler for device media.
 manifest = "TMessagesProj/src/main/AndroidManifest.xml"
 player_activity = '''        <activity\n            android:name="org.telegram.ui.TelePremiumPlayerActivity"\n            android:theme="@style/Theme.TMessages"\n            android:configChanges="keyboardHidden|orientation|screenSize|uiMode"\n            android:hardwareAccelerated="true"\n            android:resizeableActivity="true"\n            android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="audio/*" />\n                <data android:mimeType="video/*" />\n            </intent-filter>\n            <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="application/ogg" />\n                <data android:mimeType="application/x-matroska" />\n            </intent-filter>\n        </activity>\n'''
 path, text = read(manifest)
 marker = '        <activity\n            android:name="org.telegram.ui.LaunchActivity"'
 if player_activity not in text:
-    if marker not in text: raise SystemExit(f"{manifest}: LaunchActivity marker not found")
+    if marker not in text:
+        raise SystemExit(f"{manifest}: LaunchActivity marker not found")
     text = text.replace(marker, player_activity + marker, 1)
     path.write_text(text, encoding="utf-8")
     print("registered TelePremium player")
-else: print("player already registered")
+else:
+    print("player already registered")
 
 print("TelePremium product polish V5 applied")

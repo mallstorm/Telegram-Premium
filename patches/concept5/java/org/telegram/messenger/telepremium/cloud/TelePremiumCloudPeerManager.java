@@ -17,10 +17,14 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
 
     private static final TelePremiumCloudPeerManager[] INSTANCES = new TelePremiumCloudPeerManager[UserConfig.MAX_ACCOUNT_COUNT];
 
-    public interface Callback { void onReady(long dialogId, String error); }
+    public interface Callback {
+        void onReady(long dialogId, String error);
+    }
 
     public static synchronized TelePremiumCloudPeerManager getInstance(int account) {
-        if (INSTANCES[account] == null) INSTANCES[account] = new TelePremiumCloudPeerManager(account);
+        if (INSTANCES[account] == null) {
+            INSTANCES[account] = new TelePremiumCloudPeerManager(account);
+        }
         return INSTANCES[account];
     }
 
@@ -37,10 +41,19 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
         accessHash = p.getLong("access_hash", 0);
     }
 
-    private SharedPreferences prefs() { return ApplicationLoader.applicationContext.getSharedPreferences("telepremium_cloud_peer_" + account, 0); }
+    private SharedPreferences prefs() {
+        return ApplicationLoader.applicationContext.getSharedPreferences("telepremium_cloud_peer_" + account, 0);
+    }
 
-    public long getChannelId() { if (channelId == 0) discoverLoadedChannel(); return channelId; }
-    public long getDialogId() { long id = getChannelId(); return id == 0 ? 0 : -id; }
+    public long getChannelId() {
+        if (channelId == 0) discoverLoadedChannel();
+        return channelId;
+    }
+
+    public long getDialogId() {
+        long id = getChannelId();
+        return id == 0 ? 0 : -id;
+    }
 
     public TLRPC.InputPeer getInputPeer() {
         if (channelId == 0) return null;
@@ -60,15 +73,30 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
 
     public void ensure(Callback callback) {
         if (callback != null) callbacks.add(callback);
-        if (getChannelId() != 0 && accessHash != 0) { finish(null); return; }
+        if (getChannelId() != 0 && accessHash != 0) {
+            finish(null);
+            return;
+        }
         if (creating) return;
-        if (discoverLoadedChannel()) { finish(null); return; }
+        if (discoverLoadedChannel()) {
+            finish(null);
+            return;
+        }
         creating = true;
         NotificationCenter.getInstance(account).addObserver(this, NotificationCenter.chatDidCreated);
         NotificationCenter.getInstance(account).addObserver(this, NotificationCenter.chatDidFailCreate);
         try {
-            MessagesController.getInstance(account).createChat(STORAGE_TITLE, new ArrayList<>(), STORAGE_MARKER,
-                    ChatObject.CHAT_TYPE_CHANNEL, false, null, null, -1, null);
+            MessagesController.getInstance(account).createChat(
+                    STORAGE_TITLE,
+                    new ArrayList<>(),
+                    STORAGE_MARKER,
+                    ChatObject.CHAT_TYPE_CHANNEL,
+                    false,
+                    null,
+                    null,
+                    -1,
+                    null
+            );
         } catch (Throwable t) {
             finish(t.getMessage() == null ? "Не удалось создать Cloud Storage" : t.getMessage());
         }
@@ -82,14 +110,19 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
                     return true;
                 }
             }
-        } catch (Throwable ignore) {}
+        } catch (Throwable ignore) {
+        }
         return channelId != 0 && accessHash != 0;
     }
 
     private void remember(TLRPC.Chat chat) {
         channelId = chat.id;
         accessHash = chat.access_hash;
-        prefs().edit().putLong("channel_id", channelId).putLong("access_hash", accessHash).putBoolean("service_peer", true).apply();
+        prefs().edit()
+                .putLong("channel_id", channelId)
+                .putLong("access_hash", accessHash)
+                .putBoolean("service_peer", true)
+                .apply();
     }
 
     private void finish(String error) {
@@ -102,13 +135,20 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
         for (Callback cb : copy) cb.onReady(did, error);
     }
 
-    @Override public void didReceivedNotification(int id, int accountId, Object... args) {
+    @Override
+    public void didReceivedNotification(int id, int accountId, Object... args) {
         if (!creating || accountId != account) return;
-        if (id == NotificationCenter.chatDidFailCreate) { finish("Не удалось создать служебное облако"); return; }
+        if (id == NotificationCenter.chatDidFailCreate) {
+            finish("Не удалось создать служебное облако");
+            return;
+        }
         if (id == NotificationCenter.chatDidCreated && args.length > 0 && args[0] instanceof Long) {
             long createdId = (Long) args[0];
             TLRPC.Chat chat = MessagesController.getInstance(account).getChat(createdId);
-            if (chat != null && STORAGE_TITLE.equals(chat.title)) { remember(chat); finish(null); }
+            if (chat != null && STORAGE_TITLE.equals(chat.title)) {
+                remember(chat);
+                finish(null);
+            }
         }
     }
 }

@@ -18,9 +18,18 @@ def replace_once(rel, old, new):
     print(f"patched: {rel}")
 
 
+# Drawer: eliminate the fixed blue top header. The full drawer still uses Telegram
+# theme keys, while the profile header gets the per-preset lightweight artwork.
 drawer = "TMessagesProj/src/main/java/org/telegram/ui/Cells/DrawerProfileCell.java"
-replace_once(drawer,"import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;\n","import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;\nimport org.telegram.messenger.telepremium.theme.TelePremiumThemeArtwork;\n")
-replace_once(drawer,"""    public Integer applyBackground(boolean force) {
+replace_once(
+    drawer,
+    "import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;\n",
+    "import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;\n"
+    "import org.telegram.messenger.telepremium.theme.TelePremiumThemeArtwork;\n",
+)
+replace_once(
+    drawer,
+    """    public Integer applyBackground(boolean force) {
         Integer currentTag = (Integer) getTag();
         int backgroundKey = Theme.hasThemeKey(Theme.key_chats_menuTopBackground) && Theme.getColor(Theme.key_chats_menuTopBackground) != 0 ? Theme.key_chats_menuTopBackground : Theme.key_chats_menuTopBackgroundCats;
         if (force || currentTag == null || backgroundKey != currentTag) {
@@ -29,7 +38,8 @@ replace_once(drawer,"""    public Integer applyBackground(boolean force) {
         }
         return backgroundKey;
     }
-""","""    public Integer applyBackground(boolean force) {
+""",
+    """    public Integer applyBackground(boolean force) {
         Integer currentTag = (Integer) getTag();
         int backgroundKey = Theme.hasThemeKey(Theme.key_chats_menuTopBackground) && Theme.getColor(Theme.key_chats_menuTopBackground) != 0 ? Theme.key_chats_menuTopBackground : Theme.key_chats_menuTopBackgroundCats;
         if (force || currentTag == null || backgroundKey != currentTag) {
@@ -38,26 +48,81 @@ replace_once(drawer,"""    public Integer applyBackground(boolean force) {
         }
         return backgroundKey;
     }
-""")
+""",
+)
 
+# Cloud: complete the visual theme and add a persistent transfer strip with
+# percentage, size, speed and reconnect/resume state.
 cloud = "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java"
-replace_once(cloud,"import android.widget.LinearLayout;\nimport android.widget.ScrollView;\n","import android.widget.LinearLayout;\nimport android.widget.ProgressBar;\nimport android.widget.ScrollView;\n")
-replace_once(cloud,"import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;\n","import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;\nimport org.telegram.messenger.telepremium.cloud.CloudTransferManager;\n")
-replace_once(cloud,"import org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager;\n","import org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager;\nimport org.telegram.messenger.telepremium.theme.TelePremiumThemeArtwork;\nimport org.telegram.messenger.telepremium.theme.TelePremiumThemeController;\nimport org.telegram.messenger.telepremium.theme.TelePremiumThemePreset;\n")
-replace_once(cloud,"    private TextView syncState;\n    private EditText search;\n","    private TextView syncState;\n    private LinearLayout transferStrip;\n    private TextView transferTitle;\n    private TextView transferDetails;\n    private TextView transferPercent;\n    private ProgressBar transferProgress;\n    private CloudTransferManager transferManager;\n    private TelePremiumThemePreset visualTheme;\n    private final CloudTransferManager.Listener transferListener = this::updateTransferStrip;\n    private EditText search;\n")
-replace_once(cloud,"""        FrameLayout root = new FrameLayout(context);
+replace_once(
+    cloud,
+    "import android.widget.LinearLayout;\nimport android.widget.ScrollView;\n",
+    "import android.widget.LinearLayout;\nimport android.widget.ProgressBar;\nimport android.widget.ScrollView;\n",
+)
+replace_once(
+    cloud,
+    "import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;\n",
+    "import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;\n"
+    "import org.telegram.messenger.telepremium.cloud.CloudTransferManager;\n",
+)
+replace_once(
+    cloud,
+    "import org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager;\n",
+    "import org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager;\n"
+    "import org.telegram.messenger.telepremium.theme.TelePremiumThemeArtwork;\n"
+    "import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;\n"
+    "import org.telegram.messenger.telepremium.theme.TelePremiumThemePreset;\n",
+)
+replace_once(
+    cloud,
+    "    private TextView syncState;\n    private EditText search;\n",
+    "    private TextView syncState;\n"
+    "    private LinearLayout transferStrip;\n"
+    "    private TextView transferTitle;\n"
+    "    private TextView transferDetails;\n"
+    "    private TextView transferPercent;\n"
+    "    private ProgressBar transferProgress;\n"
+    "    private CloudTransferManager transferManager;\n"
+    "    private TelePremiumThemePreset visualTheme;\n"
+    "    private final CloudTransferManager.Listener transferListener = this::updateTransferStrip;\n"
+    "    private EditText search;\n",
+)
+replace_once(
+    cloud,
+    """        FrameLayout root = new FrameLayout(context);
         root.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         LinearLayout page = new LinearLayout(context);
-""","""        visualTheme = TelePremiumThemeController.getCurrent(context);
+""",
+    """        visualTheme = TelePremiumThemeController.getCurrent(context);
         FrameLayout root = new FrameLayout(context);
         root.setBackground(TelePremiumThemeArtwork.cloudBackground(context));
         LinearLayout page = new LinearLayout(context);
-""")
-replace_once(cloud,"        syncState.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));\n        page.addView(syncState, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(56)));\n\n        search = new EditText(context);\n","        syncState.setBackgroundColor(Color.TRANSPARENT);\n        page.addView(syncState, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(52)));\n        createTransferStrip(page);\n\n        search = new EditText(context);\n")
-replace_once(cloud,"        search.setBackground(roundRect(0xfff1f3f5, 14));\n","        search.setTextColor(visualTheme.textPrimary);\n        search.setHintTextColor(visualTheme.textSecondary);\n        search.setBackground(roundRect(visualTheme.searchBackground, 14));\n")
-replace_once(cloud,"        accounts.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));\n","        accounts.setBackgroundColor(Color.TRANSPARENT);\n")
-replace_once(cloud,"        add.setBackground(roundRect(getThemedColor(Theme.key_windowBackgroundWhiteBlueButton), 32));\n","        add.setBackground(roundRect(visualTheme.fab, 32));\n")
-replace_once(cloud,"    private void createRecentSheet(FrameLayout root) {\n","""    private void createTransferStrip(LinearLayout page) {
+""",
+)
+replace_once(
+    cloud,
+    "        syncState.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));\n        page.addView(syncState, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(56)));\n\n        search = new EditText(context);\n",
+    "        syncState.setBackgroundColor(Color.TRANSPARENT);\n        page.addView(syncState, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(52)));\n        createTransferStrip(page);\n\n        search = new EditText(context);\n",
+)
+replace_once(
+    cloud,
+    "        search.setBackground(roundRect(0xfff1f3f5, 14));\n",
+    "        search.setTextColor(visualTheme.textPrimary);\n        search.setHintTextColor(visualTheme.textSecondary);\n        search.setBackground(roundRect(visualTheme.searchBackground, 14));\n",
+)
+replace_once(
+    cloud,
+    "        accounts.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));\n",
+    "        accounts.setBackgroundColor(Color.TRANSPARENT);\n",
+)
+replace_once(
+    cloud,
+    "        add.setBackground(roundRect(getThemedColor(Theme.key_windowBackgroundWhiteBlueButton), 32));\n",
+    "        add.setBackground(roundRect(visualTheme.fab, 32));\n",
+)
+replace_once(
+    cloud,
+    "    private void createRecentSheet(FrameLayout root) {\n",
+    """    private void createTransferStrip(LinearLayout page) {
         transferStrip = new LinearLayout(context);
         transferStrip.setOrientation(LinearLayout.VERTICAL);
         transferStrip.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
@@ -169,29 +234,75 @@ replace_once(cloud,"    private void createRecentSheet(FrameLayout root) {\n",""
     }
 
     private void createRecentSheet(FrameLayout root) {
-""")
-replace_once(cloud,"        recentSheet.setBackground(roundRect(getThemedColor(Theme.key_windowBackgroundWhite), 22));\n","        recentSheet.setBackground(roundRect(visualTheme.surfaceElevated, 22));\n")
-replace_once(cloud,"        icon.setBackground(roundRect(0xffe5f3ff, 10));\n","        icon.setBackground(roundRect(visualTheme.searchBackground, 10));\n")
-replace_once(cloud,"""    private void configureAccount(int account) {
+""",
+)
+replace_once(
+    cloud,
+    "        recentSheet.setBackground(roundRect(getThemedColor(Theme.key_windowBackgroundWhite), 22));\n",
+    "        recentSheet.setBackground(roundRect(visualTheme.surfaceElevated, 22));\n",
+)
+replace_once(
+    cloud,
+    "        icon.setBackground(roundRect(0xffe5f3ff, 10));\n",
+    "        icon.setBackground(roundRect(visualTheme.searchBackground, 10));\n",
+)
+replace_once(
+    cloud,
+    """    private void configureAccount(int account) {
         cloud = TelePremiumCloudManager.getInstance(account);
         payloads = new CloudPayloadRepository(account);
         payloads.setDedupLookup(sha256 -> cloud.findByHash(sha256));
     }
-""","""    private void configureAccount(int account) {
+""",
+    """    private void configureAccount(int account) {
         cloud = TelePremiumCloudManager.getInstance(account);
         payloads = new CloudPayloadRepository(account);
         payloads.setDedupLookup(sha256 -> cloud.findByHash(sha256));
         attachTransferManager(account);
         resumePendingTransfer(account);
     }
-""")
-replace_once(cloud,"        frame.setBackground(roundRect(active ? 0xffd7ebfa : 0xfff3f5f7, 13));\n","        frame.setBackground(roundRect(active ? visualTheme.listSelector : visualTheme.surfaceElevated, 13));\n")
-replace_once(cloud,"        frame.setBackground(roundRect(active ? 0xffd7ebfa : 0xfff3f5f7, 13));\n","        frame.setBackground(roundRect(active ? visualTheme.listSelector : visualTheme.surfaceElevated, 13));\n")
-replace_once(cloud,"        icon.setBackground(roundRect(0xffdceeff, 12));\n","        icon.setBackground(roundRect(visualTheme.searchBackground, 12));\n")
-replace_once(cloud,"        LinearLayout row=new LinearLayout(context); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(AndroidUtilities.dp(4),AndroidUtilities.dp(7),AndroidUtilities.dp(4),AndroidUtilities.dp(7)); row.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));\n","        LinearLayout row=new LinearLayout(context); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(AndroidUtilities.dp(4),AndroidUtilities.dp(7),AndroidUtilities.dp(4),AndroidUtilities.dp(7)); row.setBackgroundColor(visualTheme.surfaceElevated);\n")
-replace_once(cloud,"icon.setBackground(roundRect(node.type==CloudNode.TYPE_FOLDER?0xffdceeff:0xfff0f2f4,10));","icon.setBackground(roundRect(visualTheme.searchBackground,10));")
-replace_once(cloud,"    private void openNode(AccountNode item) {\n        if(item.node.type==CloudNode.TYPE_FOLDER)","    private void openNode(AccountNode item) {\n        attachTransferManager(item.account);\n        if(item.node.type==CloudNode.TYPE_FOLDER)")
-replace_once(cloud,"    private void saveToDevice(AccountNode item){\n        new CloudDownloadManager","    private void saveToDevice(AccountNode item){\n        attachTransferManager(item.account);\n        new CloudDownloadManager")
-replace_once(cloud,"    private GradientDrawable outlinedCard(){GradientDrawable d=roundRect(getThemedColor(Theme.key_windowBackgroundWhite),12);d.setStroke(AndroidUtilities.dp(1),0xffdfe3e8);return d;}\n","    private GradientDrawable outlinedCard(){GradientDrawable d=roundRect(visualTheme.surfaceElevated,12);d.setStroke(AndroidUtilities.dp(1),visualTheme.divider);return d;}\n")
+""",
+)
+replace_once(
+    cloud,
+    "        frame.setBackground(roundRect(active ? 0xffd7ebfa : 0xfff3f5f7, 13));\n",
+    "        frame.setBackground(roundRect(active ? visualTheme.listSelector : visualTheme.surfaceElevated, 13));\n",
+)
+# Same literal exists in addAllAccountsButton after the first replacement.
+replace_once(
+    cloud,
+    "        frame.setBackground(roundRect(active ? 0xffd7ebfa : 0xfff3f5f7, 13));\n",
+    "        frame.setBackground(roundRect(active ? visualTheme.listSelector : visualTheme.surfaceElevated, 13));\n",
+)
+replace_once(
+    cloud,
+    "        icon.setBackground(roundRect(0xffdceeff, 12));\n",
+    "        icon.setBackground(roundRect(visualTheme.searchBackground, 12));\n",
+)
+replace_once(
+    cloud,
+    "        LinearLayout row=new LinearLayout(context); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(AndroidUtilities.dp(4),AndroidUtilities.dp(7),AndroidUtilities.dp(4),AndroidUtilities.dp(7)); row.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));\n",
+    "        LinearLayout row=new LinearLayout(context); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(AndroidUtilities.dp(4),AndroidUtilities.dp(7),AndroidUtilities.dp(4),AndroidUtilities.dp(7)); row.setBackgroundColor(visualTheme.surfaceElevated);\n",
+)
+replace_once(
+    cloud,
+    "icon.setBackground(roundRect(node.type==CloudNode.TYPE_FOLDER?0xffdceeff:0xfff0f2f4,10));",
+    "icon.setBackground(roundRect(visualTheme.searchBackground,10));",
+)
+replace_once(
+    cloud,
+    "    private void openNode(AccountNode item) {\n        if(item.node.type==CloudNode.TYPE_FOLDER)",
+    "    private void openNode(AccountNode item) {\n        attachTransferManager(item.account);\n        if(item.node.type==CloudNode.TYPE_FOLDER)",
+)
+replace_once(
+    cloud,
+    "    private void saveToDevice(AccountNode item){\n        new CloudDownloadManager",
+    "    private void saveToDevice(AccountNode item){\n        attachTransferManager(item.account);\n        new CloudDownloadManager",
+)
+replace_once(
+    cloud,
+    "    private GradientDrawable outlinedCard(){GradientDrawable d=roundRect(getThemedColor(Theme.key_windowBackgroundWhite),12);d.setStroke(AndroidUtilities.dp(1),0xffdfe3e8);return d;}\n",
+    "    private GradientDrawable outlinedCard(){GradientDrawable d=roundRect(visualTheme.surfaceElevated,12);d.setStroke(AndroidUtilities.dp(1),visualTheme.divider);return d;}\n",
+)
 
 print("TelePremium visual theme completion + resilient transfer UI applied")

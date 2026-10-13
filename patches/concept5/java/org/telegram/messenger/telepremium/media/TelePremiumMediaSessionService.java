@@ -149,6 +149,10 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         syncNotificationLifecycle();
     }
 
+    /**
+     * Keep true playback foreground-safe, but immediately detach foreground mode when
+     * paused/ready/error. The detached notification is a normal clearable notification.
+     */
     private void syncNotificationLifecycle() {
         if (controller == null || controller.getCurrent() == null || shuttingDown) return;
         int state = controller.getState();
@@ -225,7 +229,10 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
                 .setContentTitle(item == null ? "TelePremium" : item.title)
                 .setContentText(item == null ? "Медиацентр" : (item.artist == null ? item.sourceLabel() : item.artist))
                 .setContentIntent(content)
+                // Do not mark the media card as Ongoing. On Android/MIUI this flag
+                // blocks the user's swipe gesture even after playback is paused.
                 .setOngoing(false)
+                // Swiping the notification means "close player", not merely hide UI.
                 .setDeleteIntent(close)
                 .setOnlyAlertOnce(true)
                 .setShowWhen(false)

@@ -30,10 +30,18 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     public void setDedupLookup(DedupLookup lookup){this.dedupLookup=lookup;}
 
     private static final class Pending {
-        CloudNode node; ImportCallback callback; long dialogId; Uri uri; String parentId; String displayName; String mime;
-        String lastLocation; int retryCount;
+        CloudNode node;
+        ImportCallback callback;
+        long dialogId;
+        Uri uri;
+        String parentId;
+        String displayName;
+        String mime;
+        String lastLocation;
+        int retryCount;
         Pending(CloudNode node, ImportCallback callback, long dialogId, Uri uri, String parentId, String displayName, String mime){
-            this.node=node; this.callback=callback; this.dialogId=dialogId; this.uri=uri; this.parentId=parentId; this.displayName=displayName; this.mime=mime;
+            this.node=node; this.callback=callback; this.dialogId=dialogId; this.uri=uri;
+            this.parentId=parentId; this.displayName=displayName; this.mime=mime;
         }
     }
 
@@ -50,10 +58,13 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
             try {
                 String safe=(displayName==null||displayName.trim().isEmpty())?"cloud-file":displayName.replaceAll("[\\\\/:*?\"<>|]","_");
                 temp=new File(ApplicationLoader.applicationContext.getCacheDir(),"tpcloud_"+System.nanoTime()+"_"+safe);
-                try(InputStream in=ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri); FileOutputStream out=new FileOutputStream(temp)) {
+                try(InputStream in=ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri);
+                    FileOutputStream out=new FileOutputStream(temp)) {
                     if(in==null) throw new IllegalStateException("Не удалось открыть выбранный файл");
                     byte[] b=new byte[1024*1024]; int n;
-                    while((n=in.read(b))>0) out.write(b,0,n);
+                    while((n=in.read(b))>0){
+                        out.write(b,0,n);
+                    }
                 }
                 CloudNode node=CloudNode.file(parentId,safe,mime,temp.length(),CloudFileHasher.sha256(temp));
                 transferManager.beginUpload(uri.toString(), parentId, safe, mime, node.size);
@@ -75,7 +86,9 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                         return;
                     }
                     pending=new Pending(node,callback,dialogId,uri,parentId,safe,mime);
-                    startObservers(); transferManager.markUploading(); sendToCloudPeer();
+                    startObservers();
+                    transferManager.markUploading();
+                    sendToCloudPeer();
                 }));
             } catch(Exception e) {
                 if(temp!=null) temp.delete();
@@ -91,14 +104,37 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         if(task==null || task.type!=CloudTransferManager.TYPE_UPLOAD) return;
         if(task.state!=CloudTransferManager.WAITING_NETWORK && task.state!=CloudTransferManager.FAILED_RETRYABLE) return;
         if(task.uri==null || task.uri.trim().isEmpty()) return;
-        try { importUri(Uri.parse(task.uri), task.parentId==null?"root":task.parentId, task.fileName, task.mime, callback); }
-        catch(Throwable e) { transferManager.failRetryable(e.getMessage()); }
+        try {
+            importUri(Uri.parse(task.uri), task.parentId==null?"root":task.parentId,
+                    task.fileName, task.mime, callback);
+        } catch(Throwable e) {
+            transferManager.failRetryable(e.getMessage());
+        }
     }
 
     private void sendToCloudPeer() {
-        Pending p=pending; if(p==null)return;
-        SendMessagesHelper.prepareSendingDocument(AccountInstance.getInstance(account), null, null, p.uri, p.node.name, p.node.mimeType,
-                p.dialogId, null, null, null, null, null, false, 0, null, null, 0, false);
+        Pending p=pending;
+        if(p==null)return;
+        SendMessagesHelper.prepareSendingDocument(
+                AccountInstance.getInstance(account),
+                null,
+                null,
+                p.uri,
+                p.node.name,
+                p.node.mimeType,
+                p.dialogId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                0,
+                null,
+                null,
+                0,
+                false
+        );
     }
 
     private void startObservers(){
@@ -123,26 +159,35 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                 long uploaded=args.length>1&&args[1] instanceof Long?(Long)args[1]:0;
                 long total=args.length>2&&args[2] instanceof Long?(Long)args[2]:pending.node.size;
                 if(!matchesPendingUpload(location,total))return;
-                pending.lastLocation=location; transferManager.updateProgress(uploaded,total); return;
+                pending.lastLocation=location;
+                transferManager.updateProgress(uploaded,total);
+                return;
             }
             if(id==NotificationCenter.fileUploadFailed){
                 String location=args.length>0&&args[0] instanceof String?(String)args[0]:null;
                 if(!matchesPendingUpload(location,pending.node.size))return;
                 transferManager.waitingNetwork("Соединение прервано — докачка продолжится автоматически");
-                scheduleRetry(); return;
+                scheduleRetry();
+                return;
             }
             if(id!=NotificationCenter.messageReceivedByServer) return;
             Object obj=args.length>2?args[2]:null;
             if(!(obj instanceof TLRPC.Message)) return;
             TLRPC.Message message=(TLRPC.Message)obj;
             if(message.peer_id==null) return;
-            long did = message.peer_id.channel_id!=0 ? -message.peer_id.channel_id : message.peer_id.chat_id!=0 ? -message.peer_id.chat_id : message.peer_id.user_id;
+            long did = message.peer_id.channel_id!=0 ? -message.peer_id.channel_id :
+                    message.peer_id.chat_id!=0 ? -message.peer_id.chat_id : message.peer_id.user_id;
             if(did!=pending.dialogId) return;
             if(message.media==null || message.media.document==null) return;
             pending.node.telegramMessageId=message.id;
             pending.node.telegramDocumentId=message.media.document.id;
-            Pending done=pending; pending=null; stopObservers(); transferManager.complete(); done.callback.onComplete(done.node,null);
-        } catch(Exception e) { FileLog.e(e); }
+            Pending done=pending; pending=null;
+            stopObservers();
+            transferManager.complete();
+            done.callback.onComplete(done.node,null);
+        } catch(Exception e) {
+            FileLog.e(e);
+        }
     }
 
     private boolean matchesPendingUpload(String location,long total){
@@ -158,18 +203,31 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         AndroidUtilities.runOnUIThread(() -> {
             retryScheduled=false;
             if(pending==null)return;
-            if(ConnectionsManager.getInstance(account).getConnectionState()!=ConnectionsManager.ConnectionStateConnected){ scheduleRetry(); return; }
+            if(ConnectionsManager.getInstance(account).getConnectionState()!=ConnectionsManager.ConnectionStateConnected){
+                scheduleRetry();
+                return;
+            }
             if(pending.retryCount>=5){
                 transferManager.failRetryable("Не удалось продолжить передачу автоматически");
-                Pending done=pending; pending=null; stopObservers(); done.callback.onComplete(null,"Не удалось продолжить передачу автоматически"); return;
+                Pending done=pending; pending=null; stopObservers();
+                done.callback.onComplete(null,"Не удалось продолжить передачу автоматически");
+                return;
             }
-            pending.retryCount++; transferManager.retrying(); sendToCloudPeer();
+            pending.retryCount++;
+            transferManager.retrying();
+            sendToCloudPeer();
         },2500);
     }
 
-    public File resolveDownloadedFile(TLRPC.Document document) { return document==null?null:FileLoader.getInstance(account).getPathToAttach(document,true); }
+    public File resolveDownloadedFile(TLRPC.Document document) {
+        return document==null?null:FileLoader.getInstance(account).getPathToAttach(document,true);
+    }
+
     public void cancel() {
         if(pending==null){transferManager.cancel();return;}
-        Pending done=pending; pending=null; stopObservers(); transferManager.cancel(); done.callback.onComplete(null,"Отменено");
+        Pending done=pending; pending=null;
+        stopObservers();
+        transferManager.cancel();
+        done.callback.onComplete(null,"Отменено");
     }
 }

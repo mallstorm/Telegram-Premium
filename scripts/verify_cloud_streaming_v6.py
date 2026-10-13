@@ -29,6 +29,9 @@ if "android.media.MediaPlayer" in player:
 if "EXTRA_CLOUD_MESSAGE_ID" not in player:
     raise SystemExit("streaming player cloud launch contract is missing")
 
+# V6 originally owned the Telegram stream in PlayerActivity. V7 moves exactly
+# that transport into the shared controller so MediaSession, queue and rotation
+# all reuse one ExoPlayer instance. Verify the transport where it actually lives.
 controller_path = "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumPlaybackController.java"
 controller_file = SRC / controller_path
 streaming = read(controller_path) if controller_file.exists() else player

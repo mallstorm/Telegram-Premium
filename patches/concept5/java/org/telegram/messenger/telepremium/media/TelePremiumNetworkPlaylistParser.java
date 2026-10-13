@@ -28,6 +28,8 @@ public final class TelePremiumNetworkPlaylistParser {
                 if (!url.startsWith("http://") && !url.startsWith("https://")) throw new IllegalArgumentException("Поддерживаются HTTP/HTTPS адреса");
                 String lower = pathLower(url);
                 if (lower.endsWith(".m3u8")) {
+                    // .m3u8 is ambiguous: it can be a real HLS manifest or a user playlist.
+                    // Inspect the manifest body instead of guessing from words in the URL.
                     String body = downloadText(url);
                     if (looksLikeHlsManifest(body)) {
                         result.add(networkItem(url, titleFromUrl(url), "application/x-mpegURL", true));
@@ -61,6 +63,7 @@ public final class TelePremiumNetworkPlaylistParser {
                 title = comma >= 0 ? line.substring(comma + 1).trim() : null;
             } else if (!line.isEmpty() && !line.startsWith("#")) {
                 String url = resolve(base, line);
+                // HLS entries inside a larger M3U playlist are kept as one stream item.
                 String mime = guessMime(url);
                 out.add(networkItem(url, TextUtils.isEmpty(title) ? titleFromUrl(url) : title, mime, isLikelyLive(url)));
                 title = null;

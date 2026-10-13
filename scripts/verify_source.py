@@ -164,6 +164,9 @@ checks = {
         "payloads.importUri",
         "Все аккаунты",
         "AndroidUtilities.openForView",
+        "ACTION_CREATE_DOCUMENT",
+        "Скачать на устройство",
+        "resolvedMime",
         "Удалить окончательно?",
         "Фильтры",
         "Мои папки",
@@ -227,7 +230,8 @@ checks = {
         "cycles",
     ],
     "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudFolderPickerActivity.java": [
-        "Выбрать эту папку",
+        "Переместить сюда",
+        "addFolderTargets",
         "onFolder",
     ],
     "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudSpecialActivity.java": [
@@ -240,6 +244,8 @@ checks = {
         "FileLoader.getInstance(account).loadFile",
         "NotificationCenter.fileLoaded",
         "OFFLINE_AVAILABLE",
+        "args[1] instanceof File",
+        "getPathToAttach(document,false)",
         "file.delete()",
     ],
 }

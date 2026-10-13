@@ -73,6 +73,8 @@ def replace_in_method(rel, signature, replacements):
     print(f"patched: {rel} :: {signature}")
 
 
+# Drawer: the old sun/moon control becomes the current-theme pictogram and a
+# compact 10-theme selector. Long press opens the full Appearance screen.
 drawer = "TMessagesProj/src/main/java/org/telegram/ui/Cells/DrawerProfileCell.java"
 replace_once(
     drawer,
@@ -145,6 +147,8 @@ replace_once(
 """,
 )
 
+# Main chat lists, folders and forwarding pickers must not expose the service
+# peer. If a stale/search result does reach a click handler, route it to Cloud.
 dialogs = "TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java"
 replace_once(
     dialogs,

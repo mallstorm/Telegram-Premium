@@ -11,6 +11,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.OpenableColumns;
+import android.webkit.MimeTypeMap;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.DragEvent;
@@ -31,6 +32,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
+import org.telegram.messenger.Utilities;
 import org.telegram.messenger.telepremium.cloud.CloudDownloadManager;
 import org.telegram.messenger.telepremium.cloud.CloudNode;
 import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;
@@ -44,12 +46,16 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class TelePremiumCloudActivity extends BaseFragment {
     private static final int PICK_FILE = 7301;
+    private static final int SAVE_FILE = 7302;
     private int selectedAccount;
     private int pendingUploadAccount;
     private final String folderId;
@@ -71,6 +77,8 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private float recentTouchY;
     private float recentStartTranslation;
     private boolean recentDragging;
+    private File pendingExportFile;
+    private String pendingExportName;
     private static final int RECENT_SHEET_HEIGHT_DP = 420;
     private static final int RECENT_SHEET_PEEK_DP = 68;
 
@@ -506,8 +514,22 @@ public class TelePremiumCloudActivity extends BaseFragment {
             if(error!=null){setSyncText("Не удалось открыть: "+error,false);return;}
             if(state==CloudDownloadManager.DOWNLOADING){setSyncText("Скачивание файла…",false);return;}
             setSyncText("✓  Файл загружен",true);
-            if(file==null || !AndroidUtilities.openForView(file,item.node.name,item.node.mimeType,getParentActivity(),getResourceProvider(),false))
-                setSyncText("Не найдено приложение для открытия файла",false);
+            if(file==null || !file.exists())setSyncText("Скачанный файл не найден в кэше",false);
+            else if(!AndroidUtilities.openForView(file,item.node.name,resolvedMime(item.node),getParentActivity(),getResourceProvider(),false))
+                setSyncText("Нет приложения для открытия этого формата",false);
+        });
+    }
+
+    private void saveToDevice(AccountNode item){
+        new CloudDownloadManager(item.account).download(item.node,(state,file,error)->{
+            if(error!=null){setSyncText("Не удалось скачать: "+error,false);return;}
+            if(state==CloudDownloadManager.DOWNLOADING){setSyncText("Скачивание файла…",false);return;}
+            if(file==null || !file.exists()){setSyncText("Скачанный файл не найден в кэше",false);return;}
+            pendingExportFile=file;pendingExportName=item.node.name;
+            Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType(resolvedMime(item.node));
+            intent.putExtra(Intent.EXTRA_TITLE,item.node.name);intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            startActivityForResult(intent,SAVE_FILE);
         });
     }
 
@@ -523,9 +545,9 @@ public class TelePremiumCloudActivity extends BaseFragment {
         }
         if(node.type==CloudNode.TYPE_FILE){
             new BottomSheet.Builder(context).setTitle(node.name).setItems(
-                    new CharSequence[]{"Открыть","Переместить","Переименовать",node.favorite?"Убрать из избранного":"В избранное","В корзину"},
-                    new int[]{R.drawable.tp_cloud_download,R.drawable.tp_cloud_folder,R.drawable.tp_cloud_rename,R.drawable.tp_cloud_favorite,R.drawable.tp_cloud_trash},
-                    (d,w)->{if(w==0)openNode(item);else if(w==1)chooseMoveFolder(item);else if(w==2)rename(manager,node);else if(w==3)manager.toggleFavorite(node,e->finishMutation(e,"Изменения сохранены"));else manager.trash(node,e->finishMutation(e,"Перемещено в корзину"));}
+                    new CharSequence[]{"Открыть","Скачать на устройство","Переместить","Переименовать",node.favorite?"Убрать из избранного":"В избранное","В корзину"},
+                    new int[]{R.drawable.tp_cloud_download,R.drawable.tp_cloud_download,R.drawable.tp_cloud_folder,R.drawable.tp_cloud_rename,R.drawable.tp_cloud_favorite,R.drawable.tp_cloud_trash},
+                    (d,w)->{if(w==0)openNode(item);else if(w==1)saveToDevice(item);else if(w==2)chooseMoveFolder(item);else if(w==3)rename(manager,node);else if(w==4)manager.toggleFavorite(node,e->finishMutation(e,"Изменения сохранены"));else manager.trash(node,e->finishMutation(e,"Перемещено в корзину"));}
             ).create().show();
         }else{
             new BottomSheet.Builder(context).setTitle(node.name).setItems(
@@ -537,8 +559,8 @@ public class TelePremiumCloudActivity extends BaseFragment {
     }
 
     private void chooseMoveFolder(AccountNode item) {
-        presentFragment(new TelePremiumCloudFolderPickerActivity(item.account,"root","Переместить в папку",id->
-                TelePremiumCloudManager.getInstance(item.account).move(item.node,id,e->finishMutation(e,"Файл перемещён"))));
+        presentFragment(new TelePremiumCloudFolderPickerActivity(item.account,"root","Куда переместить?",(id,name)->
+                TelePremiumCloudManager.getInstance(item.account).move(item.node,id,e->finishMutation(e,"Перемещено в «"+name+"»"))));
     }
 
     private void confirmPermanentDelete(TelePremiumCloudManager manager, CloudNode node) {
@@ -593,6 +615,11 @@ public class TelePremiumCloudActivity extends BaseFragment {
 
     @Override public void onActivityResultFragment(int requestCode,int resultCode,Intent data){
         super.onActivityResultFragment(requestCode,resultCode,data);
+        if(requestCode==SAVE_FILE){
+            if(resultCode==Activity.RESULT_OK&&data!=null&&data.getData()!=null&&pendingExportFile!=null)exportFile(data.getData());
+            else{pendingExportFile=null;pendingExportName=null;}
+            return;
+        }
         if(requestCode!=PICK_FILE||resultCode!=Activity.RESULT_OK||data==null||data.getData()==null)return;
         Uri uri=data.getData();
         try{getParentActivity().getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignore){}
@@ -603,6 +630,35 @@ public class TelePremiumCloudActivity extends BaseFragment {
             if(error!=null){setSyncText("Не удалось загрузить: "+error,false);return;}
             cloud.addFile(node,e->{setSyncText(e==null?"✓  Синхронизировано":"Не удалось синхронизировать",e==null);renderBody();});
         });
+    }
+
+    private void exportFile(Uri target){
+        final File source=pendingExportFile;final String name=pendingExportName;
+        pendingExportFile=null;pendingExportName=null;setSyncText("Сохранение файла…",false);
+        Utilities.globalQueue.postRunnable(()->{
+            String error=null;
+            try(FileInputStream input=new FileInputStream(source);OutputStream output=context.getContentResolver().openOutputStream(target,"w")){
+                if(output==null)throw new IllegalStateException("Хранилище недоступно");
+                byte[] buffer=new byte[64*1024];int read;while((read=input.read(buffer))!=-1)output.write(buffer,0,read);output.flush();
+            }catch(Exception e){error=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}
+            final String result=error;AndroidUtilities.runOnUIThread(()->setSyncText(result==null?"✓  «"+name+"» сохранён":"Не удалось сохранить: "+result,result==null));
+        });
+    }
+
+    private String resolvedMime(CloudNode node){
+        String name=node.name==null?"":node.name;int dot=name.lastIndexOf('.');String ext=dot>=0?name.substring(dot+1).toLowerCase():"";
+        String mapped=MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+        if("apk".equals(ext))mapped="application/vnd.android.package-archive";
+        else if("rar".equals(ext))mapped="application/vnd.rar";
+        else if("7z".equals(ext))mapped="application/x-7z-compressed";
+        else if("doc".equals(ext))mapped="application/msword";
+        else if("docx".equals(ext))mapped="application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        else if("xls".equals(ext))mapped="application/vnd.ms-excel";
+        else if("xlsx".equals(ext))mapped="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        else if("ppt".equals(ext))mapped="application/vnd.ms-powerpoint";
+        else if("pptx".equals(ext))mapped="application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        String stored=node.mimeType;
+        return mapped!=null?mapped:stored!=null&&!stored.isEmpty()?stored:"application/octet-stream";
     }
 
     private String displayName(Uri uri){

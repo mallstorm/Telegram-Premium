@@ -67,14 +67,18 @@ p.write_text(text, encoding="utf-8")
 print("registered Media Center activities/service + PiP")
 
 # 3) Player V10: MX-like chrome/settings while keeping SurfaceView transparent.
+# The V9 regression was caused by painting an opaque background on SurfaceView;
+# video decoded correctly underneath it, so audio continued while pixels vanished.
 player = "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPlayerActivity.java"
 p, player_text = read(player)
 
+# imports
 if "import android.content.pm.ActivityInfo;" not in player_text:
     player_text = player_text.replace("import android.content.Intent;\n", "import android.content.Intent;\nimport android.content.pm.ActivityInfo;\n", 1)
 if "import android.widget.ScrollView;" not in player_text:
     player_text = player_text.replace("import android.widget.SeekBar;\n", "import android.widget.SeekBar;\nimport android.widget.ScrollView;\n", 1)
 
+# scale/gesture state
 old_fields = '''    private View topChrome, bottomChrome;\n    private boolean userSeeking, landscape, chromeVisible = true, fitMode = true, pip;'''
 new_fields = '''    private View topChrome, bottomChrome;\n    private TextView lockButton;\n    private boolean userSeeking, landscape, chromeVisible = true, pip, controlsLocked;\n    private static final int SCALE_FIT = 0;\n    private static final int SCALE_CROP = 1;\n    private static final int SCALE_STRETCH = 2;\n    private static final int SCALE_ORIGINAL = 3;\n    private int scaleMode = SCALE_FIT;\n    private int seekStepSeconds = 10;\n    private boolean gestureBrightness = true;\n    private boolean gestureVolume = true;'''
 if new_fields not in player_text:
@@ -82,6 +86,7 @@ if new_fields not in player_text:
         raise SystemExit("TelePremiumPlayerActivity: player state anchor missing")
     player_text = player_text.replace(old_fields, new_fields, 1)
 
+# portrait stage is intentionally compact like the approved reference.
 old_portrait = '''    private void buildPortrait() {\n        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);\n        mediaTheme.applySystemBars(this);'''
 new_portrait = '''    private void buildPortrait() {\n        resetPortraitWindowMode();\n        mediaTheme.applySystemBars(this);'''
 if new_portrait not in player_text:
@@ -94,6 +99,8 @@ player_text = player_text.replace(
     1,
 )
 
+# Safe immersive mode: hide system bars and draw black behind them, but DO NOT
+# call setDecorFitsSystemWindows(false) and DO NOT paint SurfaceView itself.
 old_landscape = '''    private void buildLandscape() {\n        getWindow().getDecorView().setSystemUiVisibility(\n                View.SYSTEM_UI_FLAG_FULLSCREEN\n                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION\n                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);\n        root = new FrameLayout(this);'''
 new_landscape = '''    private void buildLandscape() {\n        applyLandscapeWindowMode();\n        root = new FrameLayout(this);'''
 if new_landscape not in player_text:
@@ -101,6 +108,7 @@ if new_landscape not in player_text:
         raise SystemExit("TelePremiumPlayerActivity: landscape window anchor missing")
     player_text = player_text.replace(old_landscape, new_landscape, 1)
 
+# Scale engine; SurfaceView must stay transparent so ExoPlayer's surface is visible.
 old_stage = '''        surface = new AspectSurfaceView(this);\n        surface.setFill(!fitMode);\n        stage.addView(surface, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));'''
 new_stage = '''        surface = new AspectSurfaceView(this);\n        surface.setScaleMode(scaleMode);\n        stage.addView(surface, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));'''
 if new_stage not in player_text:
@@ -108,6 +116,7 @@ if new_stage not in player_text:
         raise SystemExit("TelePremiumPlayerActivity: SurfaceView anchor missing")
     player_text = player_text.replace(old_stage, new_stage, 1)
 
+# Add unlock affordance in landscape.
 landscape_tail = '''        bottomChrome = createBottomControls(true);\n        FrameLayout.LayoutParams bottom = new FrameLayout.LayoutParams(-1, dp(122), Gravity.BOTTOM);\n        root.addView(bottomChrome, bottom);\n        setContentView(root);'''
 landscape_tail_new = '''        bottomChrome = createBottomControls(true);\n        FrameLayout.LayoutParams bottom = new FrameLayout.LayoutParams(-1, dp(122), Gravity.BOTTOM);\n        root.addView(bottomChrome, bottom);\n\n        lockButton = pill("🔒");\n        lockButton.setGravity(Gravity.CENTER);\n        lockButton.setVisibility(controlsLocked ? View.VISIBLE : View.GONE);\n        lockButton.setOnClickListener(v -> toggleControlsLock());\n        FrameLayout.LayoutParams lockParams = new FrameLayout.LayoutParams(dp(52), dp(52), Gravity.RIGHT | Gravity.CENTER_VERTICAL);\n        lockParams.setMargins(0, 0, dp(18), 0);\n        root.addView(lockButton, lockParams);\n        setContentView(root);'''
 if landscape_tail_new not in player_text:
@@ -115,6 +124,7 @@ if landscape_tail_new not in player_text:
         raise SystemExit("TelePremiumPlayerActivity: landscape chrome tail missing")
     player_text = player_text.replace(landscape_tail, landscape_tail_new, 1)
 
+# Window helpers. Unlike V9, no opaque SurfaceView background and no decor-fit toggle.
 helper_anchor = '''    private View createTopBar() {'''
 helper_block = '''    private void applyLandscapeWindowMode() {\n        Window window = getWindow();\n        window.setStatusBarColor(Color.BLACK);\n        window.setNavigationBarColor(Color.BLACK);\n        window.getDecorView().setBackgroundColor(Color.BLACK);\n        if (Build.VERSION.SDK_INT >= 28) {\n            WindowManager.LayoutParams attributes = window.getAttributes();\n            attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;\n            window.setAttributes(attributes);\n        }\n        if (Build.VERSION.SDK_INT >= 30 && window.getInsetsController() != null) {\n            window.getInsetsController().hide(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());\n            window.getInsetsController().setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);\n        }\n        window.getDecorView().setSystemUiVisibility(\n                View.SYSTEM_UI_FLAG_LAYOUT_STABLE\n                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN\n                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION\n                        | View.SYSTEM_UI_FLAG_FULLSCREEN\n                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION\n                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);\n    }\n\n    private void resetPortraitWindowMode() {\n        Window window = getWindow();\n        if (Build.VERSION.SDK_INT >= 30 && window.getInsetsController() != null) {\n            window.getInsetsController().show(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());\n        }\n        if (Build.VERSION.SDK_INT >= 28) {\n            WindowManager.LayoutParams attributes = window.getAttributes();\n            attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;\n            window.setAttributes(attributes);\n        }\n        window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);\n    }\n\n'''
 if "private void applyLandscapeWindowMode()" not in player_text:
@@ -122,12 +132,14 @@ if "private void applyLandscapeWindowMode()" not in player_text:
         raise SystemExit("TelePremiumPlayerActivity: helper anchor missing")
     player_text = player_text.replace(helper_anchor, helper_block + helper_anchor, 1)
 
+# HW status opens player settings; overflow is the full settings hub.
 player_text = player_text.replace(
     '''        hwButton = transparentButton("HW", 13);\n        hwButton.setTextColor(chromeText);\n        row.addView(hwButton, new LinearLayout.LayoutParams(dp(48), dp(42)));''',
     '''        hwButton = transparentButton("HW", 13);\n        hwButton.setTextColor(chromeText);\n        hwButton.setOnClickListener(v -> showPlayerSettings());\n        row.addView(hwButton, new LinearLayout.LayoutParams(dp(48), dp(42)));''',
     1,
 )
 
+# Four MX-like scale modes.
 old_toggle_fit = '''    private void toggleFit() {\n        fitMode = !fitMode;\n        if (surface != null) surface.setFill(!fitMode);\n        if (fitButton != null) fitButton.setText(fitMode ? "↔" : "↕");\n    }'''
 new_toggle_fit = '''    private void toggleFit() {\n        scaleMode = (scaleMode + 1) % 4;\n        if (surface != null) surface.setScaleMode(scaleMode);\n        if (fitButton != null) fitButton.setText(scaleModeIcon());\n        Toast.makeText(this, "Масштаб: " + scaleModeLabel(), Toast.LENGTH_SHORT).show();\n    }\n\n    private String scaleModeIcon() {\n        if (scaleMode == SCALE_CROP) return "⌗";\n        if (scaleMode == SCALE_STRETCH) return "⇔";\n        if (scaleMode == SCALE_ORIGINAL) return "1:1";\n        return "↔";\n    }\n\n    private String scaleModeLabel() {\n        if (scaleMode == SCALE_CROP) return "Заполнить с обрезкой";\n        if (scaleMode == SCALE_STRETCH) return "Растянуть";\n        if (scaleMode == SCALE_ORIGINAL) return "100%";\n        return "Вписать";\n    }'''
 if new_toggle_fit not in player_text:
@@ -135,6 +147,7 @@ if new_toggle_fit not in player_text:
         raise SystemExit("TelePremiumPlayerActivity: scale toggle anchor missing")
     player_text = player_text.replace(old_toggle_fit, new_toggle_fit, 1)
 
+# Full MX-like settings hub with only functional controls exposed.
 start = player_text.find("    private void showMoreMenu() {")
 end = player_text.find("    private void showSleepTimer() {", start)
 if start < 0 or end < 0:
@@ -142,6 +155,7 @@ if start < 0 or end < 0:
 settings_block = '''    private void showMoreMenu() {\n        showPlayerSettings();\n    }\n\n    private void showPlayerSettings() {\n        Dialog dialog = new Dialog(this);\n        ScrollView scroll = new ScrollView(this);\n        LinearLayout content = new LinearLayout(this);\n        content.setOrientation(LinearLayout.VERTICAL);\n        content.setPadding(dp(16), dp(12), dp(16), dp(18));\n        content.setBackground(roundBg(mediaTheme.surfaceElevated, mediaTheme.cardStroke, 22));\n\n        TextView heading = text("Настройки плеера", 20, mediaTheme.textPrimary, true);\n        content.addView(heading, new LinearLayout.LayoutParams(-1, dp(50)));\n        content.addView(settingsRow("Декодер", "Telegram ExoPlayer", controller.getDecoderLabel(), v ->\n                Toast.makeText(this, "HW используется автоматически, если кодек поддерживается устройством", Toast.LENGTH_LONG).show()));\n        content.addView(settingsRow("Масштаб видео", "Fit / Crop / Stretch / 100%", scaleModeLabel(), v -> { dialog.dismiss(); showScaleDialog(); }));\n        content.addView(settingsRow("Скорость", "Скорость воспроизведения", formatSpeed(controller.getSpeed()), v -> { dialog.dismiss(); showSpeedDialog(); }));\n        content.addView(settingsRow("Шаг двойного тапа", "Левая/правая половина видео", seekStepSeconds + " сек", v -> { dialog.dismiss(); showSeekStepDialog(); }));\n        content.addView(settingsRow("Жест яркости", "Вертикально по левой половине", gestureBrightness ? "Вкл" : "Выкл", v -> { gestureBrightness = !gestureBrightness; dialog.dismiss(); showPlayerSettings(); }));\n        content.addView(settingsRow("Жест громкости", "Вертикально по правой половине", gestureVolume ? "Вкл" : "Выкл", v -> { gestureVolume = !gestureVolume; dialog.dismiss(); showPlayerSettings(); }));\n        content.addView(settingsRow("Субтитры", "Включение текстовой дорожки", controller.isSubtitlesEnabled() ? "Вкл" : "Выкл", v -> { controller.setSubtitlesEnabled(!controller.isSubtitlesEnabled()); dialog.dismiss(); showPlayerSettings(); }));\n        content.addView(settingsRow("Повтор", "Повтор очереди", controller.getQueue().getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF ? "Выкл" : "Вкл", v -> {\n            controller.getQueue().setRepeatMode(controller.getQueue().getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF ? TelePremiumQueueManager.REPEAT_ALL : TelePremiumQueueManager.REPEAT_OFF);\n            dialog.dismiss(); showPlayerSettings();\n        }));\n        content.addView(settingsRow("Перемешивание", "Shuffle очереди", controller.getQueue().isShuffle() ? "Вкл" : "Выкл", v -> {\n            controller.getQueue().setShuffle(!controller.getQueue().isShuffle());\n            dialog.dismiss(); showPlayerSettings();\n        }));\n        content.addView(settingsRow("Ориентация", "Авто / портрет / альбомная", "Изменить", v -> { dialog.dismiss(); showOrientationDialog(); }));\n        content.addView(settingsRow("Блокировка", "Отключить жесты и скрыть chrome", controlsLocked ? "Вкл" : "Выкл", v -> { toggleControlsLock(); dialog.dismiss(); }));\n        content.addView(settingsRow("Таймер сна", "Остановить воспроизведение позже", "Открыть", v -> { dialog.dismiss(); showSleepTimer(); }));\n        content.addView(settingsRow("Очередь", "Текущий плейлист", controller.getQueue().size() + "", v -> { dialog.dismiss(); showQueue(); }));\n        TelePremiumMediaItem item = controller.getCurrent();\n        if (item != null && item.isVideo() && Build.VERSION.SDK_INT >= 26) {\n            content.addView(settingsRow("Картинка в картинке", "Продолжить поверх других приложений", "PiP", v -> { dialog.dismiss(); enterPip(); }));\n        }\n        TextView library = pill("Открыть медиатеку");\n        library.setGravity(Gravity.CENTER);\n        library.setOnClickListener(v -> { dialog.dismiss(); startActivity(new Intent(this, TelePremiumMediaCenterActivity.class)); });\n        LinearLayout.LayoutParams libraryParams = new LinearLayout.LayoutParams(-1, dp(52));\n        libraryParams.setMargins(0, dp(10), 0, 0);\n        content.addView(library, libraryParams);\n        scroll.addView(content, new ScrollView.LayoutParams(-1, -2));\n        dialog.setContentView(scroll);\n        dialog.setOnShowListener(d -> {\n            Window window = dialog.getWindow();\n            if (window != null) {\n                window.setBackgroundDrawableResource(android.R.color.transparent);\n                window.setLayout(-1, landscape ? -1 : -2);\n                window.setGravity(Gravity.BOTTOM);\n            }\n        });\n        dialog.show();\n    }\n\n    private View settingsRow(String title, String subtitle, String value, View.OnClickListener listener) {\n        LinearLayout row = new LinearLayout(this);\n        row.setGravity(Gravity.CENTER_VERTICAL);\n        row.setPadding(dp(12), dp(5), dp(10), dp(5));\n        row.setBackground(roundBg(mediaTheme.cardBackground, mediaTheme.cardStroke, 14));\n        LinearLayout labels = new LinearLayout(this);\n        labels.setOrientation(LinearLayout.VERTICAL);\n        TextView primary = text(title, 14, mediaTheme.textPrimary, true);\n        TextView secondary = text(subtitle, 11, mediaTheme.textSecondary, false);\n        labels.addView(primary, new LinearLayout.LayoutParams(-1, dp(23)));\n        labels.addView(secondary, new LinearLayout.LayoutParams(-1, dp(19)));\n        row.addView(labels, new LinearLayout.LayoutParams(0, dp(46), 1f));\n        TextView right = text(value, 12, mediaTheme.accent, false);\n        right.setGravity(Gravity.CENTER | Gravity.RIGHT);\n        row.addView(right, new LinearLayout.LayoutParams(dp(112), dp(46)));\n        row.setOnClickListener(listener);\n        LinearLayout holder = new LinearLayout(this);\n        holder.setPadding(0, dp(2), 0, dp(2));\n        holder.addView(row, new LinearLayout.LayoutParams(-1, dp(58)));\n        return holder;\n    }\n\n    private void showScaleDialog() {\n        String[] labels = {"Вписать", "Заполнить с обрезкой", "Растянуть", "100%"};\n        new AlertDialog.Builder(this).setTitle("Масштаб видео").setSingleChoiceItems(labels, scaleMode, (d, which) -> {\n            scaleMode = which;\n            if (surface != null) surface.setScaleMode(scaleMode);\n            if (fitButton != null) fitButton.setText(scaleModeIcon());\n            d.dismiss();\n        }).show();\n    }\n\n    private void showSpeedDialog() {\n        String[] labels = new String[speeds.length];\n        int checked = 0;\n        float current = controller.getSpeed();\n        for (int i = 0; i < speeds.length; i++) {\n            labels[i] = formatSpeed(speeds[i]);\n            if (Math.abs(speeds[i] - current) < Math.abs(speeds[checked] - current)) checked = i;\n        }\n        new AlertDialog.Builder(this).setTitle("Скорость").setSingleChoiceItems(labels, checked, (d, which) -> {\n            controller.setPlaybackSpeed(speeds[which]);\n            updateSpeedButton();\n            d.dismiss();\n        }).show();\n    }\n\n    private void showSeekStepDialog() {\n        final int[] values = {5, 10, 15, 30};\n        String[] labels = {"5 секунд", "10 секунд", "15 секунд", "30 секунд"};\n        int checked = 1;\n        for (int i = 0; i < values.length; i++) if (values[i] == seekStepSeconds) checked = i;\n        new AlertDialog.Builder(this).setTitle("Шаг двойного тапа").setSingleChoiceItems(labels, checked, (d, which) -> {\n            seekStepSeconds = values[which];\n            d.dismiss();\n        }).show();\n    }\n\n    private void showOrientationDialog() {\n        String[] labels = {"Автоматически", "Портрет", "Альбомная"};\n        new AlertDialog.Builder(this).setTitle("Ориентация").setItems(labels, (d, which) -> {\n            if (which == 1) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);\n            else if (which == 2) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);\n            else setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);\n        }).show();\n    }\n\n    private void toggleControlsLock() {\n        controlsLocked = !controlsLocked;\n        if (lockButton != null) lockButton.setVisibility(controlsLocked ? View.VISIBLE : View.GONE);\n        if (controlsLocked) hideChrome(); else { showChrome(); scheduleChromeHide(); }\n        Toast.makeText(this, controlsLocked ? "Управление заблокировано" : "Управление разблокировано", Toast.LENGTH_SHORT).show();\n    }\n\n'''
 player_text = player_text[:start] + settings_block + player_text[end:]
 
+# Double tap = configurable seek; locked mode ignores all transport gestures.
 player_text = player_text.replace(
     '''            @Override public boolean onSingleTapConfirmed(MotionEvent e) {\n                if (landscape) toggleChrome();\n                return true;\n            }\n\n            @Override public boolean onDoubleTap(MotionEvent e) {\n                if (!landscape || root == null) return true;\n                if (e.getX() < root.getWidth() / 2f) controller.seekRelative(-10_000);\n                else controller.seekRelative(10_000);\n                showChrome();\n                scheduleChromeHide();\n                return true;\n            }''',
     '''            @Override public boolean onSingleTapConfirmed(MotionEvent e) {\n                if (landscape && !controlsLocked) toggleChrome();\n                return true;\n            }\n\n            @Override public boolean onDoubleTap(MotionEvent e) {\n                if (!landscape || root == null || controlsLocked) return true;\n                long delta = seekStepSeconds * 1000L;\n                if (e.getX() < root.getWidth() / 2f) controller.seekRelative(-delta);\n                else controller.seekRelative(delta);\n                showChrome();\n                scheduleChromeHide();\n                return true;\n            }''',
@@ -162,12 +176,20 @@ player_text = player_text.replace(
     '''            } else if (gestureMode == 3 && gestureVolume) {\n                AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);''',
     1,
 )
+
+# Keep unlock visible while locked; chrome cannot be shown by taps until unlocked.
 player_text = player_text.replace(
     '''    private void showChrome() {\n        chromeVisible = true;''',
     '''    private void showChrome() {\n        if (controlsLocked) return;\n        chromeVisible = true;''',
     1,
 )
+player_text = player_text.replace(
+    '''    private void hideChrome() {\n        if (!landscape) return;''',
+    '''    private void hideChrome() {\n        if (!landscape) return;''',
+    1,
+)
 
+# Reapply immersive bars after transient system chrome.
 focus_anchor = '''    @Override public void onUserLeaveHint() {'''
 focus_block = '''    @Override public void onWindowFocusChanged(boolean hasFocus) {\n        super.onWindowFocusChanged(hasFocus);\n        if (hasFocus && landscape && !pip) applyLandscapeWindowMode();\n    }\n\n'''
 if "onWindowFocusChanged(boolean hasFocus)" not in player_text:
@@ -175,6 +197,7 @@ if "onWindowFocusChanged(boolean hasFocus)" not in player_text:
         raise SystemExit("TelePremiumPlayerActivity: focus anchor missing")
     player_text = player_text.replace(focus_anchor, focus_block + focus_anchor, 1)
 
+# AspectSurfaceView: Fit / Crop / Stretch / Original 100%.
 aspect_start = player_text.find("    private static final class AspectSurfaceView extends SurfaceView {")
 if aspect_start < 0:
     raise SystemExit("TelePremiumPlayerActivity: AspectSurfaceView start missing")
@@ -184,6 +207,7 @@ if aspect_end < aspect_start:
 new_aspect = '''    private static final class AspectSurfaceView extends SurfaceView {\n        private int videoWidth, videoHeight;\n        private int scaleMode = SCALE_FIT;\n\n        AspectSurfaceView(Context context) { super(context); }\n\n        void setVideoSize(int width, int height) {\n            videoWidth = width;\n            videoHeight = height;\n            requestLayout();\n        }\n\n        void setScaleMode(int mode) {\n            scaleMode = mode;\n            requestLayout();\n        }\n\n        @Override protected void onMeasure(int widthSpec, int heightSpec) {\n            int boxWidth = MeasureSpec.getSize(widthSpec);\n            int boxHeight = MeasureSpec.getSize(heightSpec);\n            if (videoWidth <= 0 || videoHeight <= 0 || boxWidth <= 0 || boxHeight <= 0 || scaleMode == SCALE_STRETCH) {\n                setMeasuredDimension(boxWidth, boxHeight);\n                return;\n            }\n            float vr = videoWidth / (float) videoHeight;\n            float br = boxWidth / (float) boxHeight;\n            int width = boxWidth, height = boxHeight;\n            if (scaleMode == SCALE_CROP) {\n                if (vr > br) width = Math.max(1, Math.round(boxHeight * vr));\n                else height = Math.max(1, Math.round(boxWidth / vr));\n            } else if (scaleMode == SCALE_ORIGINAL) {\n                float scale = Math.min(1f, Math.min(boxWidth / (float) videoWidth, boxHeight / (float) videoHeight));\n                width = Math.max(1, Math.round(videoWidth * scale));\n                height = Math.max(1, Math.round(videoHeight * scale));\n            } else {\n                if (vr > br) height = Math.max(1, Math.round(boxWidth / vr));\n                else width = Math.max(1, Math.round(boxHeight * vr));\n            }\n            setMeasuredDimension(width, height);\n        }\n    }'''
 player_text = player_text[:aspect_start] + new_aspect + player_text[aspect_end + len("\n    }"):]
 
+# Set initial scale button label and make portrait stage adapt for audio/video.
 player_text = player_text.replace(
     '''        fitButton = transparentButton("↔", 21);''',
     '''        fitButton = transparentButton(scaleModeIcon(), 18);''',
@@ -195,6 +219,7 @@ player_text = player_text.replace(
     1,
 )
 
+# Hard regression guard: an opaque SurfaceView background hides decoded video.
 if "surface.setBackgroundColor" in player_text:
     raise SystemExit("TelePremiumPlayerActivity: opaque SurfaceView background regression detected")
 if "setDecorFitsSystemWindows(false)" in player_text:
@@ -215,6 +240,7 @@ if "import org.telegram.messenger.telepremium.media.TelePremiumArtworkLoader;" n
         1,
     )
 
+# Compact top rhythm matching the approved reference.
 center_text = center_text.replace("sources.addView(sourceDevice, weight(dp(62)));", "sources.addView(sourceDevice, weight(dp(56)));", 1)
 center_text = center_text.replace("sources.addView(sourceCloud, weight(dp(62)));", "sources.addView(sourceCloud, weight(dp(56)));", 1)
 center_text = center_text.replace("sources.addView(sourceNetwork, weight(dp(62)));", "sources.addView(sourceNetwork, weight(dp(56)));", 1)
