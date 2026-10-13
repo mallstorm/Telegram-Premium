@@ -32,6 +32,8 @@ player = text("TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPlayerActi
 for needle in ("AspectSurfaceView", "cycleSpeed", "EXTRA_PATH"):
     if needle not in player:
         raise SystemExit(f"player invariant missing: {needle}")
+# V5/V6 owned playback directly; V7 deliberately delegates it to a process-level
+# controller so rotation, MediaSession and the Media Center share one player.
 if not any(needle in player for needle in ("VideoPlayer", "MediaPlayer", "TelePremiumPlaybackController")):
     raise SystemExit("native player backend is missing")
 if "seekRelative" not in player and "controller.seekRelative" not in player:
