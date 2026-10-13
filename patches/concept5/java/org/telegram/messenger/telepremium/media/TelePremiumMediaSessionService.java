@@ -19,7 +19,16 @@ import android.os.IBinder;
 import org.telegram.messenger.R;
 import org.telegram.ui.TelePremiumPlayerActivity;
 
-/** Foreground media session for background audio, headset events and lock-screen controls. */
+/**
+ * MediaSession/notification bridge for TelePremium playback.
+ *
+ * Important lifecycle rules:
+ * - the service is NOT sticky, so Android must not resurrect an old player card;
+ * - audio-focus gain never starts playback by itself;
+ * - the notification is user-dismissible and its delete action fully closes playback;
+ * - paused playback is detached from foreground mode, making the card freely removable;
+ * - STOP from notification, MediaSession or swipe always releases the shared player.
+ */
 public final class TelePremiumMediaSessionService extends Service implements TelePremiumPlaybackController.Listener {
     private static final String CHANNEL = "telepremium_media";
     private static final int NOTIFICATION_ID = 7717;
@@ -32,18 +41,22 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
     private MediaSession session;
     private AudioManager audioManager;
     private boolean noisyRegistered;
-    private boolean foreground;
+    private boolean shuttingDown;
 
     private final AudioManager.OnAudioFocusChangeListener focusListener = change -> {
-        if (change == AudioManager.AUDIOFOCUS_LOSS || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) controller.pause();
-        // Never auto-resume on AUDIOFOCUS_GAIN. Playback may only restart after
-        // an explicit user action; otherwise old notification/session state can
-        // resurrect playback after calls, alarms or Bluetooth focus changes.
+        if (controller == null) return;
+        if (change == AudioManager.AUDIOFOCUS_LOSS
+                || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+                || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+            // Never remember an implicit resume request. A later AUDIOFOCUS_GAIN must
+            // not wake TelePremium up by itself; playback resumes only by user action.
+            controller.pause();
+        }
     };
 
     private final BroadcastReceiver noisyReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
-            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) controller.pause();
+            if (controller != null && AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) controller.pause();
         }
     };
 
@@ -55,6 +68,15 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         createChannel();
         createSession();
         registerNoisy();
+
+        // startForegroundService() is only issued while a real media item is being
+        // opened. If Android somehow creates us without one, do not leave a ghost card.
+        if (controller.getCurrent() != null) {
+            startForeground(NOTIFICATION_ID, buildNotification());
+            if (!controller.isPlaying()) detachForegroundNotification();
+        } else {
+            stopSelf();
+        }
     }
 
     private void createSession() {
@@ -66,7 +88,7 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
             @Override public void onSkipToNext() { controller.next(); }
             @Override public void onSkipToPrevious() { controller.previous(); }
             @Override public void onSeekTo(long pos) { controller.seekTo(pos); }
-            @Override public void onStop() { stopPlaybackAndService(); }
+            @Override public void onStop() { shutdownPlayback(); }
         });
         session.setActive(true);
         updateSession();
@@ -79,61 +101,89 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
             else if (ACTION_NEXT.equals(action)) controller.next();
             else if (ACTION_PREVIOUS.equals(action)) controller.previous();
             else if (ACTION_STOP.equals(action)) {
-                stopPlaybackAndService();
+                shutdownPlayback();
                 return START_NOT_STICKY;
             }
         }
-        if (controller.getCurrent() == null) {
-            // A sticky/OS recreation without an active item must not leave a
-            // phantom media card in the notification shade.
+
+        if (controller == null || controller.getCurrent() == null) {
             stopSelf();
             return START_NOT_STICKY;
         }
-        updateForegroundState();
+        syncNotificationLifecycle();
+        // Critical: never let Android recreate this service with a null Intent after
+        // process pressure. That was one source of the apparently self-starting card.
         return START_NOT_STICKY;
     }
 
     @Override public void onMediaChanged(TelePremiumMediaItem item) {
+        if (shuttingDown) return;
         if (item == null) {
-            stopPlaybackAndService();
+            removeNotificationAndStop();
             return;
         }
         updateSessionAndNotification();
     }
 
     @Override public void onStateChanged(int state) {
+        if (shuttingDown || controller == null) return;
         if (controller.isPlaying() && audioManager != null) {
             try { audioManager.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN); } catch (Throwable ignore) {}
         }
         updateSessionAndNotification();
     }
+
     @Override public void onProgress(long position, long duration, long buffered, int bufferedPercent) {
         if (session != null) updatePlaybackState(position);
     }
+
     @Override public void onError(String message) { updateSessionAndNotification(); }
 
     private void updateSessionAndNotification() {
-        if (session == null || controller == null || controller.getCurrent() == null) return;
+        if (session == null || controller == null || shuttingDown) return;
+        if (controller.getCurrent() == null) {
+            removeNotificationAndStop();
+            return;
+        }
         updateSession();
-        updateForegroundState();
+        syncNotificationLifecycle();
     }
 
-    private void updateForegroundState() {
-        if (controller == null || controller.getCurrent() == null) return;
+    private void syncNotificationLifecycle() {
+        if (controller == null || controller.getCurrent() == null || shuttingDown) return;
+        int state = controller.getState();
+        boolean active = controller.isPlaying()
+                || state == TelePremiumPlaybackController.STATE_RESOLVING
+                || state == TelePremiumPlaybackController.STATE_BUFFERING
+                || state == TelePremiumPlaybackController.STATE_SEEKING;
         Notification notification = buildNotification();
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (controller.isPlaying()) {
+        if (active) {
             startForeground(NOTIFICATION_ID, notification);
-            foreground = true;
         } else {
-            if (foreground) {
-                // Detach the paused notification from foreground mode. It then
-                // behaves like a normal dismissible media card and can be swiped.
-                stopForeground(false);
-                foreground = false;
-            }
+            detachForegroundNotification();
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) nm.notify(NOTIFICATION_ID, notification);
         }
+    }
+
+    private void detachForegroundNotification() {
+        try { stopForeground(false); } catch (Throwable ignore) {}
+    }
+
+    private void shutdownPlayback() {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        try {
+            if (controller != null) controller.stopAndRelease();
+        } catch (Throwable ignore) {}
+        removeNotificationAndStop();
+    }
+
+    private void removeNotificationAndStop() {
+        try { stopForeground(true); } catch (Throwable ignore) {}
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (nm != null) nm.cancel(NOTIFICATION_ID);
+        stopSelf();
     }
 
     private void updateSession() {
@@ -154,7 +204,7 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         if (controller.getState() == TelePremiumPlaybackController.STATE_BUFFERING || controller.getState() == TelePremiumPlaybackController.STATE_RESOLVING)
             state = PlaybackState.STATE_BUFFERING;
         else if (controller.getState() == TelePremiumPlaybackController.STATE_ERROR) state = PlaybackState.STATE_ERROR;
-        else if (controller.getCurrent() == null) state = PlaybackState.STATE_STOPPED;
+        else if (controller.getState() == TelePremiumPlaybackController.STATE_IDLE) state = PlaybackState.STATE_STOPPED;
         PlaybackState.Builder builder = new PlaybackState.Builder()
                 .setActions(PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE |
                         PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_STOP)
@@ -168,37 +218,26 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         open.putExtra(TelePremiumPlayerActivity.EXTRA_OPEN_CURRENT, true);
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent content = PendingIntent.getActivity(this, 100, open, pendingFlags());
+        PendingIntent close = servicePending(ACTION_STOP, 4);
 
         Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
         builder.setSmallIcon(R.drawable.notification)
                 .setContentTitle(item == null ? "TelePremium" : item.title)
                 .setContentText(item == null ? "Медиацентр" : (item.artist == null ? item.sourceLabel() : item.artist))
                 .setContentIntent(content)
-                .setDeleteIntent(servicePending(ACTION_STOP, 4))
                 .setOngoing(false)
-                .setAutoCancel(false)
+                .setDeleteIntent(close)
                 .setOnlyAlertOnce(true)
                 .setShowWhen(false)
                 .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Назад", servicePending(ACTION_PREVIOUS, 1)).build())
                 .addAction(new Notification.Action.Builder(controller != null && controller.isPlaying() ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
                         controller != null && controller.isPlaying() ? "Пауза" : "Играть", servicePending(ACTION_TOGGLE, 2)).build())
                 .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Далее", servicePending(ACTION_NEXT, 3)).build())
-                .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Закрыть", servicePending(ACTION_STOP, 4)).build());
+                .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Закрыть", close).build());
         if (Build.VERSION.SDK_INT >= 21 && session != null) {
             builder.setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1, 2));
         }
         return builder.build();
-    }
-
-    private void stopPlaybackAndService() {
-        if (controller != null && controller.getCurrent() != null) controller.stopAndRelease();
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (nm != null) nm.cancel(NOTIFICATION_ID);
-        if (foreground) {
-            stopForeground(true);
-            foreground = false;
-        }
-        stopSelf();
     }
 
     private PendingIntent servicePending(String action, int request) {
@@ -230,10 +269,9 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         if (audioManager != null) try { audioManager.abandonAudioFocus(focusListener); } catch (Throwable ignore) {}
         if (noisyRegistered) try { unregisterReceiver(noisyReceiver); } catch (Throwable ignore) {}
         if (session != null) { session.setActive(false); session.release(); session = null; }
-        if (foreground) stopForeground(true); else stopForeground(false);
-        foreground = false;
+        try { stopForeground(true); } catch (Throwable ignore) {}
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (nm != null && (controller == null || controller.getCurrent() == null)) nm.cancel(NOTIFICATION_ID);
+        if (nm != null) nm.cancel(NOTIFICATION_ID);
         super.onDestroy();
     }
 

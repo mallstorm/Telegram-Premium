@@ -37,6 +37,20 @@ public final class TelePremiumUiScale {
         preferences.edit().putInt(KEY_SCALE, value).apply();
     }
 
+    /**
+     * Compensates Telegram's fixed chat bubble side insets when the global
+     * TelePremium shell is made smaller. Without this compensation a lower
+     * density makes channel/group posts look artificially narrow even though
+     * more horizontal room is available on the physical display.
+     */
+    public static int chatInsetPx(Context context, int baseDp) {
+        int percent = getScalePercent(context);
+        int wideningDp = Math.max(0, DEFAULT_SCALE - percent) * 2;
+        wideningDp = Math.min(16, wideningDp);
+        int effectiveDp = Math.max(48, baseDp - wideningDp);
+        return org.telegram.messenger.AndroidUtilities.dp(effectiveDp);
+    }
+
     @SuppressWarnings("deprecation")
     public static void apply(Context context) {
         if (context == null) {
