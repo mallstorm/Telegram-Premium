@@ -39,17 +39,10 @@ public final class TelePremiumThemeRegistry {
 
     private TelePremiumThemeRegistry() {}
 
-    private static void add(TelePremiumThemePreset preset) {
-        THEMES.put(preset.id, preset);
-    }
+    private static void add(TelePremiumThemePreset preset) { THEMES.put(preset.id, preset); }
 
-    private static TelePremiumThemePreset theme(String id, String name, boolean dark,
-                                                 String background, String surface, String accent,
-                                                 String text, int icon, String wallpaper) {
-        int bg = Color.parseColor(background);
-        int sf = Color.parseColor(surface);
-        int ac = Color.parseColor(accent);
-        int tx = Color.parseColor(text);
+    private static TelePremiumThemePreset theme(String id, String name, boolean dark, String background, String surface, String accent, String text, int icon, String wallpaper) {
+        int bg = Color.parseColor(background), sf = Color.parseColor(surface), ac = Color.parseColor(accent), tx = Color.parseColor(text);
         int elevated = blend(sf, dark ? Color.WHITE : Color.BLACK, dark ? 0.07f : 0.018f);
         int secondary = blend(tx, bg, dark ? 0.32f : 0.28f);
         int iconSecondary = blend(ac, tx, dark ? 0.18f : 0.22f);
@@ -60,20 +53,7 @@ public final class TelePremiumThemeRegistry {
         int input = dark ? blend(sf, Color.BLACK, 0.10f) : blend(sf, bg, 0.24f);
         int status = dark ? blend(bg, Color.BLACK, 0.12f) : bg;
         int nav = dark ? blend(bg, Color.BLACK, 0.20f) : blend(bg, Color.BLACK, 0.025f);
-        return new TelePremiumThemePreset(
-                id, name, dark,
-                bg, sf, elevated,
-                bg, sf,
-                ac, blend(ac, Color.BLACK, dark ? 0.18f : 0.12f),
-                tx, secondary,
-                tx, iconSecondary,
-                divider, selector,
-                incoming, outgoing,
-                ac, ac,
-                input, blend(bg, sf, 0.50f),
-                status, nav,
-                wallpaper, icon
-        );
+        return new TelePremiumThemePreset(id, name, dark, bg, sf, elevated, bg, sf, ac, blend(ac, Color.BLACK, dark ? 0.18f : 0.12f), tx, secondary, tx, iconSecondary, divider, selector, incoming, outgoing, ac, ac, input, blend(bg, sf, 0.50f), status, nav, wallpaper, icon);
     }
 
     public static int blend(int from, int to, float amount) {
@@ -90,11 +70,6 @@ public final class TelePremiumThemeRegistry {
         return preset != null ? preset : THEMES.get(SILVER_GRAY);
     }
 
-    public static List<TelePremiumThemePreset> all() {
-        return Collections.unmodifiableList(new ArrayList<>(THEMES.values()));
-    }
-
-    public static Map<String, TelePremiumThemePreset> map() {
-        return Collections.unmodifiableMap(THEMES);
-    }
+    public static List<TelePremiumThemePreset> all() { return Collections.unmodifiableList(new ArrayList<>(THEMES.values())); }
+    public static Map<String, TelePremiumThemePreset> map() { return Collections.unmodifiableMap(THEMES); }
 }
