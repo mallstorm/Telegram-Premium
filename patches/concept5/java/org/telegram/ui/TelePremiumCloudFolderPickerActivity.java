@@ -12,10 +12,10 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.TextCell;
-import java.util.List;
+import java.util.HashSet;
 
 public class TelePremiumCloudFolderPickerActivity extends BaseFragment {
-    public interface Callback { void onFolder(String id); }
+    public interface Callback { void onFolder(String id,String name); }
     private final int account; private final String folderId; private final String title; private final Callback callback;
     public TelePremiumCloudFolderPickerActivity(int account,String folderId,String title,Callback callback){this.account=account;this.folderId=folderId;this.title=title;this.callback=callback;}
     @Override public View createView(Context context){
@@ -23,8 +23,26 @@ public class TelePremiumCloudFolderPickerActivity extends BaseFragment {
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick(){@Override public void onItemClick(int id){if(id==-1)finishFragment();}});
         ScrollView s=new ScrollView(context);LinearLayout list=new LinearLayout(context);list.setOrientation(LinearLayout.VERTICAL);s.addView(list);fragmentView=s;
         TelePremiumCloudManager cloud=TelePremiumCloudManager.getInstance(account);
-        TextCell here=new TextCell(context,getResourceProvider());here.setTextAndValue("Выбрать эту папку","Переместить/копировать сюда",true);here.setOnClickListener(v->{callback.onFolder(folderId);finishFragment();});list.addView(here,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(58)));
-        for(CloudNode n:cloud.children(folderId,false))if(n.type==CloudNode.TYPE_FOLDER){TextCell c=new TextCell(context,getResourceProvider());c.setTextAndValue("📁 "+n.name,"Открыть",true);c.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));c.setOnClickListener(v->presentFragment(new TelePremiumCloudFolderPickerActivity(account,n.id,n.name,callback)));list.addView(c,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(58)));}
+        addTarget(context,list,folderId,"root".equals(folderId)?"Корень облака":title,0);
+        addFolderTargets(context,list,cloud,folderId,1,new HashSet<>());
         return fragmentView;
     }
+
+    private void addFolderTargets(Context context,LinearLayout list,TelePremiumCloudManager cloud,String parentId,int depth,HashSet<String> visited){
+        if(!visited.add(parentId))return;
+        for(CloudNode node:cloud.children(parentId,false))if(node.type==CloudNode.TYPE_FOLDER){
+            addTarget(context,list,node.id,node.name,depth);
+            addFolderTargets(context,list,cloud,node.id,depth+1,visited);
+        }
+    }
+
+    private void addTarget(Context context,LinearLayout list,String id,String name,int depth){
+        TextCell cell=new TextCell(context,getResourceProvider());
+        StringBuilder prefix=new StringBuilder();for(int i=0;i<depth;i++)prefix.append("  ");
+        cell.setTextAndValue(prefix+(depth==0?"☁  ":"📁  ")+name,"Переместить сюда",true);
+        cell.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        cell.setOnClickListener(v->{callback.onFolder(id,name);finishFragment();});
+        list.addView(cell,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(60)));
+    }
 }
+
