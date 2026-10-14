@@ -60,10 +60,13 @@ tags = text("TMessagesProj/src/main/java/org/telegram/ui/Components/DialogCellTa
 for needle in (
     'if (!TelePremiumFolderTags.isEnabled(currentAccount))',
     'final int localColor = TelePremiumFolderTags.getColor(currentAccount, filter.id, filter.color)',
+    'tag.colorId = TelePremiumFolderTags.getColor(currentAccount, filter.id, filter.color)',
 ):
     if needle not in tags:
         raise SystemExit(f"dialog tag renderer invariant missing: {needle}")
 if 'controller.folderTags && account.getUserConfig().isPremium()' in tags:
     raise SystemExit("dialog tags are still gated by Telegram Premium")
+if 'filter.color = localColor' in tags:
+    raise SystemExit("local folder color must not mutate the Telegram server model")
 
 print("TelePremium local folder tags V11 verification passed")

@@ -213,7 +213,24 @@ replace_once(
 )
 
 # Chat list tags: render from the local switch and local colour overrides,
-# without requiring Telegram Premium or the server-side folderTags flag.
+# without requiring Telegram Premium or the server-side folderTags flag. Keep
+# the Telegram DialogFilter model untouched so local colours can never leak
+# into unrelated server sync paths.
+replace_once(
+    DIALOG_TAGS,
+    "        tag.colorId = filter.color;",
+    "        tag.colorId = TelePremiumFolderTags.getColor(currentAccount, filter.id, filter.color);",
+)
+replace_once(
+    DIALOG_TAGS,
+    "        tag.color = Theme.getColor(Theme.keys_avatar_nameInMessage[filter.color % Theme.keys_avatar_nameInMessage.length]);",
+    "        tag.color = Theme.getColor(Theme.keys_avatar_nameInMessage[tag.colorId % Theme.keys_avatar_nameInMessage.length]);",
+)
+replace_once(
+    DIALOG_TAGS,
+    "            } else if (filter.color != tag.colorId || filter.name != null && tag.layout != null && filter.name.length() != tag.layout.getText().length()) {",
+    "            } else if (TelePremiumFolderTags.getColor(currentAccount, filter.id, filter.color) != tag.colorId || filter.name != null && tag.layout != null && filter.name.length() != tag.layout.getText().length()) {",
+)
 replace_once(
     DIALOG_TAGS,
     "        if (!(controller.folderTags && account.getUserConfig().isPremium())) {",
@@ -232,9 +249,6 @@ replace_once(
     "                final int localColor = TelePremiumFolderTags.getColor(currentAccount, filter.id, filter.color);\n"
     "                if (localColor < 0) {\n"
     "                    continue;\n"
-    "                }\n"
-    "                if (filter.color != localColor) {\n"
-    "                    filter.color = localColor;\n"
     "                }\n"
     "                if (filter.includesDialog(account, dialogId)) {",
 )
