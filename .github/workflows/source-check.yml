@@ -35,6 +35,8 @@ jobs:
           python3 scripts/verify_cloud_streaming_v6.py
           python3 scripts/apply_media_center_v7.py
           python3 scripts/verify_media_center_v7.py
+          python3 scripts/apply_local_folder_tags_v11.py
+          python3 scripts/verify_local_folder_tags_v11.py
           grep -q 'TelePremiumThemeArtwork.drawerBody' upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/DrawerLayoutContainer.java
 
       - name: Show pinned upstream revision
