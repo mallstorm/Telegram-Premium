@@ -584,4 +584,5 @@
     <string name="TP_P_UP_NEXT" formatted="false">"Up next in playlist"</string>
     <string name="TP_Q_ONLY_AUDIO" formatted="false">"The queue holds music now. Video plays in its own queue — start it from the Video tab."</string>
     <string name="TP_Q_ONLY_VIDEO" formatted="false">"The queue holds video now. Music plays in its own queue — start it from the Music tab."</string>
+    <string name="TP_CLOUD_PARTS_FMT" formatted="false">"%1$d parts"</string>
 </resources>

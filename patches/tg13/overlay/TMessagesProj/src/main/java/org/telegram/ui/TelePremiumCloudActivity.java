@@ -665,7 +665,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         LinearLayout row=new LinearLayout(context); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(AndroidUtilities.dp(4),AndroidUtilities.dp(7),AndroidUtilities.dp(4),AndroidUtilities.dp(7)); row.setBackgroundColor(visualTheme.surfaceElevated);
         ImageView icon=new ImageView(context); icon.setImageResource(node.type==CloudNode.TYPE_FOLDER?R.drawable.tp_cloud_folder:fileIcon(node)); icon.setPadding(AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12)); icon.setBackground(roundRect(visualTheme.searchBackground,10)); row.addView(icon,new LinearLayout.LayoutParams(AndroidUtilities.dp(50),AndroidUtilities.dp(50)));
         LinearLayout labels=new LinearLayout(context);labels.setOrientation(LinearLayout.VERTICAL);labels.setPadding(AndroidUtilities.dp(12),0,AndroidUtilities.dp(8),0);
-        TextView name=label(node.name,16,true);TextView detail=label(node.type==CloudNode.TYPE_FOLDER?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_108", org.telegram.messenger.R.string.TP_L10N_108):humanSize(node.size),13,false);detail.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));labels.addView(name);labels.addView(detail);row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
+        TextView name=label(node.name,16,true);TextView detail=label(node.type==CloudNode.TYPE_FOLDER?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_108", org.telegram.messenger.R.string.TP_L10N_108):(node.isMultipart()?humanSize(node.size)+" · "+org.telegram.messenger.telepremium.TPStrings.format("TP_CLOUD_PARTS_FMT", org.telegram.messenger.R.string.TP_CLOUD_PARTS_FMT, node.partCount()):humanSize(node.size)),13,false);detail.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));labels.addView(name);labels.addView(detail);row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
         BackupImageView ownerAvatar = accountAvatar(item.account, 32);
         row.addView(ownerAvatar, new LinearLayout.LayoutParams(AndroidUtilities.dp(32),AndroidUtilities.dp(32)));
         TextView more=label("⋮",26,false);more.setGravity(Gravity.CENTER);more.setOnClickListener(v->showNodeMenu(item));row.addView(more,new LinearLayout.LayoutParams(AndroidUtilities.dp(42),AndroidUtilities.dp(50)));
@@ -725,6 +725,16 @@ public class TelePremiumCloudActivity extends BaseFragment {
             // Cloud audio/video goes straight to the Telegram-backed stream URI. The
             // player itself resolves the service-channel document and starts ExoPlayer
             // as soon as the first playable range is available; no full pre-download.
+            if (item.node.isMultipart()) {
+                // Multipart (> Telegram document limit): stream all parts as one file.
+                org.telegram.messenger.telepremium.media.TelePremiumMediaItem media =
+                        org.telegram.messenger.telepremium.media.TelePremiumMediaItem.cloud(item.account, item.node.id,
+                                item.node.telegramMessageId, item.node.telegramDocumentId, item.node.name, mime, 0, item.node.size);
+                media.sha256 = item.node.sha256;
+                media.setParts(item.node);
+                TelePremiumPlayerActivity.openMedia(getParentActivity(), media);
+                return;
+            }
             TelePremiumPlayerActivity.openCloud(
                     getParentActivity(),
                     item.account,

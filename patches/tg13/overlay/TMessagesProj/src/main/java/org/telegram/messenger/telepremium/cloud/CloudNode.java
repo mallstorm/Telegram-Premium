@@ -1,5 +1,6 @@
 package org.telegram.messenger.telepremium.cloud;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -36,6 +37,36 @@ public final class CloudNode {
     public long backupDocumentId;
     /** Random local encrypted replica handle, never a filesystem path. */
     public String localBackupId;
+    /**
+     * Multipart payload: a file larger than the account's Telegram document limit is stored as
+     * several consecutive byte ranges, one Telegram document each. Null for single-document files;
+     * when set, {@link #telegramMessageId}/{@link #telegramDocumentId} mirror part 0.
+     */
+    public long[] partMessageIds;
+    public long[] partDocumentIds;
+    /** Plaintext byte length of each part (their sum equals {@link #size}). */
+    public long[] partSizes;
+    /** Plaintext SHA-256 of each part (required to authenticate Vault parts). */
+    public String[] partSha256;
+
+    public boolean isMultipart() { return partMessageIds != null && partMessageIds.length > 1; }
+
+    public int partCount() { return partMessageIds == null ? (telegramMessageId != 0 ? 1 : 0) : partMessageIds.length; }
+
+    public void allocateParts(int count) {
+        partMessageIds = new long[count];
+        partDocumentIds = new long[count];
+        partSizes = new long[count];
+        partSha256 = new String[count];
+    }
+
+    public void copyPartsFrom(CloudNode source) {
+        if (source == null || source.partMessageIds == null) { partMessageIds = null; partDocumentIds = null; partSizes = null; partSha256 = null; return; }
+        partMessageIds = source.partMessageIds.clone();
+        partDocumentIds = source.partDocumentIds == null ? new long[partMessageIds.length] : source.partDocumentIds.clone();
+        partSizes = source.partSizes == null ? new long[partMessageIds.length] : source.partSizes.clone();
+        partSha256 = source.partSha256 == null ? new String[partMessageIds.length] : source.partSha256.clone();
+    }
 
     public static CloudNode file(String parentId, String name, String mimeType, long size, String sha256) {
         CloudNode n = new CloudNode();
@@ -64,6 +95,18 @@ public final class CloudNode {
         o.put("sha256", sha256); o.put("originalName", originalName); o.put("offlineState", offlineState);
         o.put("encryptionVersion", encryptionVersion); o.put("backupMessageId", backupMessageId); o.put("backupDocumentId", backupDocumentId);
         o.put("localBackupId",localBackupId);
+        if (partMessageIds != null) {
+            JSONArray parts = new JSONArray();
+            for (int i = 0; i < partMessageIds.length; i++) {
+                JSONObject part = new JSONObject();
+                part.put("m", partMessageIds[i]);
+                part.put("d", partDocumentIds == null ? 0 : partDocumentIds[i]);
+                part.put("s", partSizes == null ? 0 : partSizes[i]);
+                if (partSha256 != null && partSha256[i] != null) part.put("h", partSha256[i]);
+                parts.put(part);
+            }
+            o.put("parts", parts);
+        }
         return o;
     }
 
@@ -77,6 +120,18 @@ public final class CloudNode {
         n.sha256=o.optString("sha256", null); n.originalName=o.optString("originalName", null); n.offlineState=o.optInt("offlineState");
         n.encryptionVersion=o.optInt("encryptionVersion", 0); n.backupMessageId=o.optLong("backupMessageId"); n.backupDocumentId=o.optLong("backupDocumentId");
         n.localBackupId=o.optString("localBackupId",null);
+        JSONArray parts = o.optJSONArray("parts");
+        if (parts != null && parts.length() > 0) {
+            n.allocateParts(parts.length());
+            for (int i = 0; i < parts.length(); i++) {
+                JSONObject part = parts.optJSONObject(i);
+                if (part == null) continue;
+                n.partMessageIds[i] = part.optLong("m");
+                n.partDocumentIds[i] = part.optLong("d");
+                n.partSizes[i] = part.optLong("s");
+                n.partSha256[i] = part.has("h") ? part.optString("h", null) : null;
+            }
+        }
         return n;
     }
 }

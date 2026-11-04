@@ -254,6 +254,7 @@ public final class TelePremiumPlaybackController {
             startFullDownloadFallback(item,token,"Vault требует проверенной расшифровки файла");
             return;
         }
+        if (item.isMultipart()) { resolveCloudMultipart(item, token); return; }
         TelePremiumCloudPeerManager peer = TelePremiumCloudPeerManager.getInstance(item.cloudAccount);
         peer.ensure((dialogId, error) -> {
             if (token != generation) return;
@@ -274,6 +275,43 @@ public final class TelePremiumPlaybackController {
                 if (uri == null) { startFullDownloadFallback(item, token, "Не удалось создать поток"); return; }
                 cloudStreaming = !"file".equalsIgnoreCase(uri.getScheme());
                 startPlayer(uri, item, token);
+            }));
+        });
+    }
+
+    /**
+     * A Cloud file larger than the Telegram document limit is stored as several documents.
+     * All parts are resolved in one request and exposed to ExoPlayer as a single seekable stream.
+     */
+    private void resolveCloudMultipart(TelePremiumMediaItem item, int token) {
+        TelePremiumCloudPeerManager peer = TelePremiumCloudPeerManager.getInstance(item.cloudAccount);
+        peer.ensure((dialogId, error) -> {
+            if (token != generation) return;
+            if (error != null || peer.getInputChannel() == null) { AndroidUtilities.runOnUIThread(() -> fail(error == null ? "Облако недоступно" : error)); return; }
+            TLRPC.TL_channels_getMessages req = new TLRPC.TL_channels_getMessages();
+            req.channel = peer.getInputChannel();
+            for (long id : item.partMessageIds) req.id.add((int) id);
+            ConnectionsManager.getInstance(item.cloudAccount).sendRequest(req, (response, requestError) -> AndroidUtilities.runOnUIThread(() -> {
+                if (token != generation) return;
+                if (requestError != null) { fail(requestError.text); return; }
+                if (!(response instanceof TLRPC.messages_Messages)) { fail("Файл удалён из облака"); return; }
+                java.util.HashMap<Integer, TLRPC.Message> byId = new java.util.HashMap<>();
+                for (TLRPC.Message m : ((TLRPC.messages_Messages) response).messages) if (m != null) byId.put(m.id, m);
+                int count = item.partMessageIds.length;
+                Uri[] parts = new Uri[count];
+                long[] sizes = new long[count];
+                for (int i = 0; i < count; i++) {
+                    TLRPC.Message m = byId.get((int) item.partMessageIds[i]);
+                    if (m == null || m.media == null || m.media.document == null) { fail("Часть " + (i + 1) + " из " + count + " отсутствует в облаке"); return; }
+                    TLRPC.Document document = m.media.document;
+                    if (i == 0) { streamMessage = m; streamDocument = document; }
+                    FileStreamLoadOperation.setPriorityForDocument(document, FileLoader.PRIORITY_HIGH);
+                    parts[i] = FileStreamLoadOperation.prepareUri(item.cloudAccount, document, m);
+                    if (parts[i] == null) { fail("Не удалось создать поток части " + (i + 1)); return; }
+                    sizes[i] = document.size;
+                }
+                cloudStreaming = true;
+                startPlayer(TelePremiumMultipartDataSource.register(parts, sizes), item, token);
             }));
         });
     }
@@ -334,6 +372,8 @@ public final class TelePremiumPlaybackController {
 
     private void startFullDownloadFallback(TelePremiumMediaItem item, int token, String reason) {
         if (fallbackAttempted || item.cloudAccount < 0 || item.telegramMessageId == 0) { fail(reason); return; }
+        // A multipart file is many gigabytes: never silently pre-download it after a stream hiccup.
+        if (item.isMultipart() && item.encryptionVersion == 0) { fail(reason + " — повторите воспроизведение"); return; }
         fallbackAttempted = true;
         cloudStreaming = false;
         releasePlayer();
@@ -343,6 +383,7 @@ public final class TelePremiumPlaybackController {
         node.encryptionVersion=item.encryptionVersion;
         node.sha256=item.sha256;
         node.localBackupId=item.localBackupId;
+        item.copyPartsTo(node);
         fallbackDownload = new CloudDownloadManager(item.cloudAccount);
         fallbackDownload.download(node, (downloadState, file, error) -> {
             if (token != generation) return;

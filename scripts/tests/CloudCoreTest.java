@@ -56,6 +56,16 @@ public final class CloudCoreTest {
         check(r.parentId == null && "root".equals(r.id), "root keeps null parent");
         check(g.favorite && g.encryptionVersion == 1 && g.telegramDocumentId == 9_000_000_000L, "file flags and 64-bit ids survive");
         check(f.name.equals(g.name) && f.sha256.equals(g.sha256), "unicode / escaped name and hash survive");
+        CloudNode big = file("big", "root", "cd".repeat(32), 12L * 1024 * 1024 * 1024);
+        big.allocateParts(3);
+        for (int i = 0; i < 3; i++) { big.partMessageIds[i] = 100 + i; big.partDocumentIds[i] = 9_000_000_100L + i; big.partSizes[i] = 4L * 1024 * 1024 * 1024; big.partSha256[i] = Integer.toString(i).repeat(64); }
+        big.telegramMessageId = 100;
+        CloudSnapshot ms = base();
+        ms.nodes.add(big);
+        CloudNode bd = CloudSnapshot.decode(ms.encode()).nodes.get(1);
+        check(bd.isMultipart() && bd.partCount() == 3 && bd.partMessageIds[2] == 102 && bd.partDocumentIds[1] == 9_000_000_101L
+                && bd.partSizes[0] == 4L * 1024 * 1024 * 1024 && "2".repeat(64).equals(bd.partSha256[2]), "multipart parts survive");
+        check(!g.isMultipart() && g.partMessageIds == null, "single-document node has no parts");
         boolean rejected = false;
         try { CloudSnapshot.decode("{\"schemaVersion\":99,\"cloudId\":\"x\"}"); } catch (IllegalStateException e) { rejected = true; }
         check(rejected, "unknown schema rejected");

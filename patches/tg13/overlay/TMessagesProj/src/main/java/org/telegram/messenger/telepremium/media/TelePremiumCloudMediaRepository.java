@@ -25,6 +25,7 @@ public final class TelePremiumCloudMediaRepository {
                     item.encryptionVersion=node.encryptionVersion;
                     item.sha256=node.sha256;
                     item.localBackupId=node.localBackupId;
+                    item.setParts(node);
                     out.add(item);
                 }
             }

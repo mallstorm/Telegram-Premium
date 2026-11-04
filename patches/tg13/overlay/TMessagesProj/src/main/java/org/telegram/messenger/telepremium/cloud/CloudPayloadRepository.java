@@ -49,10 +49,20 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         File encryptedPayload;
         String encryptedFilename;
         String encryptedCaption;
+        /** Non-null while a file larger than the Telegram limit is uploaded part by part. */
+        Multipart multipart;
         Pending(CloudNode node, ImportCallback callback, long dialogId, Uri uri, String parentId, String displayName, String mime){
             this.node=node; this.callback=callback; this.dialogId=dialogId; this.uri=uri;
             this.parentId=parentId; this.displayName=displayName; this.mime=mime;
         }
+    }
+
+    private static final class Multipart {
+        int count;
+        int index;
+        long doneBytes;
+        boolean vault;
+        java.security.MessageDigest digest;
     }
 
     public CloudPayloadRepository(int account){
@@ -70,13 +80,12 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
             try {
                 long declaredSize=querySize(uri);
                 long limit=maxUploadBytes(account);
+                String safe=(displayName==null||displayName.trim().isEmpty())?"cloud-file":displayName.replaceAll("[\\\\/:*?\"<>|]","_");
                 if(declaredSize>0 && declaredSize>limit){
-                    String msg="Файл больше лимита Telegram ("+(limit/(1024L*1024L))+" МБ"
-                            +(UserConfig.getInstance(account).isPremium()?")":"; с Telegram Premium — до 4000 МБ)");
-                    AndroidUtilities.runOnUIThread(() -> callback.onComplete(null,msg));
+                    // Larger than one Telegram document: store it as several balanced parts.
+                    importMultipart(uri,parentId,safe,mime,declaredSize,limit,callback);
                     return;
                 }
-                String safe=(displayName==null||displayName.trim().isEmpty())?"cloud-file":displayName.replaceAll("[\\\\/:*?\"<>|]","_");
                 // A secure file is encrypted BEFORE it reaches SendMessagesHelper.
                 // Plaintext never goes to the Telegram service peer in Vault mode.
                 boolean vaultEnabled=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext);
@@ -206,6 +215,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     private void sendToCloudPeer() {
         Pending p=pending;
         if(p==null)return;
+        if(p.multipart!=null && p.encryptedPayload==null)return; // next part is still being prepared
         SendMessagesHelper.prepareSendingDocument(
                 AccountInstance.getInstance(account),
                 p.encryptedPayload==null?null:p.encryptedPayload.getAbsolutePath(),
@@ -250,7 +260,8 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                 long total=args.length>2&&args[2] instanceof Long?(Long)args[2]:pending.node.size;
                 if(!matchesPendingUpload(location,total))return;
                 pending.lastLocation=location;
-                transferManager.updateProgress(uploaded,total);
+                if(pending.multipart!=null) transferManager.updateProgress(Math.min(pending.multipart.doneBytes+uploaded,pending.node.size),pending.node.size);
+                else transferManager.updateProgress(uploaded,total);
                 return;
             }
             if(id==NotificationCenter.fileUploadFailed){
@@ -270,6 +281,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
             if(did!=pending.dialogId) return;
             if(message.media==null || message.media.document==null) return;
             if(pending.encryptedPayload!=null && !pending.encryptedCaption.equals(message.message))return;
+            if(pending.multipart!=null){onMultipartPartSent(message);return;}
             pending.node.telegramMessageId=message.id;
             pending.node.telegramDocumentId=message.media.document.id;
             Pending done=pending; pending=null;
@@ -336,11 +348,253 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         },2500);
     }
 
+    // ------------------------------------------------------------------ multipart upload
+
+    /** Number of parts for {@code size} bytes with a per-document {@code limit}. */
+    public static int planPartCount(long size,long limit){
+        return (int)Math.max(1,(size+limit-1)/limit);
+    }
+
+    /**
+     * Balanced part size: the file is split into equally sized parts (rounded up to 1 MiB)
+     * instead of N full parts plus a small tail, so every part streams and retries alike.
+     */
+    public static long planPartSize(long size,int count){
+        long mib=1024L*1024L;
+        long raw=(size+count-1)/count;
+        return ((raw+mib-1)/mib)*mib;
+    }
+
+    private android.content.SharedPreferences multipartPrefs(){
+        return ApplicationLoader.applicationContext.getSharedPreferences("tp_cloud_multipart_"+account,android.content.Context.MODE_PRIVATE);
+    }
+
+    private void saveMultipartState(Pending p){
+        try{
+            multipartPrefs().edit().putString("uri",p.uri.toString()).putLong("size",p.node.size)
+                    .putBoolean("vault",p.multipart.vault).putString("node",p.node.toJson().toString()).apply();
+        }catch(Exception e){FileLog.e(e);}
+    }
+
+    private CloudNode restoreMultipartState(Uri uri,long size,boolean vault){
+        android.content.SharedPreferences prefs=multipartPrefs();
+        if(!uri.toString().equals(prefs.getString("uri",null)) || prefs.getLong("size",-1)!=size || prefs.getBoolean("vault",false)!=vault)return null;
+        try{
+            CloudNode node=CloudNode.fromJson(new org.json.JSONObject(prefs.getString("node","{}")));
+            return node.isMultipart()?node:null;
+        }catch(Exception e){FileLog.e(e);return null;}
+    }
+
+    private void clearMultipartState(){multipartPrefs().edit().clear().apply();}
+
+    /** Runs on the global queue. */
+    private void importMultipart(Uri uri,String parentId,String safe,String mime,long size,long limit,ImportCallback callback) throws Exception {
+        boolean vault=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext);
+        CloudNode node=restoreMultipartState(uri,size,vault);
+        if(node==null){
+            int count=planPartCount(size,limit);
+            long partSize=planPartSize(size,count);
+            node=CloudNode.file(parentId,safe,mime,size,null);
+            node.allocateParts(count);
+            long left=size;
+            for(int i=0;i<count;i++){node.partSizes[i]=Math.min(partSize,left);left-=node.partSizes[i];}
+            if(vault)node.encryptionVersion=1;
+        }
+        Multipart mp=new Multipart();
+        mp.count=node.partMessageIds.length;
+        mp.vault=vault;
+        mp.digest=java.security.MessageDigest.getInstance("SHA-256");
+        while(mp.index<mp.count && node.partMessageIds[mp.index]!=0){mp.doneBytes+=node.partSizes[mp.index];mp.index++;}
+        transferManager.beginUpload(uri.toString(),parentId,safe,mime,size);
+        transferManager.updateProgress(mp.doneBytes,size);
+        // Resume: the whole-file hash still has to cover the parts already in the cloud.
+        if(mp.doneBytes>0)hashRange(uri,0,mp.doneBytes,mp.digest);
+        CloudNode target=node;
+        AndroidUtilities.runOnUIThread(()->peerManager.ensure((dialogId,error)->{
+            if(error!=null || dialogId==0){
+                transferManager.waitingNetwork(error==null?"Cloud service peer unavailable":error);
+                callback.onComplete(null,error==null?"Cloud service peer unavailable":error);
+                return;
+            }
+            if(pending!=null){callback.onComplete(null,"Уже выполняется загрузка");return;}
+            pending=new Pending(target,callback,dialogId,uri,parentId,safe,mime);
+            pending.multipart=mp;
+            saveMultipartState(pending);
+            startObservers();
+            transferManager.markUploading();
+            stageNextPart();
+        }));
+    }
+
+    private void stageNextPart(){
+        Pending p=pending;
+        if(p==null || p.multipart==null)return;
+        Multipart mp=p.multipart;
+        if(mp.index>=mp.count){finishMultipart();return;}
+        Utilities.globalQueue.postRunnable(()->{
+            File staging=null;
+            try{
+                int index=mp.index;
+                long offset=0;
+                for(int i=0;i<index;i++)offset+=p.node.partSizes[i];
+                long length=p.node.partSizes[index];
+                staging=createPartTarget(p.node,index,mp.count,mp.vault,length);
+                java.security.MessageDigest partDigest=java.security.MessageDigest.getInstance("SHA-256");
+                String partSha;
+                try(android.os.ParcelFileDescriptor pfd=ApplicationLoader.applicationContext.getContentResolver().openFileDescriptor(p.uri,"r");
+                    java.io.FileInputStream raw=new java.io.FileInputStream(pfd.getFileDescriptor())){
+                    raw.getChannel().position(offset);
+                    PartInputStream in=new PartInputStream(raw,length,mp.digest,partDigest);
+                    if(mp.vault){
+                        byte[] master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
+                        try{
+                            VaultFileOps.UploadResult result=VaultFileOps.encryptToFile(in,staging,master);
+                            partSha=result.originalSha256;
+                        }finally{Arrays.fill(master,(byte)0);}
+                    }else{
+                        try(FileOutputStream out=new FileOutputStream(staging)){
+                            byte[] b=new byte[1024*1024];int n;
+                            while((n=in.read(b))>0)out.write(b,0,n);
+                            out.getFD().sync();
+                        }
+                        partSha=hex(partDigest.digest());
+                    }
+                    if(in.count!=length)throw new java.io.IOException("Файл изменился во время загрузки");
+                }
+                p.node.partSha256[index]=partSha;
+                File ready=staging;
+                AndroidUtilities.runOnUIThread(()->{
+                    if(pending!=p){ready.delete();return;}
+                    p.encryptedPayload=ready;
+                    p.encryptedFilename=ready.getName();
+                    p.encryptedCaption="#TPPART:"+p.node.id.substring(0,8)+":"+(index+1)+"/"+mp.count;
+                    sendToCloudPeer();
+                });
+            }catch(Exception e){
+                FileLog.e(e);
+                if(staging!=null)staging.delete();
+                String message=e.getMessage()==null?"Не удалось подготовить часть файла":e.getMessage();
+                AndroidUtilities.runOnUIThread(()->{
+                    if(pending!=p)return;
+                    pending=null;stopObservers();
+                    transferManager.failRetryable(message);
+                    p.callback.onComplete(null,message);
+                });
+            }
+        });
+    }
+
+    private void onMultipartPartSent(TLRPC.Message message){
+        Pending p=pending;
+        Multipart mp=p.multipart;
+        int index=mp.index;
+        p.node.partMessageIds[index]=message.id;
+        p.node.partDocumentIds[index]=message.media.document.id;
+        if(index==0){p.node.telegramMessageId=message.id;p.node.telegramDocumentId=message.media.document.id;}
+        if(p.encryptedPayload!=null)p.encryptedPayload.delete();
+        p.encryptedPayload=null;p.encryptedFilename=null;p.encryptedCaption=null;p.lastLocation=null;
+        p.retryCount=0;
+        mp.doneBytes+=p.node.partSizes[index];
+        mp.index++;
+        saveMultipartState(p);
+        transferManager.updateProgress(mp.doneBytes,p.node.size);
+        stageNextPart();
+    }
+
+    private void finishMultipart(){
+        Pending done=pending;pending=null;
+        stopObservers();
+        done.node.sha256=hex(done.multipart.digest.digest());
+        clearMultipartState();
+        if(done.multipart.vault){
+            transferManager.markIndexing(done.node.id,done.node.telegramMessageId);
+            try{
+                TelePremiumVaultPendingIndexStore.save(account,done.node);
+            }catch(Exception persistError){
+                FileLog.e(persistError);
+                transferManager.failRetryable("Файл в канале, но защищённая запись не сохранена");
+                done.callback.onComplete(null,"Файл загружен в канал, но не удалось сохранить запись для восстановления");
+                return;
+            }
+        }else{
+            transferManager.complete();
+        }
+        done.callback.onComplete(done.node,null);
+    }
+
+    private File createPartTarget(CloudNode node,int index,int count,boolean vault,long length) throws java.io.IOException {
+        File target;
+        if(vault){
+            target=VaultTransportStaging.createCiphertextTarget(ApplicationLoader.applicationContext,"tpp_");
+        }else{
+            File external=ApplicationLoader.applicationContext.getExternalCacheDir();
+            if(external==null)throw new java.io.IOException("Внешний кэш приложения недоступен");
+            File dir=new File(external,"telepremium_cloud_outbox");
+            if(!dir.isDirectory() && !dir.mkdirs())throw new java.io.IOException("Не удалось создать папку для частей");
+            String width=String.valueOf(count).length()<2?"%02d":"%0"+String.valueOf(count).length()+"d";
+            target=new File(dir,node.name+".part"+String.format(java.util.Locale.ROOT,width,index+1)+"of"+String.format(java.util.Locale.ROOT,width,count));
+        }
+        File dir=target.getParentFile();
+        long free=dir==null?Long.MAX_VALUE:dir.getUsableSpace();
+        long need=length+64L*1024L*1024L;
+        if(free<need)throw new java.io.IOException("Недостаточно места: для подготовки части нужно "+(need/(1024L*1024L))+" МБ свободных");
+        return target;
+    }
+
+    private static void hashRange(Uri uri,long offset,long length,java.security.MessageDigest digest) throws java.io.IOException {
+        try(android.os.ParcelFileDescriptor pfd=ApplicationLoader.applicationContext.getContentResolver().openFileDescriptor(uri,"r");
+            java.io.FileInputStream raw=new java.io.FileInputStream(pfd.getFileDescriptor())){
+            raw.getChannel().position(offset);
+            PartInputStream in=new PartInputStream(raw,length,digest,null);
+            byte[] b=new byte[1024*1024];
+            while(in.read(b)>0){}
+            if(in.count!=length)throw new java.io.IOException("Файл изменился — загрузку нужно начать заново");
+        }
+    }
+
+    private static String hex(byte[] bytes){
+        StringBuilder b=new StringBuilder(bytes.length*2);
+        for(byte x:bytes)b.append(String.format(java.util.Locale.ROOT,"%02x",x));
+        return b.toString();
+    }
+
+    /** Reads at most {@code limit} bytes and feeds them to the whole-file and part digests. */
+    private static final class PartInputStream extends java.io.FilterInputStream {
+        private long remaining;
+        long count;
+        private final java.security.MessageDigest whole, part;
+
+        PartInputStream(InputStream in,long limit,java.security.MessageDigest whole,java.security.MessageDigest part){
+            super(in);this.remaining=limit;this.whole=whole;this.part=part;
+        }
+
+        @Override public int read() throws java.io.IOException {
+            byte[] one=new byte[1];
+            int n=read(one,0,1);
+            return n<=0?-1:(one[0]&0xff);
+        }
+
+        @Override public int read(byte[] b,int off,int len) throws java.io.IOException {
+            if(remaining<=0)return -1;
+            int n=super.read(b,off,(int)Math.min(len,remaining));
+            if(n>0){
+                remaining-=n;count+=n;
+                if(whole!=null)whole.update(b,off,n);
+                if(part!=null)part.update(b,off,n);
+            }
+            return n;
+        }
+
+        @Override public long skip(long n){return 0;}
+        @Override public boolean markSupported(){return false;}
+    }
+
     public File resolveDownloadedFile(TLRPC.Document document) {
         return document==null?null:FileLoader.getInstance(account).getPathToAttach(document,true);
     }
 
     public void cancel() {
+        clearMultipartState();
         if(pending==null){transferManager.cancel();return;}
         Pending done=pending; pending=null;
         stopObservers();

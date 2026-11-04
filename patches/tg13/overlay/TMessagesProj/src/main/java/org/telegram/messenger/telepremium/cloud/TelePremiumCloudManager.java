@@ -217,6 +217,7 @@ public final class TelePremiumCloudManager {
         n.telegramMessageId=source.telegramMessageId; n.telegramDocumentId=source.telegramDocumentId; n.originalName=source.originalName;
         n.encryptionVersion=source.encryptionVersion;n.backupMessageId=source.backupMessageId;n.backupDocumentId=source.backupDocumentId;
         n.localBackupId=source.localBackupId;
+        n.copyPartsFrom(source);
         snapshot.nodes.add(n); commit(callback);
     }
 
@@ -346,12 +347,17 @@ public final class TelePremiumCloudManager {
     private void markDeleted(CloudNode root,long now,HashSet<Integer> payloadMessages) {
         root.state=CloudNode.STATE_DELETED; root.favorite=false; root.modifiedAt=now; root.deletedAt=now;
         if(root.telegramMessageId!=0)payloadMessages.add((int)root.telegramMessageId);
+        if(root.partMessageIds!=null)for(long part:root.partMessageIds)if(part!=0)payloadMessages.add((int)part);
         if(root.type!=CloudNode.TYPE_FOLDER)return;
         for(CloudNode child:snapshot.nodes)if(root.id.equals(child.parentId))markDeleted(child,now,payloadMessages);
     }
 
     private boolean hasLiveReference(int messageId) {
-        for(CloudNode n:snapshot.nodes)if(n.telegramMessageId==messageId && n.state!=CloudNode.STATE_DELETED)return true;
+        for(CloudNode n:snapshot.nodes){
+            if(n.state==CloudNode.STATE_DELETED)continue;
+            if(n.telegramMessageId==messageId)return true;
+            if(n.partMessageIds!=null)for(long part:n.partMessageIds)if(part==messageId)return true;
+        }
         return false;
     }
 

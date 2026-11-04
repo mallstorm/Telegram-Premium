@@ -13,6 +13,11 @@ public class JSONArray {
     public int length() { return values.size(); }
     public Object opt(int index) { return index >= 0 && index < values.size() ? values.get(index) : null; }
 
+    public JSONObject optJSONObject(int index) {
+        Object v = opt(index);
+        return v instanceof JSONObject ? (JSONObject) v : null;
+    }
+
     public JSONObject getJSONObject(int index) throws JSONException {
         Object v = opt(index);
         if (v instanceof JSONObject) return (JSONObject) v;

@@ -74,6 +74,10 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     public static final String EXTRA_CLOUD_ENCRYPTION_VERSION = "telepremium_player_cloud_encryption_version";
     public static final String EXTRA_CLOUD_SHA256 = "telepremium_player_cloud_sha256";
     public static final String EXTRA_CLOUD_BACKUP_ID = "telepremium_player_cloud_backup_id";
+    public static final String EXTRA_CLOUD_PART_MESSAGES = "telepremium_player_cloud_part_messages";
+    public static final String EXTRA_CLOUD_PART_DOCUMENTS = "telepremium_player_cloud_part_documents";
+    public static final String EXTRA_CLOUD_PART_SIZES = "telepremium_player_cloud_part_sizes";
+    public static final String EXTRA_CLOUD_PART_HASHES = "telepremium_player_cloud_part_hashes";
     public static final String EXTRA_OPEN_CURRENT = "telepremium_player_open_current";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -160,6 +164,12 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             cloudIntent.putExtra(EXTRA_CLOUD_ENCRYPTION_VERSION, item.encryptionVersion);
             cloudIntent.putExtra(EXTRA_CLOUD_SHA256, item.sha256);
             cloudIntent.putExtra(EXTRA_CLOUD_BACKUP_ID, item.localBackupId);
+            if (item.isMultipart()) {
+                cloudIntent.putExtra(EXTRA_CLOUD_PART_MESSAGES, item.partMessageIds);
+                cloudIntent.putExtra(EXTRA_CLOUD_PART_DOCUMENTS, item.partDocumentIds);
+                cloudIntent.putExtra(EXTRA_CLOUD_PART_SIZES, item.partSizes);
+                cloudIntent.putExtra(EXTRA_CLOUD_PART_HASHES, item.partSha256);
+            }
             start(context, cloudIntent);
             return;
         }
@@ -223,6 +233,16 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             cloudItem.encryptionVersion = intent.getIntExtra(EXTRA_CLOUD_ENCRYPTION_VERSION, 0);
             cloudItem.sha256 = intent.getStringExtra(EXTRA_CLOUD_SHA256);
             cloudItem.localBackupId = intent.getStringExtra(EXTRA_CLOUD_BACKUP_ID);
+            long[] parts = intent.getLongArrayExtra(EXTRA_CLOUD_PART_MESSAGES);
+            if (parts != null && parts.length > 1) {
+                cloudItem.partMessageIds = parts;
+                long[] docs = intent.getLongArrayExtra(EXTRA_CLOUD_PART_DOCUMENTS);
+                long[] sizes = intent.getLongArrayExtra(EXTRA_CLOUD_PART_SIZES);
+                String[] hashes = intent.getStringArrayExtra(EXTRA_CLOUD_PART_HASHES);
+                cloudItem.partDocumentIds = docs != null && docs.length == parts.length ? docs : new long[parts.length];
+                cloudItem.partSizes = sizes != null && sizes.length == parts.length ? sizes : new long[parts.length];
+                cloudItem.partSha256 = hashes != null && hashes.length == parts.length ? hashes : new String[parts.length];
+            }
             return cloudItem;
         }
         String path = intent.getStringExtra(EXTRA_PATH);

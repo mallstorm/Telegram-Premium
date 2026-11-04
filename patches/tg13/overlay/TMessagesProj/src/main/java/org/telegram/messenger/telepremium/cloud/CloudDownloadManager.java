@@ -28,6 +28,13 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
     private Callback activeCallback;
     private boolean retryScheduled;
     private int retryCount;
+    // Multipart download state (a file stored as several Telegram documents).
+    private CloudNode multiNode;
+    private TLRPC.Document[] multiDocs;
+    private TLRPC.Message[] multiMessages;
+    private int multiIndex;
+    private long multiDoneBytes;
+    private long multiTotalBytes;
 
     public interface Callback { void onState(int state, File file, String error); }
 
@@ -41,6 +48,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
 
     public void download(CloudNode node, Callback callback) {
         if(node==null || node.telegramMessageId==0){callback.onState(ERROR,null,"У файла нет Telegram payload");return;}
+        if(node.isMultipart()){downloadMultipart(node,callback);return;}
         peerManager.ensure((dialogId,error)->{
             if(error!=null || peerManager.getInputChannel()==null){
                 if(!tryLocalVaultReplica(node,callback))callback.onState(ERROR,null,error==null?"Cloud service peer unavailable":error);
@@ -123,6 +131,11 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
 
     public boolean releaseOffline(CloudNode node) {
         if(node==null || node.telegramMessageId==0)return false;
+        if(node.isMultipart()){
+            boolean ok=deleteIfPresent(joinedFile(node));
+            if(ok)node.offlineState=CLOUD_ONLY;
+            return ok;
+        }
         TLRPC.Document d=(activeNode==node?activeDocument:lastResolvedDocument);
         if(d==null || d.id!=node.telegramDocumentId)return false;
         FileLoader.getInstance(account).cancelLoadFile(d);
@@ -153,6 +166,22 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
         String expected=FileLoader.getAttachFileName(activeDocument);
         String actual=args.length>0 && args[0] instanceof String?(String)args[0]:null;
         if(actual!=null && !expected.equals(actual))return;
+        if(multiNode!=null){
+            if(id==NotificationCenter.fileLoadProgressChanged){
+                long loaded=args.length>1 && args[1] instanceof Long?(Long)args[1]:0;
+                transferManager.updateProgress(multiDoneBytes+loaded,multiTotalBytes);
+            } else if(id==NotificationCenter.fileLoaded){
+                multiDoneBytes+=activeDocument.size;
+                multiIndex++;
+                retryCount=0;
+                transferManager.updateProgress(multiDoneBytes,multiTotalBytes);
+                nextMultipartPart();
+            } else if(id==NotificationCenter.fileLoadFailed){
+                transferManager.waitingNetwork("Соединение прервано — скачивание продолжится автоматически");
+                scheduleRetry();
+            }
+            return;
+        }
         if(id==NotificationCenter.fileLoadProgressChanged){
             long loaded=args.length>1 && args[1] instanceof Long?(Long)args[1]:0;
             long total=args.length>2 && args[2] instanceof Long?(Long)args[2]:(activeNode.size>0?activeNode.size:activeDocument.size);
@@ -208,9 +237,158 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
 
     private void finish(int state,File file,String error){
         Callback cb=activeCallback;activeCallback=null;activeNode=null;activeDocument=null;activeMessage=null;
+        multiNode=null;multiDocs=null;multiMessages=null;
         retryScheduled=false;retryCount=0;
         stopObservers();
         if(cb!=null)cb.onState(state,file,error);
+    }
+
+    // ------------------------------------------------------------------ multipart
+
+    /** Joined plaintext of a multipart file (reused while it is complete). */
+    public static File joinedFile(CloudNode node) {
+        if(node==null)return null;
+        File base=ApplicationLoader.applicationContext.getExternalCacheDir();
+        if(base==null)base=ApplicationLoader.applicationContext.getCacheDir();
+        File dir=new File(base,"telepremium_cloud_joined");
+        String safe=(node.name==null?"file":node.name).replaceAll("[\\\\/:*?\"<>|]","_");
+        return new File(dir,(node.id==null?"x":node.id.substring(0,Math.min(8,node.id.length())))+"_"+safe);
+    }
+
+    private void downloadMultipart(CloudNode node,Callback callback){
+        if(node.encryptionVersion==0){
+            File joined=joinedFile(node);
+            if(joined!=null && joined.isFile() && joined.length()==node.size){
+                node.offlineState=OFFLINE_AVAILABLE;
+                callback.onState(OFFLINE_AVAILABLE,joined,null);
+                return;
+            }
+        }
+        peerManager.ensure((dialogId,error)->{
+            if(error!=null || peerManager.getInputChannel()==null){callback.onState(ERROR,null,error==null?"Cloud service peer unavailable":error);return;}
+            TLRPC.TL_channels_getMessages req=new TLRPC.TL_channels_getMessages();
+            req.channel=peerManager.getInputChannel();
+            for(long id:node.partMessageIds)req.id.add((int)id);
+            ConnectionsManager.getInstance(account).sendRequest(req,(response,requestError)->AndroidUtilities.runOnUIThread(()->{
+                if(requestError!=null){callback.onState(ERROR,null,requestError.text);return;}
+                if(!(response instanceof TLRPC.messages_Messages)){callback.onState(ERROR,null,"Файл не найден в облаке");return;}
+                java.util.HashMap<Integer,TLRPC.Message> byId=new java.util.HashMap<>();
+                for(TLRPC.Message m:((TLRPC.messages_Messages)response).messages)if(m!=null)byId.put(m.id,m);
+                int count=node.partMessageIds.length;
+                TLRPC.Document[] docs=new TLRPC.Document[count];
+                TLRPC.Message[] messages=new TLRPC.Message[count];
+                long total=0;
+                for(int i=0;i<count;i++){
+                    TLRPC.Message m=byId.get((int)node.partMessageIds[i]);
+                    if(m==null || m.media==null || m.media.document==null){
+                        callback.onState(ERROR,null,"Часть "+(i+1)+" из "+count+" отсутствует в облаке");
+                        return;
+                    }
+                    messages[i]=m;docs[i]=m.media.document;total+=docs[i].size;
+                }
+                multiNode=node;multiDocs=docs;multiMessages=messages;multiIndex=0;multiDoneBytes=0;multiTotalBytes=total;
+                activeNode=node;activeCallback=callback;node.offlineState=DOWNLOADING;
+                transferManager.beginDownload(node.id,node.name,total,node.telegramMessageId);
+                startObservers();
+                callback.onState(DOWNLOADING,null,null);
+                nextMultipartPart();
+            }));
+        });
+    }
+
+    private void nextMultipartPart(){
+        while(multiIndex<multiDocs.length){
+            File f=resolveFile(multiDocs[multiIndex]);
+            if(f!=null && f.exists()){
+                multiDoneBytes+=multiDocs[multiIndex].size;
+                multiIndex++;
+                transferManager.updateProgress(multiDoneBytes,multiTotalBytes);
+                continue;
+            }
+            activeDocument=multiDocs[multiIndex];activeMessage=multiMessages[multiIndex];
+            FileLoader.getInstance(account).loadFile(activeDocument,activeMessage,FileLoader.PRIORITY_NORMAL,0);
+            return;
+        }
+        assembleMultipart();
+    }
+
+    private void assembleMultipart(){
+        CloudNode node=multiNode;Callback cb=activeCallback;TLRPC.Document[] docs=multiDocs;
+        stopObservers();
+        activeNode=null;activeCallback=null;activeDocument=null;activeMessage=null;
+        multiNode=null;multiDocs=null;multiMessages=null;retryScheduled=false;retryCount=0;
+        File[] parts=new File[docs.length];
+        for(int i=0;i<docs.length;i++)parts[i]=resolveFile(docs[i]);
+        byte[] master=null;
+        if(node.encryptionVersion==1){
+            try{master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);}
+            catch(Exception e){cb.onState(ERROR,null,"Сначала разблокируйте защищённое облако");return;}
+        }
+        final byte[] key=master;
+        Utilities.globalQueue.postRunnable(()->{
+            File out=null;
+            try{
+                java.security.MessageDigest sha=java.security.MessageDigest.getInstance("SHA-256");
+                if(key!=null){
+                    File folder=new File(ApplicationLoader.applicationContext.getCacheDir(),"tpvault_dec");
+                    if(!folder.isDirectory())folder.mkdirs();
+                    out=new File(folder,"mp_"+node.id+"_"+(node.name==null?"file":node.name.replaceAll("[^a-zA-Z0-9._-]","_")));
+                } else {
+                    out=joinedFile(node);
+                    out.getParentFile().mkdirs();
+                }
+                File tmp=new File(out.getPath()+".part");
+                try(java.io.FileOutputStream os=new java.io.FileOutputStream(tmp)){
+                    byte[] buffer=new byte[1024*1024];
+                    for(int i=0;i<parts.length;i++){
+                        File source=parts[i];
+                        File plain=source;
+                        if(key!=null){
+                            String partSha=node.partSha256==null?null:node.partSha256[i];
+                            long partSize=node.partSizes==null?0:node.partSizes[i];
+                            plain=VaultFileOps.decryptToVerifiedFile(source,new File(ApplicationLoader.applicationContext.getCacheDir(),"tpvault_dec_parts"),"part"+i,key,partSha,partSize);
+                        }
+                        try(java.io.FileInputStream in=new java.io.FileInputStream(plain)){
+                            int n;
+                            while((n=in.read(buffer))>0){os.write(buffer,0,n);sha.update(buffer,0,n);}
+                        } finally {
+                            if(key!=null)plain.delete();
+                        }
+                        final long done=tmp.length();
+                        AndroidUtilities.runOnUIThread(()->transferManager.updateProgress(Math.min(done,node.size),node.size));
+                    }
+                    os.getFD().sync();
+                }
+                if(node.size>0 && tmp.length()!=node.size)throw new java.io.IOException("Размер собранного файла не совпадает");
+                String hex=bytesToHex(sha.digest());
+                if(node.sha256!=null && node.sha256.length()==64 && !node.sha256.equalsIgnoreCase(hex))throw new SecurityException("Контрольная сумма собранного файла не совпадает");
+                if(out.exists())out.delete();
+                if(!tmp.renameTo(out))throw new java.io.IOException("Не удалось сохранить собранный файл");
+                // The joined copy replaces the parts: free the space they take in the Telegram cache.
+                if(key==null)for(int i=0;i<docs.length;i++)deleteIfPresent(parts[i]);
+                File result=out;
+                AndroidUtilities.runOnUIThread(()->{
+                    transferManager.complete();node.offlineState=OFFLINE_AVAILABLE;
+                    cb.onState(OFFLINE_AVAILABLE,result,null);
+                });
+            }catch(Exception e){
+                FileLog.e(e);
+                if(out!=null)new File(out.getPath()+".part").delete();
+                String message=e instanceof SecurityException?e.getMessage():(key!=null?"Не удалось проверить подлинность Vault-файла":"Не удалось собрать файл из частей");
+                AndroidUtilities.runOnUIThread(()->{
+                    transferManager.failRetryable(message);node.offlineState=ERROR;
+                    cb.onState(ERROR,null,message);
+                });
+            }finally{
+                if(key!=null)Arrays.fill(key,(byte)0);
+            }
+        });
+    }
+
+    private static String bytesToHex(byte[] bytes){
+        StringBuilder b=new StringBuilder(bytes.length*2);
+        for(byte x:bytes)b.append(String.format(java.util.Locale.ROOT,"%02x",x));
+        return b.toString();
     }
 
     private File resolveFile(TLRPC.Document document){

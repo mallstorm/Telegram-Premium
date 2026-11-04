@@ -37,6 +37,32 @@ public final class TelePremiumMediaItem {
     public int encryptionVersion;
     public String sha256;
     public String localBackupId;
+    /** Multipart Cloud payload (see CloudNode#partMessageIds); null for single-document files. */
+    public long[] partMessageIds;
+    public long[] partDocumentIds;
+    public long[] partSizes;
+    public String[] partSha256;
+
+    public boolean isMultipart() { return partMessageIds != null && partMessageIds.length > 1; }
+
+    public void setParts(org.telegram.messenger.telepremium.cloud.CloudNode node) {
+        if (node == null || !node.isMultipart()) { partMessageIds = null; partDocumentIds = null; partSizes = null; partSha256 = null; return; }
+        partMessageIds = node.partMessageIds.clone();
+        partDocumentIds = node.partDocumentIds.clone();
+        partSizes = node.partSizes.clone();
+        partSha256 = node.partSha256.clone();
+    }
+
+    public void copyPartsTo(org.telegram.messenger.telepremium.cloud.CloudNode node) {
+        if (node == null || !isMultipart()) return;
+        node.allocateParts(partMessageIds.length);
+        for (int i = 0; i < partMessageIds.length; i++) {
+            node.partMessageIds[i] = partMessageIds[i];
+            node.partDocumentIds[i] = partDocumentIds == null ? 0 : partDocumentIds[i];
+            node.partSizes[i] = partSizes == null ? 0 : partSizes[i];
+            node.partSha256[i] = partSha256 == null ? null : partSha256[i];
+        }
+    }
     public boolean live;
     public boolean favorite;
     public long resumePosition;
@@ -104,6 +130,11 @@ public final class TelePremiumMediaItem {
                 .put("telegramDocumentId", telegramDocumentId).put("duration", duration).put("size", size)
                 .put("live", live).put("favorite", favorite).put("resumePosition", resumePosition)
                 .put("encryptionVersion",encryptionVersion).put("sha256",sha256).put("localBackupId",localBackupId);
+        if (isMultipart()) {
+            org.telegram.messenger.telepremium.cloud.CloudNode tmp = new org.telegram.messenger.telepremium.cloud.CloudNode();
+            copyPartsTo(tmp);
+            o.put("parts", tmp.toJson().optJSONArray("parts"));
+        }
         return o;
     }
 
@@ -126,6 +157,13 @@ public final class TelePremiumMediaItem {
         item.encryptionVersion = o.optInt("encryptionVersion",0);
         item.sha256=nullable(o.optString("sha256",null));
         item.localBackupId=nullable(o.optString("localBackupId",null));
+        if (o.optJSONArray("parts") != null) {
+            try {
+                JSONObject wrapper = new JSONObject().put("parts", o.optJSONArray("parts"));
+                item.setParts(org.telegram.messenger.telepremium.cloud.CloudNode.fromJson(wrapper));
+            } catch (JSONException ignore) {
+            }
+        }
         item.live = o.optBoolean("live");
         item.favorite = o.optBoolean("favorite");
         item.resumePosition = o.optLong("resumePosition");
