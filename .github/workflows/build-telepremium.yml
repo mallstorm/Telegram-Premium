@@ -2,7 +2,8 @@ name: Build TelePremium APK
 
 on:
   push:
-    branches: [ main, feature/v11-vault35-player36 ]
+    branches: [ port/tg-13.1.1 ]
+    tags: [ 'v*' ]
     paths-ignore:
       - "**.md"
       - "docs/**"
@@ -21,24 +22,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 240
     env:
-      APK_NAME: TelePremium_11.4.2_V11-Vault3.5-Player3.6_arm64-v8a.apk
+      APK_NAME: TelePremium_13.1.1_arm64-v8a.apk
+      OUTPUT_BRANCH: build-output-tg13
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 3G
+      CCACHE_NOHASHDIR: "true"
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
     steps:
       - name: Free runner disk for Telegram native build
         run: |
-          df -h
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL /usr/local/lib/node_modules /usr/share/swift || true
           if [ -n "${ANDROID_HOME:-}" ]; then
             sudo rm -rf "$ANDROID_HOME/system-images" "$ANDROID_HOME/emulator"
             if [ -d "$ANDROID_HOME/ndk" ]; then
-              find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d ! -name '21.4.7075529' -exec sudo rm -rf {} \;
+              find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d ! -name '27.2.12479018' -exec sudo rm -rf {} \;
             fi
           fi
-          df -h
-          available_kb=$(df -Pk "$GITHUB_WORKSPACE" | awk 'NR==2 {print $4}')
-          if [ "$available_kb" -lt 26214400 ]; then
-            echo "::error::Telegram native build requires at least 25 GiB of free disk"
-            exit 1
-          fi
+          df -h "$GITHUB_WORKSPACE"
 
       - uses: actions/checkout@v4
         with:
@@ -49,56 +52,46 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            upstream/Telegram/**/*.gradle
+            upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+            patches/tg13/manifest.json
 
-      - name: Install Android SDK 36, NDK r21e and CMake 3.31.6
+      - name: Install Android SDK 36, NDK 27.2 and CMake 3.22.1
         run: |
           set -euo pipefail
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
-          test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0" "ndk;21.4.7075529" "cmake;3.31.6" >/dev/null
-          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools" "$ANDROID_HOME/ndk" "$ANDROID_HOME/cmake"
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "cmake;3.22.1" >/dev/null
           echo "$ANDROID_HOME/build-tools/36.0.0" >> "$GITHUB_PATH"
+          sudo apt-get install -y -qq ccache >/dev/null
+          ccache --version | head -n 1
 
-      - name: Align Gradle wrapper with Android Gradle Plugin
-        run: |
-          sed -i 's/gradle-7.0.2-bin.zip/gradle-8.6-bin.zip/' upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
-          grep distributionUrl upstream/Telegram/gradle/wrapper/gradle-wrapper.properties
+      - name: Restore native compiler cache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-tg13-${{ hashFiles('patches/tg13/manifest.json') }}-${{ github.sha }}
+          restore-keys: |
+            ccache-tg13-${{ hashFiles('patches/tg13/manifest.json') }}-
+            ccache-tg13-
 
-      - name: Apply TelePremium patches
+      - name: Apply and verify TelePremium overlay
         id: patches
         run: |
           set -euo pipefail
-          java scripts/CheckJavaSyntax.java
-          python3 scripts/apply_telepremium_patches.py
-          python3 scripts/apply_themes_cloud_v2.py
-          python3 scripts/apply_themes_cloud_v2_visibility.py
-          python3 scripts/apply_visual_transfer_v3.py
-          python3 scripts/apply_drawer_body_artwork.py
-          python3 scripts/apply_theme_isolation_cloud_security_v4.py
-          python3 scripts/cloud_v2_verify_compat.py
-          python3 scripts/verify_source.py
-          python3 scripts/verify_themes_cloud_v2.py
-          python3 scripts/verify_visual_transfer_v3.py
-          python3 scripts/verify_theme_isolation_cloud_security_v4.py
-          python3 scripts/apply_product_polish_v5.py
-          python3 scripts/verify_product_polish_v5.py
-          python3 scripts/apply_cloud_streaming_v6.py
-          python3 scripts/verify_cloud_streaming_v6.py
-          python3 scripts/apply_media_center_v7.py
-          python3 scripts/verify_media_center_v7.py
-          python3 scripts/apply_local_folder_tags_v11.py
-          python3 scripts/verify_local_folder_tags_v11.py
-          python3 scripts/apply_offline_v11_overlay.py
-          python3 scripts/verify_offline_v11_overlay.py
+          test "$(git -C upstream/Telegram rev-parse HEAD)" = "$(python3 -c "import json;print(json.load(open('patches/tg13/manifest.json'))['upstream_revision'])")"
+          python3 scripts/apply_overlay.py patches/tg13
+          python3 scripts/verify_tg13.py
           java scripts/CheckJavaSyntax.java upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium
-          grep -q 'TelePremiumThemeArtwork.drawerBody' upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/DrawerLayoutContainer.java
 
-      - name: Vault crypto self-test
+      - name: Pure-Java tests
         run: |
-          mkdir -p "$RUNNER_TEMP/vault-test"
-          javac -d "$RUNNER_TEMP/vault-test" upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultCrypto.java scripts/tests/VaultCryptoSelfTest.java
-          java -cp "$RUNNER_TEMP/vault-test" VaultCryptoSelfTest
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/tp-tests"; mkdir -p "$OUT"
+          javac -d "$OUT" $(python3 scripts/tests/sources.py) scripts/tests/*.java
+          for t in $(cd scripts/tests && ls *Test.java | sed 's/\.java$//'); do java -cp "$OUT" "$t"; done
 
       - name: Inject Telegram API credentials
         id: api
@@ -107,14 +100,14 @@ jobs:
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
         run: |
           if [ -z "${TELEGRAM_API_ID}" ] && [ -z "${TELEGRAM_API_HASH}" ]; then
-            echo "::warning::TELEGRAM_API_ID / TELEGRAM_API_HASH secrets are not set: running a validation build only, the APK will not be published"
+            echo "::warning::TELEGRAM_API_ID / TELEGRAM_API_HASH secrets are not set: validation build only"
             echo "configured=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           python3 scripts/configure_telegram_api.py
           echo "configured=true" >> "$GITHUB_OUTPUT"
 
-      - name: Optional private signing key
+      - name: Private signing key (optional)
         env:
           KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
@@ -123,7 +116,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${KEYSTORE_B64}" ]; then
-            echo "::notice::RELEASE_KEYSTORE_BASE64 is not set: signing with the existing upstream release.keystore (keeps update compatibility with earlier CI builds)"
+            echo "::notice::RELEASE_KEYSTORE_BASE64 is not set: signing with the upstream release.keystore (update-compatible with earlier builds)"
             exit 0
           fi
           echo "$KEYSTORE_B64" | base64 -d > upstream/Telegram/TMessagesProj/config/release.keystore
@@ -143,14 +136,11 @@ jobs:
         run: |
           chmod +x gradlew
           python3 - <<'PYCONFIG'
-          import copy
-          import json
+          import copy, json
           from pathlib import Path
           path = Path("TMessagesProj_App/google-services.json")
           config = json.loads(path.read_text())
           clients = config.get("client", [])
-          if not clients:
-            raise SystemExit("Google Services configuration has no client")
           packages = {c["client_info"]["android_client_info"]["package_name"] for c in clients}
           for package in ("com.telepremium.messenger", "com.telepremium.messenger.beta"):
               if package not in packages:
@@ -159,18 +149,20 @@ jobs:
                   clients.append(client)
           path.write_text(json.dumps(config))
           PYCONFIG
-          printf "\nandroid.suppressUnsupportedCompileSdk=36\n" >> gradle.properties
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "APK_NAME=TelePremium_${GITHUB_REF_NAME}_arm64-v8a.apk" >> "$GITHUB_ENV"
+          fi
           mkdir -p "$GITHUB_WORKSPACE/diagnostics"
+          ccache -z >/dev/null
 
       - name: Compile resources and Java before native build
         id: java
         working-directory: upstream/Telegram
         run: |
           set +e
-          timeout --signal=TERM --kill-after=1m 45m ./gradlew :TMessagesProj_App:processAfatReleaseResources :TMessagesProj:compileReleaseJavaWithJavac --stacktrace --console=plain 2>&1 | tee "$GITHUB_WORKSPACE/diagnostics/gradle-java.log"
+          timeout --signal=TERM --kill-after=1m 50m ./gradlew :TMessagesProj_App:processAfatReleaseResources :TMessagesProj:compileReleaseJavaWithJavac --stacktrace --console=plain 2>&1 | tee "$GITHUB_WORKSPACE/diagnostics/gradle-java.log"
           compile_status=${PIPESTATUS[0]}
           set -e
-          echo "$compile_status" > "$GITHUB_WORKSPACE/diagnostics/java-exit-code.txt"
           exit "$compile_status"
 
       - name: Build arm64-v8a APK
@@ -181,7 +173,7 @@ jobs:
           timeout --signal=TERM --kill-after=2m 170m ./gradlew TMessagesProj_App:assembleAfatRelease --stacktrace --console=plain 2>&1 | tee "$GITHUB_WORKSPACE/diagnostics/gradle-build.log"
           build_status=${PIPESTATUS[0]}
           set -e
-          echo "$build_status" > "$GITHUB_WORKSPACE/diagnostics/gradle-exit-code.txt"
+          ccache -s | tee "$GITHUB_WORKSPACE/diagnostics/ccache.txt"
           exit "$build_status"
 
       - name: Verify APK (arm64-v8a only, signature, package)
@@ -198,23 +190,30 @@ jobs:
           aapt2 dump badging "artifacts/$APK_NAME" | head -n 3 | tee diagnostics/apk-badging.txt
           apksigner verify --print-certs "artifacts/$APK_NAME" | tee diagnostics/apk-signature.txt
           sha256sum "artifacts/$APK_NAME" | tee "artifacts/$APK_NAME.sha256"
-          ls -lh artifacts
           if [ "${{ steps.api.outputs.configured }}" != "true" ]; then
             ls -lh artifacts > diagnostics/validation-build.txt
             rm -rf artifacts
-            echo "::error::Validation build succeeded, but the APK has no Telegram API credentials and cannot log in. Add TELEGRAM_API_ID and TELEGRAM_API_HASH repository secrets and re-run."
+            echo "::error::Validation build succeeded, but the APK has no Telegram API credentials. Add TELEGRAM_API_ID and TELEGRAM_API_HASH secrets."
             exit 1
           fi
+
+      - name: Publish GitHub release for tag
+        if: success() && github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 scripts/make_update_manifest.py "artifacts/$APK_NAME" "$GITHUB_REF_NAME" > artifacts/telepremium-update.json
+          gh release create "$GITHUB_REF_NAME" artifacts/* --title "TelePremium $GITHUB_REF_NAME" \
+            --notes "TelePremium on Telegram Android 13.1.1, arm64-v8a. SHA-256: $(cut -d' ' -f1 "artifacts/$APK_NAME.sha256")"
 
       - name: Save build diagnostics
         if: always()
         run: |
           mkdir -p diagnostics
           df -h > diagnostics/disk.txt
-          free -h > diagnostics/memory.txt
           git rev-parse HEAD > diagnostics/commit.txt
           git submodule status > diagnostics/submodules.txt
-          find upstream/Telegram -type f -path '*/build/reports/*' -name '*.html' -exec cp --parents {} diagnostics/ \; || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -246,20 +245,19 @@ jobs:
           set -euo pipefail
           OUT="$RUNNER_TEMP/build-output"
           rm -rf "$OUT"; mkdir -p "$OUT"
-          printf 'status=%s\nsource_ref=%s\nsource_sha=%s\nrun_id=%s\nrun_url=%s/%s/actions/runs/%s\npatches=%s\njava=%s\napk=%s\nverify=%s\napi_configured=%s\n' \
-            "$JOB_STATUS" "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" \
-            "$PATCHES" "$JAVA" "$APK" "$VERIFY" "$API" > "$OUT/STATUS.txt"
+          printf 'status=%s\nsource_ref=%s\nsource_sha=%s\nrun_id=%s\npatches=%s\njava=%s\napk=%s\nverify=%s\napi_configured=%s\n' \
+            "$JOB_STATUS" "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$PATCHES" "$JAVA" "$APK" "$VERIFY" "$API" > "$OUT/STATUS.txt"
           for f in gradle-java.log gradle-build.log; do
-            [ -f "diagnostics/$f" ] && { grep -nE 'error:|FAILURE|What went wrong|BUILD (SUCCESSFUL|FAILED)|CMake Error|ninja: build stopped' "diagnostics/$f" | head -n 300 > "$OUT/${f%.log}.errors.txt" || true; tail -n 400 "diagnostics/$f" > "$OUT/${f%.log}.tail.txt"; }
+            [ -f "diagnostics/$f" ] && { grep -nE 'error:|e: |FAILURE|What went wrong|BUILD (SUCCESSFUL|FAILED)|CMake Error|ninja: build stopped' "diagnostics/$f" | head -n 400 > "$OUT/${f%.log}.errors.txt" || true; tail -n 300 "diagnostics/$f" > "$OUT/${f%.log}.tail.txt"; }
           done
-          cp diagnostics/apk-*.txt diagnostics/validation-build.txt "$OUT/" 2>/dev/null || true
+          cp diagnostics/apk-*.txt diagnostics/validation-build.txt diagnostics/ccache.txt "$OUT/" 2>/dev/null || true
           if [ -f "artifacts/$APK_NAME" ]; then
             split -b 45m -d -a 2 "artifacts/$APK_NAME" "$OUT/$APK_NAME.part"
             cp "artifacts/$APK_NAME.sha256" "$OUT/"
           fi
           cd "$OUT"
           git init -q
-          git checkout -q -b build-output
+          git checkout -q -b "$OUTPUT_BRANCH"
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" add -A
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "Build output: ${JOB_STATUS} ${GITHUB_REF_NAME}@${GITHUB_SHA::7} run ${GITHUB_RUN_ID}"
-          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" build-output
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$OUTPUT_BRANCH"

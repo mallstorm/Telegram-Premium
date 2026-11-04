@@ -2,7 +2,7 @@ name: Source Check
 
 on:
   push:
-    branches: [ main, bootstrap-source, concept5-pass5, feature/themes-cloud-v2, feature/v11-vault35-player36 ]
+    branches: [ port/tg-13.1.1 ]
   pull_request:
   workflow_dispatch:
 
@@ -10,42 +10,23 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout with Telegram source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 1
-
-      - name: Apply and verify TelePremium patches
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Apply and verify TelePremium overlay
         run: |
-          python3 scripts/apply_telepremium_patches.py
-          python3 scripts/apply_themes_cloud_v2.py
-          python3 scripts/apply_themes_cloud_v2_visibility.py
-          python3 scripts/apply_visual_transfer_v3.py
-          python3 scripts/apply_drawer_body_artwork.py
-          python3 scripts/apply_theme_isolation_cloud_security_v4.py
-          python3 scripts/cloud_v2_verify_compat.py
-          python3 scripts/verify_source.py
-          python3 scripts/verify_themes_cloud_v2.py
-          python3 scripts/verify_visual_transfer_v3.py
-          python3 scripts/verify_theme_isolation_cloud_security_v4.py
-          python3 scripts/apply_product_polish_v5.py
-          python3 scripts/verify_product_polish_v5.py
-          python3 scripts/apply_cloud_streaming_v6.py
-          python3 scripts/verify_cloud_streaming_v6.py
-          python3 scripts/apply_media_center_v7.py
-          python3 scripts/verify_media_center_v7.py
-          python3 scripts/apply_local_folder_tags_v11.py
-          python3 scripts/verify_local_folder_tags_v11.py
-          python3 scripts/apply_offline_v11_overlay.py
-          python3 scripts/verify_offline_v11_overlay.py
-          grep -q 'TelePremiumThemeArtwork.drawerBody' upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/ActionBar/DrawerLayoutContainer.java
-
-      - name: Vault crypto self-test
+          python3 scripts/apply_overlay.py patches/tg13
+          python3 scripts/verify_tg13.py
+          java scripts/CheckJavaSyntax.java upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium
+      - name: Pure-Java tests
         run: |
-          mkdir -p "$RUNNER_TEMP/vault-test"
-          javac -d "$RUNNER_TEMP/vault-test" upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultCrypto.java scripts/tests/VaultCryptoSelfTest.java
-          java -cp "$RUNNER_TEMP/vault-test" VaultCryptoSelfTest
-
+          OUT="$RUNNER_TEMP/tp-tests"; mkdir -p "$OUT"
+          javac -d "$OUT" $(python3 scripts/tests/sources.py) scripts/tests/*.java
+          for t in $(cd scripts/tests && ls *Test.java | sed 's/\.java$//'); do java -cp "$OUT" "$t"; done
       - name: Show pinned upstream revision
         run: git -C upstream/Telegram rev-parse HEAD

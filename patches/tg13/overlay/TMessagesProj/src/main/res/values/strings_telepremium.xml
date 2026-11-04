@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="TP_SettingsSection">TelePremium</string>
+    <string name="TP_SettingsCenter">TelePremium Center</string>
+    <string name="TP_SettingsCenterInfo">Accounts, network profiles, files</string>
+    <string name="TP_SettingsCloud">Cloud</string>
+    <string name="TP_SettingsCloudInfo">Private file storage and Secure Vault</string>
+    <string name="TP_SettingsMedia">Media</string>
+    <string name="TP_SettingsMediaInfo">Player, playlists and downloads</string>
+    <string name="TP_SettingsAppearance">Appearance presets</string>
+    <string name="TP_SettingsAppearanceInfo">Ten global TelePremium themes</string>
+</resources>

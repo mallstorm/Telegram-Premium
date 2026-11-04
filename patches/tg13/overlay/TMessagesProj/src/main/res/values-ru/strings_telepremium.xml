@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="TP_SettingsSection">TelePremium</string>
+    <string name="TP_SettingsCenter">Центр TelePremium</string>
+    <string name="TP_SettingsCenterInfo">Аккаунты, сетевые профили, файлы</string>
+    <string name="TP_SettingsCloud">Облако</string>
+    <string name="TP_SettingsCloudInfo">Личное хранилище файлов и Secure Vault</string>
+    <string name="TP_SettingsMedia">Медиа</string>
+    <string name="TP_SettingsMediaInfo">Плеер, плейлисты и загрузки</string>
+    <string name="TP_SettingsAppearance">Оформление</string>
+    <string name="TP_SettingsAppearanceInfo">Десять глобальных тем TelePremium</string>
+</resources>
