@@ -42,6 +42,9 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
     private AudioManager audioManager;
     private boolean noisyRegistered;
     private boolean shuttingDown;
+    private long publishedDuration = -1;
+    private String artworkFor;
+    private android.graphics.Bitmap artwork;
 
     private final AudioManager.OnAudioFocusChangeListener focusListener = change -> {
         if (controller == null) return;
@@ -134,7 +137,10 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
     }
 
     @Override public void onProgress(long position, long duration, long buffered, int bufferedPercent) {
-        if (session != null) updatePlaybackState(position);
+        if (session == null) return;
+        // The lock-screen / shade seek bar appears only once the session knows the duration.
+        if (duration > 0 && duration != publishedDuration) updateSession();
+        else updatePlaybackState(position);
     }
 
     @Override public void onError(String message) { updateSessionAndNotification(); }
@@ -196,7 +202,15 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         if (item != null) {
             metadata.putString(MediaMetadata.METADATA_KEY_TITLE, item.title);
             metadata.putString(MediaMetadata.METADATA_KEY_ARTIST, item.artist == null ? item.sourceLabel() : item.artist);
-            if (item.duration > 0) metadata.putLong(MediaMetadata.METADATA_KEY_DURATION, item.duration);
+            if (item.album != null) metadata.putString(MediaMetadata.METADATA_KEY_ALBUM, item.album);
+            long duration = controller.getDuration() > 0 ? controller.getDuration() : item.duration;
+            publishedDuration = item.live ? 0 : duration;
+            if (!item.live && duration > 0) metadata.putLong(MediaMetadata.METADATA_KEY_DURATION, duration);
+            loadArtwork(item);
+            if (artwork != null && item.id.equals(artworkFor)) {
+                metadata.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, artwork);
+                metadata.putBitmap(MediaMetadata.METADATA_KEY_ART, artwork);
+            }
         }
         session.setMetadata(metadata.build());
         updatePlaybackState(controller == null ? 0 : controller.getPosition());
@@ -214,6 +228,18 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
                         PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_STOP)
                 .setState(state, position, controller.getSpeed());
         session.setPlaybackState(builder.build());
+    }
+
+    private void loadArtwork(TelePremiumMediaItem item) {
+        if (item == null || item.id.equals(artworkFor)) return;
+        artworkFor = item.id;
+        artwork = null;
+        final String id = item.id;
+        TelePremiumArtworkLoader.load(this, item, 512, bitmap -> {
+            if (shuttingDown || bitmap == null || !id.equals(artworkFor)) return;
+            artwork = bitmap;
+            updateSessionAndNotification();
+        });
     }
 
     private Notification buildNotification() {
@@ -236,11 +262,14 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
                 .setDeleteIntent(close)
                 .setOnlyAlertOnce(true)
                 .setShowWhen(false)
-                .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_previous, "Назад", servicePending(ACTION_PREVIOUS, 1)).build())
-                .addAction(new Notification.Action.Builder(controller != null && controller.isPlaying() ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setCategory(Notification.CATEGORY_TRANSPORT)
+                .addAction(new Notification.Action.Builder(R.drawable.tp_ic_prev, "Назад", servicePending(ACTION_PREVIOUS, 1)).build())
+                .addAction(new Notification.Action.Builder(controller != null && controller.isPlaying() ? R.drawable.tp_ic_pause : R.drawable.tp_ic_play,
                         controller != null && controller.isPlaying() ? "Пауза" : "Играть", servicePending(ACTION_TOGGLE, 2)).build())
-                .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_next, "Далее", servicePending(ACTION_NEXT, 3)).build())
+                .addAction(new Notification.Action.Builder(R.drawable.tp_ic_next, "Далее", servicePending(ACTION_NEXT, 3)).build())
                 .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Закрыть", close).build());
+        if (artwork != null && item != null && item.id.equals(artworkFor)) builder.setLargeIcon(artwork);
         if (Build.VERSION.SDK_INT >= 21 && session != null) {
             builder.setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1, 2));
         }

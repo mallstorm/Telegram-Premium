@@ -129,8 +129,13 @@ public final class TelePremiumPlaybackController {
         java.util.List<TelePremiumMediaItem> snapshot = queue.snapshot();
         for (int i = 0; i < snapshot.size(); i++) if (item.id != null && item.id.equals(snapshot.get(i).id)) { existing = i; break; }
         if (existing < 0) {
-            queue.append(item);
-            existing = queue.size() - 1;
+            if (!queue.append(item)) {
+                // Other kind than the queue (music vs video): start a new queue of this kind.
+                queue.replace(java.util.Collections.singletonList(item), 0);
+                existing = 0;
+            } else {
+                existing = queue.size() - 1;
+            }
         }
         queue.setCurrentIndex(existing);
         playInternal(item);
@@ -277,6 +282,7 @@ public final class TelePremiumPlaybackController {
         if (token != generation) return;
         releasePlayer();
         player = new VideoPlayer(true, false);
+        player.extraAudioProcessors = TelePremiumBalanceAudioProcessor.chain();
         if (surfaceView != null) player.setSurfaceView(surfaceView);
         player.setDelegate(new VideoPlayer.VideoPlayerDelegate() {
             @Override public void onStateChanged(boolean playWhenReady, int playbackState) {
@@ -317,6 +323,7 @@ public final class TelePremiumPlaybackController {
         player.setPlayWhenReady(true);
         try {
             player.preparePlayer(uri, typeFor(item, uri), FileLoader.PRIORITY_HIGH, 0);
+            attachAudioEffects();
             player.setPlaybackSpeed(speed);
             setSubtitlesEnabled(subtitlesEnabled);
         } catch (Throwable t) {
@@ -351,6 +358,21 @@ public final class TelePremiumPlaybackController {
         if (value.contains(".m3u8") || mime.contains("mpegurl")) return "hls";
         if (value.contains(".mpd") || mime.contains("dash")) return "dash";
         return "other";
+    }
+
+    /** Gives the ExoPlayer a fixed audio session so the equalizer and friends can bind to it. */
+    private void attachAudioEffects() {
+        try {
+            if (player == null || player.player == null) return;
+            android.media.AudioManager am = (android.media.AudioManager) ApplicationLoader.applicationContext.getSystemService(Context.AUDIO_SERVICE);
+            int session = am == null ? 0 : am.generateAudioSessionId();
+            if (session > 0) {
+                player.player.setAudioSessionId(session);
+                TelePremiumAudioEffects.attach(session);
+            }
+        } catch (Throwable e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
     }
 
     private void releasePlayer() {

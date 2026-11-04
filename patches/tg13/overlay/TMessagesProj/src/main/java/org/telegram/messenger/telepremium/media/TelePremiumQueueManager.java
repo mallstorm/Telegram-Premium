@@ -34,33 +34,77 @@ public final class TelePremiumQueueManager {
         return currentIndex >= 0 && currentIndex < items.size() ? items.get(currentIndex) : null;
     }
 
+    /**
+     * The queue holds one kind of media only: music (including radio/audio streams) or video.
+     * Shuffle and repeat therefore always stay inside that kind.
+     */
+    public static boolean sameKind(TelePremiumMediaItem a, TelePremiumMediaItem b) {
+        return a != null && b != null && a.isVideo() == b.isVideo();
+    }
+
+    public synchronized boolean accepts(TelePremiumMediaItem item) {
+        return item != null && (items.isEmpty() || sameKind(items.get(0), item));
+    }
+
+    /** True when the queue currently holds video. */
+    public synchronized boolean isVideoQueue() {
+        return !items.isEmpty() && items.get(0).isVideo();
+    }
+
+    /** Replaces the queue; items of the other kind than the start item are dropped. */
     public synchronized void replace(List<TelePremiumMediaItem> source, int startIndex) {
         items.clear();
-        if (source != null) items.addAll(source);
-        currentIndex = items.isEmpty() ? -1 : Math.max(0, Math.min(items.size() - 1, startIndex));
+        currentIndex = -1;
+        if (source != null && !source.isEmpty()) {
+            int start = Math.max(0, Math.min(source.size() - 1, startIndex));
+            TelePremiumMediaItem anchor = source.get(start);
+            for (int i = 0; i < source.size(); i++) {
+                TelePremiumMediaItem item = source.get(i);
+                if (!sameKind(anchor, item)) continue;
+                if (i == start) currentIndex = items.size();
+                items.add(item);
+            }
+        }
         notifyChanged();
     }
 
-    public synchronized void append(TelePremiumMediaItem item) {
-        if (item == null) return;
+    /** @return false when the item is of the other kind than the queue */
+    public synchronized boolean append(TelePremiumMediaItem item) {
+        if (!accepts(item)) return false;
         items.add(item);
         if (currentIndex < 0) currentIndex = 0;
         notifyChanged();
+        return true;
     }
 
     public synchronized void appendAll(List<TelePremiumMediaItem> source) {
         if (source == null || source.isEmpty()) return;
-        items.addAll(source);
+        boolean changed = false;
+        for (TelePremiumMediaItem item : source) {
+            if (!accepts(item)) continue;
+            items.add(item);
+            changed = true;
+        }
+        if (!changed) return;
         if (currentIndex < 0) currentIndex = 0;
         notifyChanged();
     }
 
-    public synchronized void insertNext(TelePremiumMediaItem item) {
-        if (item == null) return;
+    /** @return false when the item is of the other kind than the queue */
+    public synchronized boolean insertNext(TelePremiumMediaItem item) {
+        if (!accepts(item)) return false;
         int at = currentIndex < 0 ? items.size() : Math.min(items.size(), currentIndex + 1);
         items.add(at, item);
         if (currentIndex < 0) currentIndex = 0;
         notifyChanged();
+        return true;
+    }
+
+    /** The item that plays after the current one (without shuffle), or null. */
+    public synchronized TelePremiumMediaItem peekNext() {
+        if (items.isEmpty()) return null;
+        if (currentIndex + 1 < items.size()) return items.get(currentIndex + 1);
+        return repeatMode == REPEAT_ALL ? items.get(0) : null;
     }
 
     public synchronized void remove(int index) {

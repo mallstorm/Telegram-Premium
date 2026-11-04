@@ -54,21 +54,90 @@ public final class TelePremiumNetworkPlaylistParser {
         }, "TelePremiumNetworkParser").start();
     }
 
+    private static final Pattern M3U_ATTR = Pattern.compile("([A-Za-z0-9_-]+)=\"([^\"]*)\"");
+
     private static void parseM3u(String base, String body, List<TelePremiumMediaItem> out) throws Exception {
-        String title = null;
+        parseM3u(base, body, out, false);
+    }
+
+    /**
+     * Extended M3U: #EXTINF attributes tvg-logo (channel logo), group-title / #EXTGRP (group),
+     * tvg-name. In IPTV mode entries are live video channels unless they are clearly audio.
+     */
+    static void parseM3u(String base, String body, List<TelePremiumMediaItem> out, boolean iptv) throws Exception {
+        String title = null, logo = null, group = null, extGroup = null;
         for (String raw : body.split("\\r?\\n")) {
             String line = raw.trim();
             if (line.startsWith("#EXTINF:")) {
-                int comma = line.indexOf(',');
+                int comma = lastTopLevelComma(line);
                 title = comma >= 0 ? line.substring(comma + 1).trim() : null;
+                String attrs = comma >= 0 ? line.substring(0, comma) : line;
+                logo = null;
+                group = null;
+                Matcher m = M3U_ATTR.matcher(attrs);
+                while (m.find()) {
+                    String key = m.group(1).toLowerCase(Locale.ROOT);
+                    String value = m.group(2).trim();
+                    if (value.isEmpty()) continue;
+                    if ("tvg-logo".equals(key)) logo = value;
+                    else if ("group-title".equals(key)) group = value;
+                    else if ("tvg-name".equals(key) && TextUtils.isEmpty(title)) title = value;
+                }
+            } else if (line.startsWith("#EXTGRP:")) {
+                extGroup = line.substring(8).trim();
             } else if (!line.isEmpty() && !line.startsWith("#")) {
                 String url = resolve(base, line);
-                // HLS entries inside a larger M3U playlist are kept as one stream item.
                 String mime = guessMime(url);
-                out.add(networkItem(url, TextUtils.isEmpty(title) ? titleFromUrl(url) : title, mime, isLikelyLive(url)));
+                TelePremiumMediaItem item = networkItem(url, TextUtils.isEmpty(title) ? titleFromUrl(url) : title, mime, iptv || isLikelyLive(url));
+                if (!TextUtils.isEmpty(logo) && logo.startsWith("http")) item.artworkUri = logo;
+                String g = !TextUtils.isEmpty(group) ? group : extGroup;
+                if (!TextUtils.isEmpty(g)) item.album = g;
+                if (iptv) {
+                    item.live = true;
+                    String lower = pathLower(url);
+                    boolean audio = lower.endsWith(".mp3") || lower.endsWith(".aac") || lower.endsWith(".ogg") || lower.endsWith(".opus")
+                            || (g != null && g.toLowerCase(Locale.ROOT).contains("radio"));
+                    item.mediaType = audio ? TelePremiumMediaItem.TYPE_STREAM : TelePremiumMediaItem.TYPE_VIDEO;
+                    if (!audio && (mime == null || mime.startsWith("audio/"))) item.mimeType = lower.endsWith(".ts") ? "video/mp2t" : "application/x-mpegURL";
+                }
+                out.add(item);
                 title = null;
+                logo = null;
+                group = null;
             }
         }
+    }
+
+    /** Titles may contain commas; attribute values are quoted, so the separator is the first comma outside quotes. */
+    private static int lastTopLevelComma(String line) {
+        boolean quoted = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '"') quoted = !quoted;
+            else if (c == ',' && !quoted) return i;
+        }
+        return -1;
+    }
+
+    /** Loads an IPTV playlist (M3U/M3U8 with channels) in IPTV mode. */
+    public static void resolveIptvAsync(String input, Callback callback) {
+        new Thread(() -> {
+            ArrayList<TelePremiumMediaItem> result = new ArrayList<>();
+            String error = null;
+            try {
+                String url = input == null ? "" : input.trim();
+                if (!url.startsWith("http://") && !url.startsWith("https://")) throw new IllegalArgumentException("Поддерживаются HTTP/HTTPS адреса");
+                String body = downloadText(url, 16_000_000);
+                if (looksLikeHlsManifest(body)) result.add(networkItem(url, titleFromUrl(url), "application/x-mpegURL", true));
+                else parseM3u(url, body, result, true);
+                if (result.isEmpty()) throw new IllegalArgumentException("Плейлист не содержит каналов");
+            } catch (Throwable t) {
+                error = TextUtils.isEmpty(t.getMessage()) ? "Не удалось открыть IPTV-плейлист" : t.getMessage();
+            }
+            ArrayList<TelePremiumMediaItem> copy = result;
+            String failure = error;
+            AndroidUtilities.runOnUIThread(() -> callback.onLoaded(copy, failure));
+        }, "TelePremiumIptvParser").start();
     }
 
     private static void parsePls(String base, String body, List<TelePremiumMediaItem> out) throws Exception {
@@ -107,6 +176,10 @@ public final class TelePremiumNetworkPlaylistParser {
     }
 
     private static String downloadText(String url) throws Exception {
+        return downloadText(url, 2_000_000);
+    }
+
+    private static String downloadText(String url, int maxChars) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(12000);
         c.setReadTimeout(15000);
@@ -114,9 +187,9 @@ public final class TelePremiumNetworkPlaylistParser {
         c.setRequestProperty("User-Agent", "TelePremium/MediaCenter");
         c.setRequestProperty("Accept", "application/vnd.apple.mpegurl,application/x-mpegURL,audio/x-mpegurl,text/plain,*/*");
         StringBuilder b = new StringBuilder();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()))) {
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
             String line;
-            while ((line = r.readLine()) != null && b.length() < 2_000_000) b.append(line).append('\n');
+            while ((line = r.readLine()) != null && b.length() < maxChars) b.append(line).append('\n');
         } finally { c.disconnect(); }
         return b.toString();
     }

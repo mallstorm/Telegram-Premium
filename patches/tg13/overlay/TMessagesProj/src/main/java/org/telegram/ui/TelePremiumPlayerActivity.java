@@ -41,6 +41,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.R;
+import org.telegram.messenger.telepremium.TPStrings;
+import org.telegram.messenger.telepremium.media.TelePremiumAudioEffects;
 import org.telegram.messenger.telepremium.media.TelePremiumMediaItem;
 import org.telegram.messenger.telepremium.media.TelePremiumArtworkLoader;
 import org.telegram.messenger.telepremium.media.TelePremiumPlaybackController;
@@ -59,7 +62,7 @@ import java.util.Locale;
  * the same shell. Seeking is gesture-driven: double tap the left/right half to
  * jump -/+10 seconds; transport controls live only in the bottom bar.
  */
-public class TelePremiumPlayerActivity extends Activity implements TelePremiumPlaybackController.Listener {
+public class TelePremiumPlayerActivity extends Activity implements TelePremiumPlaybackController.Listener, TelePremiumQueueManager.Listener {
     public static final String EXTRA_PATH = "telepremium_player_path";
     public static final String EXTRA_NAME = "telepremium_player_name";
     public static final String EXTRA_MIME = "telepremium_player_mime";
@@ -79,23 +82,19 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private TelePremiumMediaItem displayItem;
     private TelePremiumMediaTheme mediaTheme;
 
-    // V3.6 cinematic player UI: scoped palette (does not change the chat/cloud theme).
-    private static final int PLAYER_BG = 0xff0b0913;
-    private static final int PLAYER_PANEL = 0xff171221;
-    private static final int PLAYER_VIOLET = 0xffa477ff;
-    private static final int PLAYER_WHITE = 0xfff7f2ff;
-    private static final int PLAYER_MUTED = 0xffb6adc8;
-    private static final int PLAYER_STROKE = 0xff52356f;
+    private static final String PREFS = "telepremium_player_ui";
+    private TelePremiumPlayerKit kit;
+    private TelePremiumPlayerKit.Palette pal;
     private FrameLayout root;
-    private ImageView artworkImage;
-    private TextView headerTitleView, shuffleButton, repeatButton;
+    private ImageView artworkImage, playButton, fitButton, subtitlesButton, shuffleButton, repeatButton, sourceIcon, lockButton;
+    private LinearLayout fallbackCover, sourcePill;
+    private View nextCard, leftSeek, rightSeek;
+    private TextView fallbackArtist, fallbackTitle, headerTitleView, titleView, artistView, stateView, positionView, durationView;
+    private TextView speedButton, speedLabel, sourceLabel, hwButton, nextSubtitle;
     private boolean portraitAudioLayout;
     private TelePremiumAspectSurfaceView surface;
-    private TextView audioArtwork, titleView, artistView, sourceView, stateView, positionView, durationView;
-    private TextView playButton, speedButton, fitButton, subtitlesButton, hwButton, queueButton;
     private SeekBar seekBar;
     private View topChrome, bottomChrome;
-    private TextView lockButton;
     private boolean userSeeking, landscape, chromeVisible = true, pip, controlsLocked;
     private static final int SCALE_FIT = TelePremiumPlayerMath.SCALE_FIT;
     private static final int SCALE_CROP = TelePremiumPlayerMath.SCALE_CROP;
@@ -191,10 +190,12 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         launchItem = readLaunchItem(getIntent());
         displayItem = launchItem != null ? launchItem : controller.getCurrent();
         controller.addListener(this);
+        controller.getQueue().addListener(this);
+        applyLockscreenMode();
         buildUi();
         if (launchItem != null) controller.play(launchItem);
         else if (controller.getCurrent() == null) {
-            Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_409", org.telegram.messenger.R.string.TP_L10N_409), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, t("TP_L10N_409", R.string.TP_L10N_409), Toast.LENGTH_SHORT).show();
             finish();
         } else {
             bindCurrent(controller.getCurrent());
@@ -228,7 +229,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         Uri uri = path == null ? intent.getData() : Uri.fromFile(new File(path));
         if (uri == null) return null;
         if (TextUtils.isEmpty(name)) name = resolveDisplayName(uri);
-        if (TextUtils.isEmpty(name)) name = path == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_410", org.telegram.messenger.R.string.TP_L10N_410) : new File(path).getName();
+        if (TextUtils.isEmpty(name)) name = path == null ? t("TP_L10N_410", R.string.TP_L10N_410) : new File(path).getName();
         if (TextUtils.isEmpty(mime)) mime = intent.getType();
         String scheme = uri.getScheme();
         if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) return TelePremiumMediaItem.network(uri.toString(), name, mime, false);
@@ -237,113 +238,541 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
 
     private void buildUi() {
         mediaTheme = TelePremiumMediaTheme.from(this);
+        kit = new TelePremiumPlayerKit(this);
         landscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         chromeVisible = true;
+        clearViewRefs();
         if (landscape) buildLandscape(); else buildPortrait();
         controller.bindSurface(surface);
         bindCurrent(displayItem != null ? displayItem : controller.getCurrent());
         setupGestures();
         updatePlayButton();
         updateSpeedButton();
+        refreshQueueModeButtons();
+        refreshNextCard();
         if (landscape) scheduleChromeHide();
     }
 
+    private void clearViewRefs() {
+        surface = null; artworkImage = null; fallbackCover = null; fallbackArtist = null; fallbackTitle = null;
+        headerTitleView = null; titleView = null; artistView = null; stateView = null; positionView = null; durationView = null;
+        playButton = null; speedButton = null; speedLabel = null; fitButton = null; subtitlesButton = null; hwButton = null;
+        shuffleButton = null; repeatButton = null; sourcePill = null; sourceIcon = null; sourceLabel = null;
+        nextCard = null; nextSubtitle = null; topChrome = null; bottomChrome = null; leftSeek = null; rightSeek = null; lockButton = null;
+    }
+
+    // ---------------------------------------------------------------- portrait (music + video)
+
     private void buildPortrait() {
         resetPortraitWindowMode();
+        pal = TelePremiumPlayerKit.Palette.surface(mediaTheme);
         Window window = getWindow();
-        window.setStatusBarColor(PLAYER_BG);
-        window.setNavigationBarColor(PLAYER_BG);
-        if (Build.VERSION.SDK_INT >= 26) {
-            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-        }
+        window.setStatusBarColor(pal.background);
+        window.setNavigationBarColor(pal.background);
+        mediaTheme.applySystemBars(this);
 
         TelePremiumMediaItem current = displayItem != null ? displayItem : controller.getCurrent();
         portraitAudioLayout = current == null || !current.isVideo();
         root = new FrameLayout(this);
-        root.setBackgroundColor(PLAYER_BG);
+        root.setBackgroundColor(pal.background);
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setVerticalScrollBarEnabled(false);
         root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
         LinearLayout column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
-        column.setBackgroundColor(PLAYER_BG);
+        column.setPadding(0, 0, 0, dp(18));
         scroll.addView(column, new ScrollView.LayoutParams(-1, -2));
 
-        topChrome = createTopBar();
-        column.addView(topChrome, new LinearLayout.LayoutParams(-1, dp(76)));
+        // Top bar: back · title · (video: HW, subtitles) · more
+        LinearLayout top = new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setPadding(dp(6), 0, dp(6), 0);
+        top.addView(kit.iconButton(R.drawable.tp_ic_back, pal.text, 26, t("TP_L10N_413", R.string.TP_L10N_413), v -> finish()), new LinearLayout.LayoutParams(dp(48), dp(48)));
+        headerTitleView = kit.singleLine(kit.text(t("TP_L10N_414", R.string.TP_L10N_414), 21, pal.text, true));
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        titleLp.leftMargin = dp(10);
+        top.addView(headerTitleView, titleLp);
+        if (!portraitAudioLayout) addVideoHeaderButtons(top);
+        top.addView(kit.iconButton(R.drawable.tp_ic_more, pal.text, 24, t("TP_L10N_418", R.string.TP_L10N_418), v -> showPlayerSettings()), new LinearLayout.LayoutParams(dp(48), dp(48)));
+        topChrome = top;
+        column.addView(top, new LinearLayout.LayoutParams(-1, dp(60)));
+
+        // Stage: square artwork card for music, 16:9 surface for video
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int stagePx = portraitAudioLayout
-                ? Math.min(screenWidth - dp(56), dp(375))
-                : Math.max(dp(190), screenWidth * 9 / 16);
-        FrameLayout stage = createStage();
-        LinearLayout.LayoutParams stageLp = new LinearLayout.LayoutParams(-1, stagePx + (portraitAudioLayout ? dp(16) : 0));
-        if (portraitAudioLayout) stageLp.setMargins(dp(22), dp(2), dp(22), 0);
+        FrameLayout stage = createStage(false);
+        LinearLayout.LayoutParams stageLp;
+        if (portraitAudioLayout) {
+            int side = Math.min(screenWidth - dp(56), dp(380));
+            stageLp = new LinearLayout.LayoutParams(side, side);
+            stageLp.gravity = Gravity.CENTER_HORIZONTAL;
+            stageLp.topMargin = dp(6);
+        } else {
+            stageLp = new LinearLayout.LayoutParams(-1, screenWidth * 9 / 16);
+        }
         column.addView(stage, stageLp);
 
-        LinearLayout meta = new LinearLayout(this);
-        meta.setOrientation(LinearLayout.VERTICAL);
-        meta.setGravity(Gravity.CENTER_HORIZONTAL);
-        meta.setPadding(dp(24), dp(17), dp(24), dp(4));
-        titleView = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_410", org.telegram.messenger.R.string.TP_L10N_410), portraitAudioLayout ? 25 : 19, PLAYER_WHITE, true);
+        // Title / artist / source chip — wrap_content so nothing gets clipped
+        titleView = kit.singleLine(kit.text("", portraitAudioLayout ? 26 : 20, pal.text, true));
         titleView.setGravity(Gravity.CENTER);
-        titleView.setSingleLine(true);
-        titleView.setEllipsize(TextUtils.TruncateAt.END);
-        artistView = text("", 15, PLAYER_MUTED, false);
+        LinearLayout.LayoutParams titleRowLp = new LinearLayout.LayoutParams(-1, -2);
+        titleRowLp.setMargins(dp(24), dp(22), dp(24), 0);
+        column.addView(titleView, titleRowLp);
+        artistView = kit.singleLine(kit.text("", 16, pal.muted, false));
         artistView.setGravity(Gravity.CENTER);
-        artistView.setSingleLine(true);
-        artistView.setEllipsize(TextUtils.TruncateAt.END);
-        sourceView = pill(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_411", org.telegram.messenger.R.string.TP_L10N_411));
-        sourceView.setTextColor(PLAYER_MUTED);
-        sourceView.setGravity(Gravity.CENTER);
-        sourceView.setBackground(roundBg(PLAYER_PANEL, PLAYER_STROKE, 21));
-        meta.addView(titleView, new LinearLayout.LayoutParams(-1, dp(39)));
-        meta.addView(artistView, new LinearLayout.LayoutParams(-1, dp(26)));
-        LinearLayout.LayoutParams sourceLp = new LinearLayout.LayoutParams(-2, dp(36));
-        sourceLp.topMargin = dp(8);
-        meta.addView(sourceView, sourceLp);
-        column.addView(meta, new LinearLayout.LayoutParams(-1, dp(123)));
+        LinearLayout.LayoutParams artistLp = new LinearLayout.LayoutParams(-1, -2);
+        artistLp.setMargins(dp(24), dp(8), dp(24), 0);
+        column.addView(artistView, artistLp);
+        sourcePill = kit.pill(R.drawable.tp_ic_device, "", pal, false);
+        sourceIcon = (ImageView) sourcePill.getChildAt(0);
+        LinearLayout.LayoutParams pillLp = new LinearLayout.LayoutParams(-2, -2);
+        pillLp.gravity = Gravity.CENTER_HORIZONTAL;
+        pillLp.topMargin = dp(14);
+        column.addView(sourcePill, pillLp);
+        stateView = kit.singleLine(kit.text("", 12, pal.muted, false));
+        stateView.setGravity(Gravity.CENTER);
+        stateView.setVisibility(View.GONE);
+        LinearLayout.LayoutParams stateLp = new LinearLayout.LayoutParams(-1, -2);
+        stateLp.topMargin = dp(6);
+        column.addView(stateView, stateLp);
 
-        bottomChrome = createBottomControls(false);
-        column.addView(bottomChrome, new LinearLayout.LayoutParams(-1, dp(portraitAudioLayout ? 193 : 156)));
+        column.addView(createTimeline(), timelineParams());
+        column.addView(createPortraitTransport(), new LinearLayout.LayoutParams(-1, dp(92)));
 
-        queueButton = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_412", org.telegram.messenger.R.string.TP_L10N_412), 14, PLAYER_WHITE, false);
-        queueButton.setGravity(Gravity.CENTER_VERTICAL);
-        queueButton.setPadding(dp(20), 0, dp(16), 0);
-        queueButton.setBackground(roundBg(PLAYER_PANEL, PLAYER_STROKE, 23));
-        queueButton.setOnClickListener(v -> showQueue());
-        LinearLayout.LayoutParams qp = new LinearLayout.LayoutParams(-1, dp(60));
-        qp.setMargins(dp(20), dp(3), dp(20), dp(20));
-        column.addView(queueButton, qp);
+        View line = kit.divider(TelePremiumPlayerKit.withAlpha(pal.muted, 0x33), false);
+        LinearLayout.LayoutParams lineLp = new LinearLayout.LayoutParams(-1, dp(1));
+        lineLp.setMargins(dp(24), dp(4), dp(24), dp(4));
+        column.addView(line, lineLp);
+        column.addView(createExtrasRow(), new LinearLayout.LayoutParams(-1, dp(78)));
+
+        nextCard = createNextCard();
+        LinearLayout.LayoutParams nextLp = new LinearLayout.LayoutParams(-1, dp(66));
+        nextLp.setMargins(dp(20), dp(12), dp(20), 0);
+        column.addView(nextCard, nextLp);
         setContentView(root);
     }
 
+    private void addVideoHeaderButtons(LinearLayout top) {
+        hwButton = kit.text("HW", 13, pal.muted, true);
+        hwButton.setGravity(Gravity.CENTER);
+        hwButton.setContentDescription(t("TP_L10N_415", R.string.TP_L10N_415));
+        hwButton.setOnClickListener(v -> showPlayerSettings());
+        top.addView(hwButton, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        subtitlesButton = kit.iconButton(R.drawable.tp_ic_subtitles, pal.text, 22, t("TP_L10N_416", R.string.TP_L10N_416), v -> {
+            controller.setSubtitlesEnabled(!controller.isSubtitlesEnabled());
+            subtitlesButton.setAlpha(controller.isSubtitlesEnabled() ? 1f : .4f);
+        });
+        subtitlesButton.setAlpha(controller.isSubtitlesEnabled() ? 1f : .4f);
+        top.addView(subtitlesButton, new LinearLayout.LayoutParams(dp(44), dp(44)));
+    }
+
+    private LinearLayout.LayoutParams timelineParams() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(46));
+        lp.setMargins(dp(14), dp(18), dp(14), 0);
+        return lp;
+    }
+
+    private View createTimeline() {
+        LinearLayout timeline = new LinearLayout(this);
+        timeline.setGravity(Gravity.CENTER_VERTICAL);
+        positionView = kit.text("0:00", 13, pal.text, false);
+        durationView = kit.text("0:00", 13, pal.text, false);
+        positionView.setGravity(Gravity.CENTER);
+        durationView.setGravity(Gravity.CENTER);
+        seekBar = new SeekBar(this);
+        seekBar.setMax(10000);
+        kit.tintSeekBar(seekBar, pal);
+        timeline.addView(positionView, new LinearLayout.LayoutParams(dp(58), -1));
+        timeline.addView(seekBar, new LinearLayout.LayoutParams(0, -1, 1f));
+        timeline.addView(durationView, new LinearLayout.LayoutParams(dp(58), -1));
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                if (fromUser) positionView.setText(formatTime(progressToMs(progress)));
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) { userSeeking = true; handler.removeCallbacks(hideChromeRunnable); }
+            @Override public void onStopTrackingTouch(SeekBar bar) {
+                userSeeking = false;
+                controller.seekTo(progressToMs(bar.getProgress()));
+                scheduleChromeHide();
+            }
+        });
+        return timeline;
+    }
+
+    /** Five equal slots: the play button sits in the middle one, i.e. exactly at the center. */
+    private View createPortraitTransport() {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(10), 0, dp(10), 0);
+        View left, right;
+        if (portraitAudioLayout) {
+            shuffleButton = kit.iconButton(R.drawable.tp_ic_shuffle, pal.text, 24, t("TP_L10N_425", R.string.TP_L10N_425), v -> toggleShuffle());
+            repeatButton = kit.iconButton(R.drawable.tp_ic_repeat, pal.text, 24, t("TP_L10N_426", R.string.TP_L10N_426), v -> toggleRepeat());
+            left = shuffleButton;
+            right = repeatButton;
+        } else {
+            fitButton = kit.iconButton(R.drawable.tp_ic_aspect, pal.text, 24, t("TP_L10N_422", R.string.TP_L10N_422), v -> toggleFit());
+            left = fitButton;
+            right = kit.iconButton(R.drawable.tp_ic_pip, pal.text, 24, t("TP_L10N_423", R.string.TP_L10N_423), v -> enterPip());
+        }
+        ImageView prev = kit.iconButton(R.drawable.tp_ic_prev, pal.text, 30, t("TP_L10N_419", R.string.TP_L10N_419), v -> controller.previous());
+        ImageView next = kit.iconButton(R.drawable.tp_ic_next, pal.text, 30, t("TP_L10N_420", R.string.TP_L10N_420), v -> controller.next());
+        playButton = kit.playButton(pal, 80, v -> { controller.toggle(); scheduleChromeHide(); });
+        playButton.setContentDescription(t("TP_L10N_424", R.string.TP_L10N_424));
+        row.addView(kit.slot(left, 52, 52), new LinearLayout.LayoutParams(0, -1, 1f));
+        row.addView(kit.slot(prev, 56, 56), new LinearLayout.LayoutParams(0, -1, 1f));
+        row.addView(kit.slot(playButton, 80, 80), new LinearLayout.LayoutParams(0, -1, 1.2f));
+        row.addView(kit.slot(next, 56, 56), new LinearLayout.LayoutParams(0, -1, 1f));
+        row.addView(kit.slot(right, 52, 52), new LinearLayout.LayoutParams(0, -1, 1f));
+        return row;
+    }
+
+    /** "1× Скорость" | "source Устройство" | "list Очередь" with thin vertical dividers. */
+    private View createExtrasRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(14), 0, dp(14), 0);
+        int dividerColor = TelePremiumPlayerKit.withAlpha(pal.muted, 0x33);
+
+        LinearLayout speed = extraColumn(null, t("TP_P_SPEED", R.string.TP_P_SPEED), v -> showSpeedDialog());
+        speedButton = kit.text("1×", 22, pal.text, true);
+        speedButton.setGravity(Gravity.CENTER);
+        speed.addView(speedButton, 0, new LinearLayout.LayoutParams(-2, dp(28)));
+        speedLabel = (TextView) speed.getChildAt(1);
+
+        LinearLayout source = extraColumn(R.drawable.tp_ic_device, t("TP_L10N_411", R.string.TP_L10N_411), v -> showPlayerSettings());
+        sourceLabel = (TextView) source.getChildAt(1);
+        LinearLayout queue = extraColumn(R.drawable.tp_ic_list, t("TP_P_QUEUE", R.string.TP_P_QUEUE), v -> showQueue());
+
+        row.addView(speed, new LinearLayout.LayoutParams(0, -1, 1f));
+        row.addView(kit.divider(dividerColor, true));
+        row.addView(source, new LinearLayout.LayoutParams(0, -1, 1f));
+        row.addView(kit.divider(dividerColor, true));
+        row.addView(queue, new LinearLayout.LayoutParams(0, -1, 1f));
+        return row;
+    }
+
+    private LinearLayout extraColumn(Integer iconRes, String label, View.OnClickListener listener) {
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setGravity(Gravity.CENTER);
+        col.setBackground(TelePremiumPlayerKit.ripple(TelePremiumPlayerKit.round(Color.TRANSPARENT, Color.TRANSPARENT, 14, 0), pal.accent));
+        if (iconRes != null) col.addView(kit.icon(iconRes, pal.text), new LinearLayout.LayoutParams(dp(28), dp(28)));
+        TextView text = kit.singleLine(kit.text(label, 13, pal.muted, false));
+        text.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.topMargin = dp(6);
+        col.addView(text, lp);
+        col.setOnClickListener(listener);
+        return col;
+    }
+
+    private View createNextCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(18), 0, dp(12), 0);
+        card.setBackground(TelePremiumPlayerKit.ripple(TelePremiumPlayerKit.round(pal.panel, pal.stroke, 22, 1), pal.accent));
+        card.addView(kit.icon(R.drawable.tp_ic_list, pal.accent), new LinearLayout.LayoutParams(dp(24), dp(24)));
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        TextView title = kit.singleLine(kit.text(t("TP_P_UP_NEXT", R.string.TP_P_UP_NEXT), 16, pal.text, true));
+        nextSubtitle = kit.singleLine(kit.text("", 12, pal.muted, false));
+        texts.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, -2);
+        subLp.topMargin = dp(3);
+        texts.addView(nextSubtitle, subLp);
+        LinearLayout.LayoutParams textsLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        textsLp.leftMargin = dp(16);
+        card.addView(texts, textsLp);
+        card.addView(kit.icon(R.drawable.tp_ic_chevron_right, pal.muted), new LinearLayout.LayoutParams(dp(24), dp(24)));
+        card.setOnClickListener(v -> showQueue());
+        return card;
+    }
+
+    // ---------------------------------------------------------------- landscape video
+
     private void buildLandscape() {
         applyLandscapeWindowMode();
+        pal = TelePremiumPlayerKit.Palette.video(mediaTheme);
         root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
+        root.addView(createStage(true), new FrameLayout.LayoutParams(-1, -1));
 
-        FrameLayout stage = createStage();
-        root.addView(stage, new FrameLayout.LayoutParams(-1, -1));
+        // Top chrome: back · title · speed pill · HW · queue · more, then the source chip
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.VERTICAL);
+        top.setPadding(dp(18), dp(10), dp(18), dp(26));
+        top.setBackground(chromeGradient(false));
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.addView(kit.iconButton(R.drawable.tp_ic_back, pal.text, 28, t("TP_L10N_413", R.string.TP_L10N_413), v -> finish()), new LinearLayout.LayoutParams(dp(48), dp(48)));
+        headerTitleView = kit.singleLine(kit.text("", 20, pal.text, true));
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        titleLp.leftMargin = dp(12);
+        row.addView(headerTitleView, titleLp);
+        TextView topSpeed = kit.text("1×", 15, pal.accent, true);
+        topSpeed.setGravity(Gravity.CENTER);
+        topSpeed.setPadding(dp(16), 0, dp(16), 0);
+        topSpeed.setBackground(TelePremiumPlayerKit.ripple(TelePremiumPlayerKit.round(pal.panel, pal.accent, 18, 1.5f), pal.accent));
+        topSpeed.setOnClickListener(v -> cycleSpeed());
+        topSpeed.setTag("speed");
+        LinearLayout.LayoutParams speedLp = new LinearLayout.LayoutParams(-2, dp(36));
+        speedLp.rightMargin = dp(10);
+        row.addView(topSpeed, speedLp);
+        hwButton = kit.text("HW", 15, pal.text, true);
+        hwButton.setGravity(Gravity.CENTER);
+        hwButton.setOnClickListener(v -> showPlayerSettings());
+        row.addView(hwButton, new LinearLayout.LayoutParams(dp(52), dp(44)));
+        row.addView(kit.iconButton(R.drawable.tp_ic_list, pal.text, 26, t("TP_L10N_417", R.string.TP_L10N_417), v -> showQueue()), new LinearLayout.LayoutParams(dp(48), dp(48)));
+        row.addView(kit.iconButton(R.drawable.tp_ic_more, pal.text, 26, t("TP_L10N_418", R.string.TP_L10N_418), v -> showPlayerSettings()), new LinearLayout.LayoutParams(dp(48), dp(48)));
+        top.addView(row, new LinearLayout.LayoutParams(-1, dp(52)));
+        sourcePill = kit.pill(R.drawable.tp_ic_cloud, "", pal, false);
+        sourcePill.setBackground(TelePremiumPlayerKit.round(TelePremiumPlayerKit.withAlpha(Color.BLACK, 0x66), TelePremiumPlayerKit.withAlpha(pal.text, 0x40), 20, 1));
+        sourceIcon = (ImageView) sourcePill.getChildAt(0);
+        LinearLayout.LayoutParams pillLp = new LinearLayout.LayoutParams(-2, -2);
+        pillLp.setMargins(dp(4), dp(6), 0, 0);
+        top.addView(sourcePill, pillLp);
+        stateView = null;
+        topChrome = top;
+        root.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
-        topChrome = createTopBar();
-        FrameLayout.LayoutParams top = new FrameLayout.LayoutParams(-1, dp(70), Gravity.TOP);
-        root.addView(topChrome, top);
+        // Edge seek buttons («  ») on the left and right center
+        leftSeek = edgeSeekButton(true);
+        rightSeek = edgeSeekButton(false);
+        root.addView(leftSeek, new FrameLayout.LayoutParams(dp(64), dp(132), Gravity.LEFT | Gravity.CENTER_VERTICAL));
+        root.addView(rightSeek, new FrameLayout.LayoutParams(dp(64), dp(132), Gravity.RIGHT | Gravity.CENTER_VERTICAL));
 
-        // Deliberately no center transport controls. Video remains unobstructed;
-        // left/right double tap performs -/+10s and play/pause stays in bottom bar.
-        bottomChrome = createBottomControls(true);
-        FrameLayout.LayoutParams bottom = new FrameLayout.LayoutParams(-1, dp(132), Gravity.BOTTOM);
-        root.addView(bottomChrome, bottom);
+        // Bottom chrome: timeline, then [speed] — [prev ▶ next] — [aspect pip queue]
+        LinearLayout bottom = new LinearLayout(this);
+        bottom.setOrientation(LinearLayout.VERTICAL);
+        bottom.setPadding(dp(22), dp(28), dp(22), dp(14));
+        bottom.setBackground(chromeGradient(true));
+        bottom.addView(createTimeline(), new LinearLayout.LayoutParams(-1, dp(44)));
+        FrameLayout controls = new FrameLayout(this);
+        speedButton = kit.text("1×", 18, pal.accent, true);
+        speedButton.setGravity(Gravity.CENTER);
+        speedButton.setBackground(TelePremiumPlayerKit.ripple(TelePremiumPlayerKit.round(pal.panel, pal.stroke, 26, 1), pal.accent));
+        speedButton.setOnClickListener(v -> cycleSpeed());
+        controls.addView(speedButton, new FrameLayout.LayoutParams(dp(92), dp(52), Gravity.LEFT | Gravity.CENTER_VERTICAL));
 
-        lockButton = pill("🔒");
-        lockButton.setGravity(Gravity.CENTER);
+        LinearLayout center = new LinearLayout(this);
+        center.setGravity(Gravity.CENTER_VERTICAL);
+        center.addView(kit.iconButton(R.drawable.tp_ic_prev, pal.text, 30, t("TP_L10N_419", R.string.TP_L10N_419), v -> { controller.previous(); scheduleChromeHide(); }), new LinearLayout.LayoutParams(dp(60), dp(60)));
+        playButton = kit.playButton(pal, 74, v -> { controller.toggle(); scheduleChromeHide(); });
+        playButton.setContentDescription(t("TP_L10N_424", R.string.TP_L10N_424));
+        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(dp(74), dp(74));
+        playLp.setMargins(dp(26), 0, dp(26), 0);
+        center.addView(playButton, playLp);
+        center.addView(kit.iconButton(R.drawable.tp_ic_next, pal.text, 30, t("TP_L10N_420", R.string.TP_L10N_420), v -> { controller.next(); scheduleChromeHide(); }), new LinearLayout.LayoutParams(dp(60), dp(60)));
+        controls.addView(center, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+
+        LinearLayout tools = new LinearLayout(this);
+        tools.setGravity(Gravity.CENTER_VERTICAL);
+        fitButton = kit.toolButton(R.drawable.tp_ic_expand, pal, t("TP_L10N_422", R.string.TP_L10N_422), v -> { toggleFit(); scheduleChromeHide(); });
+        tools.addView(fitButton, toolLp());
+        tools.addView(kit.toolButton(R.drawable.tp_ic_pip, pal, t("TP_L10N_423", R.string.TP_L10N_423), v -> enterPip()), toolLp());
+        tools.addView(kit.toolButton(R.drawable.tp_ic_list, pal, t("TP_L10N_417", R.string.TP_L10N_417), v -> showQueue()), toolLp());
+        controls.addView(tools, new FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+        bottom.addView(controls, new LinearLayout.LayoutParams(-1, dp(80)));
+        bottomChrome = bottom;
+        root.addView(bottom, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
+
+        lockButton = kit.toolButton(R.drawable.tp_ic_lock, pal, t("TP_L10N_461", R.string.TP_L10N_461), v -> toggleControlsLock());
         lockButton.setVisibility(controlsLocked ? View.VISIBLE : View.GONE);
-        lockButton.setOnClickListener(v -> toggleControlsLock());
-        FrameLayout.LayoutParams lockParams = new FrameLayout.LayoutParams(dp(52), dp(52), Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        lockParams.setMargins(0, 0, dp(18), 0);
+        FrameLayout.LayoutParams lockParams = new FrameLayout.LayoutParams(dp(56), dp(52), Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        lockParams.setMargins(0, 0, dp(84), 0);
         root.addView(lockButton, lockParams);
         setContentView(root);
+    }
+
+    private LinearLayout.LayoutParams toolLp() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(64), dp(52));
+        lp.leftMargin = dp(10);
+        return lp;
+    }
+
+    private View edgeSeekButton(boolean back) {
+        FrameLayout button = new FrameLayout(this);
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(TelePremiumPlayerKit.withAlpha(Color.BLACK, 0x55));
+        shape.setStroke(dp(1), TelePremiumPlayerKit.withAlpha(pal.accent, 0x66));
+        float r = dp(66);
+        shape.setCornerRadii(back ? new float[]{0, 0, r, r, r, r, 0, 0} : new float[]{r, r, 0, 0, 0, 0, r, r});
+        button.setBackground(TelePremiumPlayerKit.ripple(shape, pal.accent));
+        ImageView arrow = kit.icon(back ? R.drawable.tp_ic_rewind : R.drawable.tp_ic_forward, pal.accent);
+        button.addView(arrow, new FrameLayout.LayoutParams(dp(30), dp(30), Gravity.CENTER));
+        button.setContentDescription(back ? tf("TP_P_SEEK_BACK_FMT", R.string.TP_P_SEEK_BACK_FMT, seekStepSeconds) : tf("TP_P_SEEK_FWD_FMT", R.string.TP_P_SEEK_FWD_FMT, seekStepSeconds));
+        button.setOnClickListener(v -> {
+            controller.seekRelative((back ? -1 : 1) * seekStepSeconds * 1000L);
+            scheduleChromeHide();
+        });
+        return button;
+    }
+
+    private GradientDrawable chromeGradient(boolean bottom) {
+        int deep = 0xd9000000, mid = 0x80000000, clear = 0x00000000;
+        return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                bottom ? new int[]{clear, mid, deep} : new int[]{deep, mid, clear});
+    }
+
+    // ---------------------------------------------------------------- stage
+
+    private FrameLayout createStage(boolean fullscreen) {
+        FrameLayout stage = new FrameLayout(this);
+        stage.setBackgroundColor(fullscreen ? Color.BLACK : (portraitAudioLayout ? Color.TRANSPARENT : Color.BLACK));
+        surface = new TelePremiumAspectSurfaceView(this);
+        surface.setScaleMode(scaleMode);
+        stage.addView(surface, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
+
+        if (!fullscreen && portraitAudioLayout) {
+            // Fallback cover in theme colors: note, ARTIST spaced, Title in accent
+            fallbackCover = new LinearLayout(this);
+            fallbackCover.setOrientation(LinearLayout.VERTICAL);
+            fallbackCover.setGravity(Gravity.CENTER);
+            GradientDrawable cover = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{
+                    TelePremiumPlayerKit.withAlpha(pal.accent, 0x2e), pal.panel, TelePremiumPlayerKit.withAlpha(pal.accent, 0x18)});
+            cover.setCornerRadius(dp(28));
+            cover.setStroke(dp(1), pal.stroke);
+            fallbackCover.setBackground(cover);
+            fallbackCover.addView(kit.icon(R.drawable.tp_ic_music, pal.accent), new LinearLayout.LayoutParams(dp(112), dp(112)));
+            fallbackArtist = kit.singleLine(kit.text("", 15, pal.muted, false));
+            fallbackArtist.setGravity(Gravity.CENTER);
+            fallbackArtist.setLetterSpacing(0.35f);
+            LinearLayout.LayoutParams artistLp = new LinearLayout.LayoutParams(-1, -2);
+            artistLp.setMargins(dp(20), dp(18), dp(20), 0);
+            fallbackCover.addView(fallbackArtist, artistLp);
+            fallbackTitle = kit.singleLine(kit.text("", 19, pal.accent, true));
+            fallbackTitle.setGravity(Gravity.CENTER);
+            fallbackTitle.setLetterSpacing(0.22f);
+            LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(-1, -2);
+            titleLp.setMargins(dp(20), dp(8), dp(20), 0);
+            fallbackCover.addView(fallbackTitle, titleLp);
+            stage.addView(fallbackCover, new FrameLayout.LayoutParams(-1, -1));
+
+            artworkImage = new ImageView(this);
+            artworkImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            artworkImage.setBackground(TelePremiumPlayerKit.round(pal.panel, pal.stroke, 28, 1));
+            artworkImage.setClipToOutline(true);
+            artworkImage.setVisibility(View.GONE);
+            stage.addView(artworkImage, new FrameLayout.LayoutParams(-1, -1));
+        }
+        stage.setOnTouchListener((v, event) -> handleStageTouch(event));
+        return stage;
+    }
+
+    // ---------------------------------------------------------------- binding
+
+    private void toggleShuffle() {
+        TelePremiumQueueManager queue = controller.getQueue();
+        queue.setShuffle(!queue.isShuffle());
+        refreshQueueModeButtons();
+    }
+
+    private void toggleRepeat() {
+        TelePremiumQueueManager queue = controller.getQueue();
+        int mode = queue.getRepeatMode();
+        queue.setRepeatMode(mode == TelePremiumQueueManager.REPEAT_OFF ? TelePremiumQueueManager.REPEAT_ALL
+                : mode == TelePremiumQueueManager.REPEAT_ALL ? TelePremiumQueueManager.REPEAT_ONE : TelePremiumQueueManager.REPEAT_OFF);
+        refreshQueueModeButtons();
+        refreshNextCard();
+    }
+
+    private void refreshQueueModeButtons() {
+        if (kit == null || pal == null) return;
+        TelePremiumQueueManager queue = controller.getQueue();
+        if (shuffleButton != null) kit.setIcon(shuffleButton, R.drawable.tp_ic_shuffle, queue.isShuffle() ? pal.accent : pal.text);
+        if (repeatButton != null) {
+            int mode = queue.getRepeatMode();
+            kit.setIcon(repeatButton, mode == TelePremiumQueueManager.REPEAT_ONE ? R.drawable.tp_ic_repeat_one : R.drawable.tp_ic_repeat,
+                    mode == TelePremiumQueueManager.REPEAT_OFF ? pal.text : pal.accent);
+        }
+    }
+
+    private void refreshNextCard() {
+        if (nextSubtitle == null) return;
+        TelePremiumMediaItem next = controller.getQueue().peekNext();
+        nextSubtitle.setText(next == null ? t("TP_P_END_OF_QUEUE", R.string.TP_P_END_OF_QUEUE)
+                : tf("TP_P_NEXT_FMT", R.string.TP_P_NEXT_FMT, next.isVideo() ? next.title : stripAudioExtension(next.title)));
+    }
+
+    @Override public void onQueueChanged(List<TelePremiumMediaItem> items, int currentIndex) {
+        handler.post(() -> { refreshNextCard(); refreshQueueModeButtons(); });
+    }
+
+    private void bindCurrent(TelePremiumMediaItem item) {
+        if (item == null) return;
+        if (!landscape && portraitAudioLayout == item.isVideo()) {
+            // The queue switched between music and video: rebuild the matching layout.
+            displayItem = item;
+            buildUi();
+            return;
+        }
+        displayItem = item;
+        boolean video = item.isVideo();
+        String cleanTitle = video ? item.title : stripAudioExtension(item.title);
+        String artist = TextUtils.isEmpty(item.artist)
+                ? (video ? t("TP_L10N_098", R.string.TP_L10N_098) : t("TP_L10N_343", R.string.TP_L10N_343)) : item.artist;
+        if (titleView != null) titleView.setText(cleanTitle);
+        if (artistView != null) artistView.setText(artist);
+        if (headerTitleView != null) headerTitleView.setText(landscape
+                ? (TextUtils.isEmpty(item.title) ? "TelePremium Media" : item.title)
+                : video ? t("TP_L10N_098", R.string.TP_L10N_098) : t("TP_L10N_414", R.string.TP_L10N_414));
+        TelePremiumPlayerKit.setPillText(sourcePill, landscape ? landscapeSourceText(item) : sourceText(item));
+        if (sourceIcon != null) kit.setIcon(sourceIcon, sourceIconRes(item), landscape ? pal.accent : pal.muted);
+        if (sourceLabel != null) sourceLabel.setText(sourceShortText(item));
+        if (fallbackArtist != null) fallbackArtist.setText(TextUtils.isEmpty(item.artist) ? "" : item.artist.toUpperCase(Locale.getDefault()));
+        if (fallbackTitle != null) fallbackTitle.setText(cleanTitle == null ? "" : cleanTitle.toUpperCase(Locale.getDefault()));
+
+        if (surface != null) {
+            surface.setVisibility(video ? View.VISIBLE : View.GONE);
+            surface.setScaleMode(scaleMode);
+        }
+        if (fallbackCover != null) fallbackCover.setVisibility(video ? View.GONE : View.VISIBLE);
+        if (artworkImage != null) {
+            artworkImage.setVisibility(View.GONE);
+            artworkImage.setImageDrawable(null);
+            if (!video) {
+                final String requestedId = item.id;
+                TelePremiumArtworkLoader.load(this, item, dp(420), bitmap -> {
+                    TelePremiumMediaItem current = controller.getCurrent();
+                    if (artworkImage == null || current == null || !requestedId.equals(current.id)) return;
+                    if (bitmap != null && !bitmap.isRecycled()) {
+                        artworkImage.setImageBitmap(bitmap);
+                        artworkImage.setVisibility(View.VISIBLE);
+                        if (fallbackCover != null) fallbackCover.setVisibility(View.GONE);
+                    }
+                });
+            }
+        }
+        if (hwButton != null) hwButton.setVisibility(video ? View.VISIBLE : View.GONE);
+        if (subtitlesButton != null) subtitlesButton.setVisibility(video ? View.VISIBLE : View.GONE);
+        refreshNextCard();
+    }
+
+    private int sourceIconRes(TelePremiumMediaItem item) {
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return R.drawable.tp_ic_cloud;
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_NETWORK) return item.isVideo() ? R.drawable.tp_ic_tv : (item.live ? R.drawable.tp_ic_radio : R.drawable.tp_ic_wifi);
+        return R.drawable.tp_ic_device;
+    }
+
+    private String sourceShortText(TelePremiumMediaItem item) {
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return t("TP_L10N_069", R.string.TP_L10N_069);
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_NETWORK) return t("TP_L10N_431", R.string.TP_L10N_431);
+        return t("TP_L10N_411", R.string.TP_L10N_411);
+    }
+
+    private String sourceText(TelePremiumMediaItem item) {
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return item.encryptionVersion > 0 ? "TelePremium Cloud · Vault" : "TelePremium Cloud";
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_NETWORK) {
+            if (!TextUtils.isEmpty(item.album)) return item.album;
+            return item.live ? t("TP_L10N_430", R.string.TP_L10N_430) : t("TP_L10N_431", R.string.TP_L10N_431);
+        }
+        return t("TP_L10N_411", R.string.TP_L10N_411);
+    }
+
+    private String landscapeSourceText(TelePremiumMediaItem item) {
+        boolean streaming = item.sourceType != TelePremiumMediaItem.SOURCE_DEVICE;
+        return streaming ? t("TP_P_STREAMING", R.string.TP_P_STREAMING) + " · " + sourceText(item) : sourceText(item);
     }
 
     private void applyLandscapeWindowMode() {
@@ -382,278 +811,19 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
     }
 
-    private View createTopBar() {
-        LinearLayout wrap = new LinearLayout(this);
-        wrap.setOrientation(LinearLayout.VERTICAL);
-        wrap.setPadding(dp(14), dp(4), dp(12), 0);
-        wrap.setBackground(landscape ? chromeGradient(false) : roundBg(PLAYER_BG, PLAYER_BG, 0));
-
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        TextView back = transparentButton("‹", 36);
-        back.setTextColor(PLAYER_WHITE);
-        back.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_413", org.telegram.messenger.R.string.TP_L10N_413));
-        back.setOnClickListener(v -> finish());
-        row.addView(back, new LinearLayout.LayoutParams(dp(48), -1));
-
-        headerTitleView = text(landscape ? "TelePremium Media" : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_414", org.telegram.messenger.R.string.TP_L10N_414), landscape ? 17 : 20, PLAYER_WHITE, true);
-        headerTitleView.setSingleLine(true);
-        headerTitleView.setEllipsize(TextUtils.TruncateAt.END);
-        row.addView(headerTitleView, new LinearLayout.LayoutParams(0, -1, 1f));
-
-        hwButton = transparentButton("HW", 12);
-        hwButton.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_415", org.telegram.messenger.R.string.TP_L10N_415));
-        hwButton.setTextColor(PLAYER_MUTED);
-        hwButton.setOnClickListener(v -> showPlayerSettings());
-        row.addView(hwButton, new LinearLayout.LayoutParams(dp(42), dp(42)));
-        subtitlesButton = transparentButton("▤", 23);
-        subtitlesButton.setTextColor(PLAYER_WHITE);
-        subtitlesButton.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_416", org.telegram.messenger.R.string.TP_L10N_416));
-        subtitlesButton.setOnClickListener(v -> {
-            controller.setSubtitlesEnabled(!controller.isSubtitlesEnabled());
-            subtitlesButton.setAlpha(controller.isSubtitlesEnabled() ? 1f : .35f);
-        });
-        row.addView(subtitlesButton, new LinearLayout.LayoutParams(dp(42), dp(42)));
-        if (landscape) {
-            TextView videoQueue = transparentButton("☷", 23);
-            videoQueue.setTextColor(PLAYER_WHITE);
-            videoQueue.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_417", org.telegram.messenger.R.string.TP_L10N_417));
-            videoQueue.setOnClickListener(v -> showQueue());
-            row.addView(videoQueue, new LinearLayout.LayoutParams(dp(42), dp(42)));
-        }
-        TextView more = transparentButton("⋮", 27);
-        more.setTextColor(PLAYER_WHITE);
-        more.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_418", org.telegram.messenger.R.string.TP_L10N_418));
-        more.setOnClickListener(v -> showMoreMenu());
-        row.addView(more, new LinearLayout.LayoutParams(dp(40), dp(42)));
-        wrap.addView(row, new LinearLayout.LayoutParams(-1, dp(48)));
-
-        stateView = text("TelePremium Media", 11, PLAYER_MUTED, false);
-        stateView.setPadding(dp(49), 0, dp(8), 0);
-        stateView.setSingleLine(true);
-        stateView.setEllipsize(TextUtils.TruncateAt.END);
-        wrap.addView(stateView, new LinearLayout.LayoutParams(-1, dp(20)));
-        return wrap;
-    }
-
-    private GradientDrawable chromeGradient(boolean bottom) {
-        int deep = 0xe9000000;
-        int clear = 0x00000000;
-        return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                bottom ? new int[]{clear, 0xe9000000, deep} : new int[]{deep, 0xc4000000, clear});
-    }
-
-    private FrameLayout createStage() {
-        FrameLayout stage = new FrameLayout(this);
-        stage.setBackgroundColor(landscape ? Color.BLACK : PLAYER_BG);
-        surface = new TelePremiumAspectSurfaceView(this);
-        surface.setScaleMode(scaleMode);
-        stage.addView(surface, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
-        artworkImage = new ImageView(this);
-        artworkImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        artworkImage.setBackground(roundBg(0xff1f1732, PLAYER_STROKE, 26));
-        artworkImage.setClipToOutline(Build.VERSION.SDK_INT >= 21);
-        FrameLayout.LayoutParams imageLp = new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER);
-        imageLp.setMargins(dp(8), dp(8), dp(8), dp(8));
-        stage.addView(artworkImage, imageLp);
-        audioArtwork = text("♫", 108, PLAYER_VIOLET, true);
-        audioArtwork.setGravity(Gravity.CENTER);
-        GradientDrawable fallbackCover = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[]{0xff1b1230, 0xff31205b, 0xff0c0916});
-        fallbackCover.setCornerRadius(dp(26));
-        fallbackCover.setStroke(dp(1), PLAYER_STROKE);
-        audioArtwork.setBackground(fallbackCover);
-        FrameLayout.LayoutParams artworkParams = new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER);
-        artworkParams.setMargins(dp(8), dp(8), dp(8), dp(8));
-        stage.addView(audioArtwork, artworkParams);
-        stage.setOnTouchListener((v, event) -> handleStageTouch(event));
-        return stage;
-    }
-
-    private View createBottomControls(boolean overlay) {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(15), dp(4), dp(15), dp(6));
-        box.setBackground(overlay ? chromeGradient(true) : roundBg(PLAYER_BG, PLAYER_BG, 0));
-        LinearLayout timeline = new LinearLayout(this);
-        timeline.setGravity(Gravity.CENTER_VERTICAL);
-        positionView = text("0:00", 12, PLAYER_WHITE, false);
-        durationView = text("0:00", 12, PLAYER_WHITE, false);
-        positionView.setGravity(Gravity.CENTER);
-        durationView.setGravity(Gravity.CENTER);
-        seekBar = new SeekBar(this);
-        seekBar.setMax(10000);
-        tintSeekBar(seekBar);
-        timeline.addView(positionView, new LinearLayout.LayoutParams(dp(54), -1));
-        timeline.addView(seekBar, new LinearLayout.LayoutParams(0, -1, 1f));
-        timeline.addView(durationView, new LinearLayout.LayoutParams(dp(54), -1));
-        box.addView(timeline, new LinearLayout.LayoutParams(-1, dp(48)));
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) positionView.setText(formatTime(progressToMs(progress)));
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) { userSeeking = true; }
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {
-                userSeeking = false;
-                controller.seekTo(progressToMs(seekBar.getProgress()));
-                scheduleChromeHide();
-            }
-        });
-
-        LinearLayout transport = new LinearLayout(this);
-        transport.setGravity(Gravity.CENTER);
-        TextView previous = transparentButton("|◀", 24);
-        previous.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_419", org.telegram.messenger.R.string.TP_L10N_419));
-        previous.setOnClickListener(v -> controller.previous());
-        TextView next = transparentButton("▶|", 24);
-        next.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_420", org.telegram.messenger.R.string.TP_L10N_420));
-        next.setOnClickListener(v -> controller.next());
-        speedButton = transparentButton("1×", 15);
-        speedButton.setOnClickListener(v -> cycleSpeed());
-        speedButton.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_421", org.telegram.messenger.R.string.TP_L10N_421));
-        fitButton = transparentButton(scaleModeIcon(), 21);
-        fitButton.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_422", org.telegram.messenger.R.string.TP_L10N_422));
-        fitButton.setOnClickListener(v -> toggleFit());
-        TextView pipButton = transparentButton("▣", 22);
-        pipButton.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_423", org.telegram.messenger.R.string.TP_L10N_423));
-        pipButton.setOnClickListener(v -> enterPip());
-        playButton = roundButton(controller.isPlaying() ? "Ⅱ" : "▶", 30);
-        playButton.setOnClickListener(v -> { controller.toggle(); scheduleChromeHide(); });
-        playButton.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_424", org.telegram.messenger.R.string.TP_L10N_424));
-        FrameLayout playSlot = new FrameLayout(this);
-        playSlot.addView(playButton, new FrameLayout.LayoutParams(dp(66), dp(66), Gravity.CENTER));
-        if (overlay) {
-            transport.addView(speedButton, controlWeight());
-            transport.addView(previous, controlWeight());
-            transport.addView(playSlot, new LinearLayout.LayoutParams(dp(78), -1));
-            transport.addView(next, controlWeight());
-            transport.addView(fitButton, controlWeight());
-            transport.addView(pipButton, controlWeight());
-        } else {
-            if (portraitAudioLayout) {
-                shuffleButton = transparentButton("⤨", 24);
-                shuffleButton.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_425", org.telegram.messenger.R.string.TP_L10N_425));
-                shuffleButton.setOnClickListener(v -> toggleShuffle());
-                repeatButton = transparentButton("↻", 26);
-                repeatButton.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_426", org.telegram.messenger.R.string.TP_L10N_426));
-                repeatButton.setOnClickListener(v -> toggleRepeat());
-                transport.addView(shuffleButton, controlWeight());
-            } else {
-                transport.addView(fitButton, controlWeight());
-            }
-            transport.addView(previous, controlWeight());
-            transport.addView(playSlot, new LinearLayout.LayoutParams(dp(86), -1));
-            transport.addView(next, controlWeight());
-            if (portraitAudioLayout) {
-                transport.addView(repeatButton, controlWeight());
-                refreshQueueModeButtons();
-            } else {
-                transport.addView(pipButton, controlWeight());
-            }
-        }
-        box.addView(transport, new LinearLayout.LayoutParams(-1, dp(76)));
-        if (!overlay) {
-            LinearLayout extras = new LinearLayout(this);
-            extras.setGravity(Gravity.CENTER);
-            speedButton.setTextColor(PLAYER_MUTED);
-            extras.addView(speedButton, new LinearLayout.LayoutParams(0, dp(51), 1f));
-            TextView output = transparentButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_427", org.telegram.messenger.R.string.TP_L10N_427), 13);
-            output.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_428", org.telegram.messenger.R.string.TP_L10N_428));
-            output.setTextColor(PLAYER_MUTED);
-            output.setOnClickListener(v -> showPlayerSettings());
-            extras.addView(output, new LinearLayout.LayoutParams(0, dp(51), 1.5f));
-            TextView queue = transparentButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_429", org.telegram.messenger.R.string.TP_L10N_429), 13);
-            queue.setTextColor(PLAYER_MUTED);
-            queue.setOnClickListener(v -> showQueue());
-            extras.addView(queue, new LinearLayout.LayoutParams(0, dp(51), 1.1f));
-            box.addView(extras, new LinearLayout.LayoutParams(-1, dp(51)));
-        }
-        return box;
-    }
-
-    private void toggleShuffle() {
-        TelePremiumQueueManager queue = controller.getQueue();
-        queue.setShuffle(!queue.isShuffle());
-        refreshQueueModeButtons();
-    }
-
-    private void toggleRepeat() {
-        TelePremiumQueueManager queue = controller.getQueue();
-        queue.setRepeatMode(queue.getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF
-                ? TelePremiumQueueManager.REPEAT_ALL : TelePremiumQueueManager.REPEAT_OFF);
-        refreshQueueModeButtons();
-    }
-
-    private void refreshQueueModeButtons() {
-        if (shuffleButton != null) shuffleButton.setTextColor(controller.getQueue().isShuffle() ? PLAYER_VIOLET : PLAYER_MUTED);
-        if (repeatButton != null) repeatButton.setTextColor(controller.getQueue().getRepeatMode() != TelePremiumQueueManager.REPEAT_OFF ? PLAYER_VIOLET : PLAYER_MUTED);
-    }
-
-    private void bindCurrent(TelePremiumMediaItem item) {
-        if (item == null) return;
-        if (!landscape && portraitAudioLayout == item.isVideo()) {
-            // Queue can switch between audio and video without restarting the Activity.
-            displayItem = item;
-            buildUi();
-            return;
-        }
-        displayItem = item;
-        if (titleView != null) titleView.setText(item.isVideo() ? item.title : stripAudioExtension(item.title));
-        if (artistView != null) artistView.setText(TextUtils.isEmpty(item.artist)
-                ? (item.isVideo() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_098", org.telegram.messenger.R.string.TP_L10N_098) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_343", org.telegram.messenger.R.string.TP_L10N_343)) : item.artist);
-        if (sourceView != null) sourceView.setText(sourceText(item));
-        if (headerTitleView != null) headerTitleView.setText(landscape
-                ? (TextUtils.isEmpty(item.title) ? "TelePremium Media" : item.title)
-                : item.isVideo() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_098", org.telegram.messenger.R.string.TP_L10N_098) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_414", org.telegram.messenger.R.string.TP_L10N_414));
-
-        boolean video = item.isVideo();
-        if (surface != null) {
-            surface.setVisibility(video ? View.VISIBLE : View.GONE);
-            surface.setScaleMode(scaleMode);
-        }
-        if (audioArtwork != null) {
-            audioArtwork.setVisibility(video ? View.GONE : View.VISIBLE);
-            audioArtwork.setText("♫");
-        }
-        if (artworkImage != null) {
-            artworkImage.setVisibility(video ? View.GONE : View.VISIBLE);
-            artworkImage.setImageDrawable(null);
-            if (!video) {
-                final String requestedId = item.id;
-                TelePremiumArtworkLoader.load(this, item, dp(420), bitmap -> {
-                    TelePremiumMediaItem current = controller.getCurrent();
-                    if (artworkImage == null || current == null || !requestedId.equals(current.id)) return;
-                    if (bitmap != null && !bitmap.isRecycled()) {
-                        artworkImage.setImageBitmap(bitmap);
-                        audioArtwork.setVisibility(View.GONE);
-                    } else {
-                        artworkImage.setVisibility(View.GONE);
-                        audioArtwork.setVisibility(View.VISIBLE);
-                    }
-                });
-            }
-        }
-        if (hwButton != null) hwButton.setVisibility(video ? View.VISIBLE : View.GONE);
-        if (subtitlesButton != null) subtitlesButton.setVisibility(video ? View.VISIBLE : View.GONE);
-    }
-
-    private String sourceText(TelePremiumMediaItem item) {
-        if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return item.encryptionVersion >= 3
-                ? "☁  TelePremium Cloud · Vault" : "☁  TelePremium Cloud";
-        if (item.sourceType == TelePremiumMediaItem.SOURCE_NETWORK) return "◉  " + (item.live ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_430", org.telegram.messenger.R.string.TP_L10N_430) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_431", org.telegram.messenger.R.string.TP_L10N_431));
-        return org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_432", org.telegram.messenger.R.string.TP_L10N_432);
-    }
-
     @Override public void onMediaChanged(TelePremiumMediaItem item) { displayItem = item; bindCurrent(item); }
 
     @Override public void onStateChanged(int state) {
         updatePlayButton();
         if (stateView == null) return;
         TelePremiumMediaItem item = controller.getCurrent();
-        if (state == TelePremiumPlaybackController.STATE_RESOLVING) stateView.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_433", org.telegram.messenger.R.string.TP_L10N_433));
-        else if (state == TelePremiumPlaybackController.STATE_BUFFERING) stateView.setText(controller.isCloudStreaming() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_434", org.telegram.messenger.R.string.TP_L10N_434) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_435", org.telegram.messenger.R.string.TP_L10N_435));
-        else if (state == TelePremiumPlaybackController.STATE_SEEKING) stateView.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_436", org.telegram.messenger.R.string.TP_L10N_436));
-        else if (state == TelePremiumPlaybackController.STATE_ERROR) stateView.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_437", org.telegram.messenger.R.string.TP_L10N_437));
+        boolean transient_ = state == TelePremiumPlaybackController.STATE_RESOLVING || state == TelePremiumPlaybackController.STATE_BUFFERING
+                || state == TelePremiumPlaybackController.STATE_SEEKING || state == TelePremiumPlaybackController.STATE_ERROR;
+        stateView.setVisibility(transient_ ? View.VISIBLE : View.GONE);
+        if (state == TelePremiumPlaybackController.STATE_RESOLVING) stateView.setText(t("TP_L10N_433", R.string.TP_L10N_433));
+        else if (state == TelePremiumPlaybackController.STATE_BUFFERING) stateView.setText(controller.isCloudStreaming() ? t("TP_L10N_434", R.string.TP_L10N_434) : t("TP_L10N_435", R.string.TP_L10N_435));
+        else if (state == TelePremiumPlaybackController.STATE_SEEKING) stateView.setText(t("TP_L10N_436", R.string.TP_L10N_436));
+        else if (state == TelePremiumPlaybackController.STATE_ERROR) stateView.setText(t("TP_L10N_437", R.string.TP_L10N_437));
         else if (item != null) stateView.setText(sourceText(item));
     }
 
@@ -678,11 +848,16 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     }
 
     private void updatePlayButton() {
-        if (playButton != null) playButton.setText(controller.isPlaying() ? "Ⅱ" : "▶");
+        if (playButton != null && kit != null) kit.setIcon(playButton, controller.isPlaying() ? R.drawable.tp_ic_pause : R.drawable.tp_ic_play, pal.text);
     }
 
     private void updateSpeedButton() {
-        if (speedButton != null) speedButton.setText(formatSpeed(controller.getSpeed()));
+        String value = formatSpeed(controller.getSpeed());
+        if (speedButton != null) speedButton.setText(value);
+        if (topChrome != null) {
+            View top = topChrome.findViewWithTag("speed");
+            if (top instanceof TextView) ((TextView) top).setText(value);
+        }
     }
 
     private long progressToMs(int progress) {
@@ -704,8 +879,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private void toggleFit() {
         scaleMode = (scaleMode + 1) % 4;
         if (surface != null) surface.setScaleMode(scaleMode);
-        if (fitButton != null) fitButton.setText(scaleModeIcon());
-        Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_438", org.telegram.messenger.R.string.TP_L10N_438) + scaleModeLabel(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, t("TP_L10N_438", R.string.TP_L10N_438) + scaleModeLabel(), Toast.LENGTH_SHORT).show();
     }
 
     private String scaleModeIcon() {
@@ -716,10 +890,10 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     }
 
     private String scaleModeLabel() {
-        if (scaleMode == SCALE_CROP) return org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_439", org.telegram.messenger.R.string.TP_L10N_439);
-        if (scaleMode == SCALE_STRETCH) return org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_440", org.telegram.messenger.R.string.TP_L10N_440);
+        if (scaleMode == SCALE_CROP) return t("TP_L10N_439", R.string.TP_L10N_439);
+        if (scaleMode == SCALE_STRETCH) return t("TP_L10N_440", R.string.TP_L10N_440);
         if (scaleMode == SCALE_ORIGINAL) return "100%";
-        return org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_441", org.telegram.messenger.R.string.TP_L10N_441);
+        return t("TP_L10N_441", R.string.TP_L10N_441);
     }
 
     private void showMoreMenu() {
@@ -734,33 +908,39 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         content.setPadding(dp(16), dp(12), dp(16), dp(18));
         content.setBackground(roundBg(mediaTheme.surfaceElevated, mediaTheme.cardStroke, 22));
 
-        TextView heading = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_428", org.telegram.messenger.R.string.TP_L10N_428), 20, mediaTheme.textPrimary, true);
+        TextView heading = text(t("TP_L10N_428", R.string.TP_L10N_428), 20, mediaTheme.textPrimary, true);
         content.addView(heading, new LinearLayout.LayoutParams(-1, dp(50)));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_442", org.telegram.messenger.R.string.TP_L10N_442), "Telegram ExoPlayer", controller.getDecoderLabel(), v ->
-                Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_443", org.telegram.messenger.R.string.TP_L10N_443), Toast.LENGTH_LONG).show()));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_422", org.telegram.messenger.R.string.TP_L10N_422), "Fit / Crop / Stretch / 100%", scaleModeLabel(), v -> { dialog.dismiss(); showScaleDialog(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_444", org.telegram.messenger.R.string.TP_L10N_444), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_421", org.telegram.messenger.R.string.TP_L10N_421), formatSpeed(controller.getSpeed()), v -> { dialog.dismiss(); showSpeedDialog(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_445", org.telegram.messenger.R.string.TP_L10N_445), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_446", org.telegram.messenger.R.string.TP_L10N_446), seekStepSeconds + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_447", org.telegram.messenger.R.string.TP_L10N_447), v -> { dialog.dismiss(); showSeekStepDialog(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_448", org.telegram.messenger.R.string.TP_L10N_448), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_449", org.telegram.messenger.R.string.TP_L10N_449), gestureBrightness ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_450", org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_451", org.telegram.messenger.R.string.TP_L10N_451), v -> { gestureBrightness = !gestureBrightness; dialog.dismiss(); showPlayerSettings(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_452", org.telegram.messenger.R.string.TP_L10N_452), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_453", org.telegram.messenger.R.string.TP_L10N_453), gestureVolume ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_450", org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_451", org.telegram.messenger.R.string.TP_L10N_451), v -> { gestureVolume = !gestureVolume; dialog.dismiss(); showPlayerSettings(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_416", org.telegram.messenger.R.string.TP_L10N_416), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_454", org.telegram.messenger.R.string.TP_L10N_454), controller.isSubtitlesEnabled() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_450", org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_451", org.telegram.messenger.R.string.TP_L10N_451), v -> { controller.setSubtitlesEnabled(!controller.isSubtitlesEnabled()); dialog.dismiss(); showPlayerSettings(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_455", org.telegram.messenger.R.string.TP_L10N_455), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_426", org.telegram.messenger.R.string.TP_L10N_426), controller.getQueue().getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_451", org.telegram.messenger.R.string.TP_L10N_451) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_450", org.telegram.messenger.R.string.TP_L10N_450), v -> {
+        content.addView(settingsRow(t("TP_FX_TITLE", R.string.TP_FX_TITLE), t("TP_FX_SUBTITLE", R.string.TP_FX_SUBTITLE), TelePremiumAudioEffects.isEqEnabled() ? t("TP_L10N_450", R.string.TP_L10N_450) : "›", v -> { dialog.dismiss(); TelePremiumAudioEffectsDialog.show(this, mediaTheme); }));
+        content.addView(settingsRow(t("TP_P_LOCKSCREEN", R.string.TP_P_LOCKSCREEN), t("TP_P_LOCKSCREEN_INFO", R.string.TP_P_LOCKSCREEN_INFO), isLockscreenEnabled() ? t("TP_L10N_450", R.string.TP_L10N_450) : t("TP_L10N_451", R.string.TP_L10N_451), v -> {
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("lockscreen", !isLockscreenEnabled()).apply();
+            applyLockscreenMode();
+            dialog.dismiss(); showPlayerSettings();
+        }));
+        content.addView(settingsRow(t("TP_L10N_442", R.string.TP_L10N_442), "Telegram ExoPlayer", controller.getDecoderLabel(), v ->
+                Toast.makeText(this, t("TP_L10N_443", R.string.TP_L10N_443), Toast.LENGTH_LONG).show()));
+        content.addView(settingsRow(t("TP_L10N_422", R.string.TP_L10N_422), "Fit / Crop / Stretch / 100%", scaleModeLabel(), v -> { dialog.dismiss(); showScaleDialog(); }));
+        content.addView(settingsRow(t("TP_L10N_444", R.string.TP_L10N_444), t("TP_L10N_421", R.string.TP_L10N_421), formatSpeed(controller.getSpeed()), v -> { dialog.dismiss(); showSpeedDialog(); }));
+        content.addView(settingsRow(t("TP_L10N_445", R.string.TP_L10N_445), t("TP_L10N_446", R.string.TP_L10N_446), seekStepSeconds + t("TP_L10N_447", R.string.TP_L10N_447), v -> { dialog.dismiss(); showSeekStepDialog(); }));
+        content.addView(settingsRow(t("TP_L10N_448", R.string.TP_L10N_448), t("TP_L10N_449", R.string.TP_L10N_449), gestureBrightness ? t("TP_L10N_450", R.string.TP_L10N_450) : t("TP_L10N_451", R.string.TP_L10N_451), v -> { gestureBrightness = !gestureBrightness; dialog.dismiss(); showPlayerSettings(); }));
+        content.addView(settingsRow(t("TP_L10N_452", R.string.TP_L10N_452), t("TP_L10N_453", R.string.TP_L10N_453), gestureVolume ? t("TP_L10N_450", R.string.TP_L10N_450) : t("TP_L10N_451", R.string.TP_L10N_451), v -> { gestureVolume = !gestureVolume; dialog.dismiss(); showPlayerSettings(); }));
+        content.addView(settingsRow(t("TP_L10N_416", R.string.TP_L10N_416), t("TP_L10N_454", R.string.TP_L10N_454), controller.isSubtitlesEnabled() ? t("TP_L10N_450", R.string.TP_L10N_450) : t("TP_L10N_451", R.string.TP_L10N_451), v -> { controller.setSubtitlesEnabled(!controller.isSubtitlesEnabled()); dialog.dismiss(); showPlayerSettings(); }));
+        content.addView(settingsRow(t("TP_L10N_455", R.string.TP_L10N_455), t("TP_L10N_426", R.string.TP_L10N_426), controller.getQueue().getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF ? t("TP_L10N_451", R.string.TP_L10N_451) : t("TP_L10N_450", R.string.TP_L10N_450), v -> {
             controller.getQueue().setRepeatMode(controller.getQueue().getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF ? TelePremiumQueueManager.REPEAT_ALL : TelePremiumQueueManager.REPEAT_OFF);
             dialog.dismiss(); showPlayerSettings();
         }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_456", org.telegram.messenger.R.string.TP_L10N_456), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_457", org.telegram.messenger.R.string.TP_L10N_457), controller.getQueue().isShuffle() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_450", org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_451", org.telegram.messenger.R.string.TP_L10N_451), v -> {
+        content.addView(settingsRow(t("TP_L10N_456", R.string.TP_L10N_456), t("TP_L10N_457", R.string.TP_L10N_457), controller.getQueue().isShuffle() ? t("TP_L10N_450", R.string.TP_L10N_450) : t("TP_L10N_451", R.string.TP_L10N_451), v -> {
             controller.getQueue().setShuffle(!controller.getQueue().isShuffle());
             dialog.dismiss(); showPlayerSettings();
         }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_458", org.telegram.messenger.R.string.TP_L10N_458), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_459", org.telegram.messenger.R.string.TP_L10N_459), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_460", org.telegram.messenger.R.string.TP_L10N_460), v -> { dialog.dismiss(); showOrientationDialog(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_461", org.telegram.messenger.R.string.TP_L10N_461), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_462", org.telegram.messenger.R.string.TP_L10N_462), controlsLocked ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_450", org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_451", org.telegram.messenger.R.string.TP_L10N_451), v -> { toggleControlsLock(); dialog.dismiss(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_463", org.telegram.messenger.R.string.TP_L10N_463), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_464", org.telegram.messenger.R.string.TP_L10N_464), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_117", org.telegram.messenger.R.string.TP_L10N_117), v -> { dialog.dismiss(); showSleepTimer(); }));
-        content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_465", org.telegram.messenger.R.string.TP_L10N_465), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_466", org.telegram.messenger.R.string.TP_L10N_466), controller.getQueue().size() + "", v -> { dialog.dismiss(); showQueue(); }));
+        content.addView(settingsRow(t("TP_L10N_458", R.string.TP_L10N_458), t("TP_L10N_459", R.string.TP_L10N_459), t("TP_L10N_460", R.string.TP_L10N_460), v -> { dialog.dismiss(); showOrientationDialog(); }));
+        content.addView(settingsRow(t("TP_L10N_461", R.string.TP_L10N_461), t("TP_L10N_462", R.string.TP_L10N_462), controlsLocked ? t("TP_L10N_450", R.string.TP_L10N_450) : t("TP_L10N_451", R.string.TP_L10N_451), v -> { toggleControlsLock(); dialog.dismiss(); }));
+        content.addView(settingsRow(t("TP_L10N_463", R.string.TP_L10N_463), t("TP_L10N_464", R.string.TP_L10N_464), t("TP_L10N_117", R.string.TP_L10N_117), v -> { dialog.dismiss(); showSleepTimer(); }));
+        content.addView(settingsRow(t("TP_L10N_465", R.string.TP_L10N_465), t("TP_L10N_466", R.string.TP_L10N_466), controller.getQueue().size() + "", v -> { dialog.dismiss(); showQueue(); }));
         TelePremiumMediaItem item = controller.getCurrent();
         if (item != null && item.isVideo() && Build.VERSION.SDK_INT >= 26) {
-            content.addView(settingsRow(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_423", org.telegram.messenger.R.string.TP_L10N_423), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_467", org.telegram.messenger.R.string.TP_L10N_467), "PiP", v -> { dialog.dismiss(); enterPip(); }));
+            content.addView(settingsRow(t("TP_L10N_423", R.string.TP_L10N_423), t("TP_L10N_467", R.string.TP_L10N_467), "PiP", v -> { dialog.dismiss(); enterPip(); }));
         }
-        TextView library = pill(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_468", org.telegram.messenger.R.string.TP_L10N_468));
+        TextView library = pill(t("TP_L10N_468", R.string.TP_L10N_468));
         library.setGravity(Gravity.CENTER);
         library.setOnClickListener(v -> { dialog.dismiss(); startActivity(new Intent(this, TelePremiumMediaCenterActivity.class)); });
         LinearLayout.LayoutParams libraryParams = new LinearLayout.LayoutParams(-1, dp(52));
@@ -802,11 +982,10 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     }
 
     private void showScaleDialog() {
-        String[] labels = {org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_441", org.telegram.messenger.R.string.TP_L10N_441), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_439", org.telegram.messenger.R.string.TP_L10N_439), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_440", org.telegram.messenger.R.string.TP_L10N_440), "100%"};
-        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_422", org.telegram.messenger.R.string.TP_L10N_422)).setSingleChoiceItems(labels, scaleMode, (d, which) -> {
+        String[] labels = {t("TP_L10N_441", R.string.TP_L10N_441), t("TP_L10N_439", R.string.TP_L10N_439), t("TP_L10N_440", R.string.TP_L10N_440), "100%"};
+        new AlertDialog.Builder(this).setTitle(t("TP_L10N_422", R.string.TP_L10N_422)).setSingleChoiceItems(labels, scaleMode, (d, which) -> {
             scaleMode = which;
             if (surface != null) surface.setScaleMode(scaleMode);
-            if (fitButton != null) fitButton.setText(scaleModeIcon());
             d.dismiss();
         }).show();
     }
@@ -819,7 +998,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             labels[i] = formatSpeed(speeds[i]);
             if (Math.abs(speeds[i] - current) < Math.abs(speeds[checked] - current)) checked = i;
         }
-        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_444", org.telegram.messenger.R.string.TP_L10N_444)).setSingleChoiceItems(labels, checked, (d, which) -> {
+        new AlertDialog.Builder(this).setTitle(t("TP_L10N_444", R.string.TP_L10N_444)).setSingleChoiceItems(labels, checked, (d, which) -> {
             controller.setPlaybackSpeed(speeds[which]);
             updateSpeedButton();
             d.dismiss();
@@ -828,18 +1007,18 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
 
     private void showSeekStepDialog() {
         final int[] values = {5, 10, 15, 30};
-        String[] labels = {org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_469", org.telegram.messenger.R.string.TP_L10N_469), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_470", org.telegram.messenger.R.string.TP_L10N_470), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_471", org.telegram.messenger.R.string.TP_L10N_471), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_273", org.telegram.messenger.R.string.TP_L10N_273)};
+        String[] labels = {t("TP_L10N_469", R.string.TP_L10N_469), t("TP_L10N_470", R.string.TP_L10N_470), t("TP_L10N_471", R.string.TP_L10N_471), t("TP_L10N_273", R.string.TP_L10N_273)};
         int checked = 1;
         for (int i = 0; i < values.length; i++) if (values[i] == seekStepSeconds) checked = i;
-        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_445", org.telegram.messenger.R.string.TP_L10N_445)).setSingleChoiceItems(labels, checked, (d, which) -> {
+        new AlertDialog.Builder(this).setTitle(t("TP_L10N_445", R.string.TP_L10N_445)).setSingleChoiceItems(labels, checked, (d, which) -> {
             seekStepSeconds = values[which];
             d.dismiss();
         }).show();
     }
 
     private void showOrientationDialog() {
-        String[] labels = {org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_472", org.telegram.messenger.R.string.TP_L10N_472), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_473", org.telegram.messenger.R.string.TP_L10N_473), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_474", org.telegram.messenger.R.string.TP_L10N_474)};
-        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_458", org.telegram.messenger.R.string.TP_L10N_458)).setItems(labels, (d, which) -> {
+        String[] labels = {t("TP_L10N_472", R.string.TP_L10N_472), t("TP_L10N_473", R.string.TP_L10N_473), t("TP_L10N_474", R.string.TP_L10N_474)};
+        new AlertDialog.Builder(this).setTitle(t("TP_L10N_458", R.string.TP_L10N_458)).setItems(labels, (d, which) -> {
             if (which == 1) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             else if (which == 2) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             else setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
@@ -850,16 +1029,16 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         controlsLocked = !controlsLocked;
         if (lockButton != null) lockButton.setVisibility(controlsLocked ? View.VISIBLE : View.GONE);
         if (controlsLocked) hideChrome(); else { showChrome(); scheduleChromeHide(); }
-        Toast.makeText(this, controlsLocked ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_475", org.telegram.messenger.R.string.TP_L10N_475) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_476", org.telegram.messenger.R.string.TP_L10N_476), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, controlsLocked ? t("TP_L10N_475", R.string.TP_L10N_475) : t("TP_L10N_476", R.string.TP_L10N_476), Toast.LENGTH_SHORT).show();
     }
 
     private void showSleepTimer() {
-        String[] labels = {org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_477", org.telegram.messenger.R.string.TP_L10N_477), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_478", org.telegram.messenger.R.string.TP_L10N_478), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_479", org.telegram.messenger.R.string.TP_L10N_479), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_480", org.telegram.messenger.R.string.TP_L10N_480), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_481", org.telegram.messenger.R.string.TP_L10N_481)};
-        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_463", org.telegram.messenger.R.string.TP_L10N_463)).setItems(labels, (d, which) -> {
+        String[] labels = {t("TP_L10N_477", R.string.TP_L10N_477), t("TP_L10N_478", R.string.TP_L10N_478), t("TP_L10N_479", R.string.TP_L10N_479), t("TP_L10N_480", R.string.TP_L10N_480), t("TP_L10N_481", R.string.TP_L10N_481)};
+        new AlertDialog.Builder(this).setTitle(t("TP_L10N_463", R.string.TP_L10N_463)).setItems(labels, (d, which) -> {
             if (which < 4) {
                 long delay = new long[]{15, 30, 45, 60}[which] * 60_000L;
                 handler.postDelayed(controller::pause, delay);
-                Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_482", org.telegram.messenger.R.string.TP_L10N_482) + labels[which], Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, t("TP_L10N_482", R.string.TP_L10N_482) + labels[which], Toast.LENGTH_SHORT).show();
             } else {
                 long remaining = Math.max(0, controller.getDuration() - controller.getPosition());
                 if (remaining > 0) handler.postDelayed(controller::pause, remaining);
@@ -873,7 +1052,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(16), dp(12), dp(16), dp(20));
         content.setBackgroundColor(mediaTheme.surfaceElevated);
-        TextView heading = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_483", org.telegram.messenger.R.string.TP_L10N_483), 19, mediaTheme.textPrimary, true);
+        TextView heading = text(t("TP_L10N_483", R.string.TP_L10N_483), 19, mediaTheme.textPrimary, true);
         content.addView(heading, new LinearLayout.LayoutParams(-1, dp(48)));
 
         List<TelePremiumMediaItem> items = controller.getQueue().snapshot();
@@ -900,7 +1079,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             content.addView(row, new LinearLayout.LayoutParams(-1, dp(62)));
         }
 
-        TextView mediaCenter = pill(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_484", org.telegram.messenger.R.string.TP_L10N_484));
+        TextView mediaCenter = pill(t("TP_L10N_484", R.string.TP_L10N_484));
         mediaCenter.setGravity(Gravity.CENTER);
         mediaCenter.setOnClickListener(v -> { startActivity(new Intent(this, TelePremiumMediaCenterActivity.class)); dialog.dismiss(); });
         content.addView(mediaCenter, new LinearLayout.LayoutParams(-1, dp(54)));
@@ -984,6 +1163,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         chromeVisible = true;
         if (topChrome != null) topChrome.setVisibility(View.VISIBLE);
         if (bottomChrome != null) bottomChrome.setVisibility(View.VISIBLE);
+        if (leftSeek != null) leftSeek.setVisibility(View.VISIBLE);
+        if (rightSeek != null) rightSeek.setVisibility(View.VISIBLE);
     }
 
     private void hideChrome() {
@@ -991,6 +1172,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         chromeVisible = false;
         if (topChrome != null) topChrome.setVisibility(View.GONE);
         if (bottomChrome != null) bottomChrome.setVisibility(View.GONE);
+        if (leftSeek != null) leftSeek.setVisibility(View.GONE);
+        if (rightSeek != null) rightSeek.setVisibility(View.GONE);
     }
 
     private void scheduleChromeHide() {
@@ -1028,6 +1211,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         if (pip) {
             if (topChrome != null) topChrome.setVisibility(View.GONE);
             if (bottomChrome != null) bottomChrome.setVisibility(View.GONE);
+            if (leftSeek != null) leftSeek.setVisibility(View.GONE);
+            if (rightSeek != null) rightSeek.setVisibility(View.GONE);
         } else if (landscape) {
             showChrome();
             scheduleChromeHide();
@@ -1049,17 +1234,9 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
         controller.removeListener(this);
+        controller.getQueue().removeListener(this);
         controller.bindSurface(null);
         super.onDestroy();
-    }
-
-    private void tintSeekBar(SeekBar bar) {
-        if (Build.VERSION.SDK_INT >= 21) {
-            bar.setProgressTintList(ColorStateList.valueOf(PLAYER_VIOLET));
-            bar.setThumbTintList(ColorStateList.valueOf(PLAYER_VIOLET));
-            bar.setProgressBackgroundTintList(ColorStateList.valueOf(0xff42384f));
-            bar.setSecondaryProgressTintList(ColorStateList.valueOf(0xff674e89));
-        }
     }
 
     private TextView text(String value, int sp, int color, boolean bold) {
@@ -1073,47 +1250,39 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     }
 
     private TextView pill(String value) {
-        TextView v = text(value, 12, mediaTheme.accent, false);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(mediaTheme.chipSelectedBackground);
-        bg.setStroke(dp(1), mediaTheme.cardStroke);
-        bg.setCornerRadius(dp(18));
-        v.setBackground(bg);
+        TextView v = text(value, 13, mediaTheme.accent, false);
+        v.setBackground(TelePremiumPlayerKit.round(mediaTheme.chipSelectedBackground, mediaTheme.cardStroke, 18, 1));
         v.setPadding(dp(14), 0, dp(14), 0);
         return v;
     }
 
     private TextView transparentButton(String value, int sp) {
-        int color = PLAYER_WHITE;
-        TextView v = text(value, sp, color, false);
+        TextView v = text(value, sp, mediaTheme.textPrimary, false);
         v.setGravity(Gravity.CENTER);
         v.setBackgroundColor(Color.TRANSPARENT);
         return v;
     }
 
-    private TextView roundButton(String value, int sp) {
-        TextView v = text(value, sp, PLAYER_WHITE, true);
-        v.setGravity(Gravity.CENTER);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(PLAYER_PANEL);
-        bg.setStroke(dp(2), PLAYER_VIOLET);
-        v.setBackground(bg);
-        return v;
-    }
-
     private GradientDrawable roundBg(int color, int stroke, float radius) {
-        GradientDrawable d = new GradientDrawable();
-        d.setColor(color);
-        d.setStroke(dp(1), stroke);
-        d.setCornerRadius(dp(radius));
-        return d;
+        return TelePremiumPlayerKit.round(color, stroke, radius, 1);
     }
 
-    private LinearLayout.LayoutParams controlWeight() {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -1, 1f);
-        p.setMargins(dp(2), 0, dp(2), 0);
-        return p;
+    private static String t(String key, int res) { return TPStrings.get(key, res); }
+
+    private static String tf(String key, int res, Object... args) { return TPStrings.format(key, res, args); }
+
+    private boolean isLockscreenEnabled() { return getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("lockscreen", true); }
+
+    /** Full player window over the lock screen (music keeps playing; no unlock needed to skip or seek). */
+    private void applyLockscreenMode() {
+        boolean enabled = isLockscreenEnabled();
+        if (Build.VERSION.SDK_INT >= 27) {
+            setShowWhenLocked(enabled);
+        } else if (enabled) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+        }
     }
 
     private int dp(float v) { return AndroidUtilities.dp(v); }
@@ -1131,7 +1300,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         return uri.getLastPathSegment();
     }
 
-    private static String stripAudioExtension(String title) { return TelePremiumPlayerMath.stripAudioExtension(title, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_485", org.telegram.messenger.R.string.TP_L10N_485)); }
+    private static String stripAudioExtension(String title) { return TelePremiumPlayerMath.stripAudioExtension(title, t("TP_L10N_485", R.string.TP_L10N_485)); }
 
     private static String formatTime(long ms) { return TelePremiumPlayerMath.formatTime(ms); }
 

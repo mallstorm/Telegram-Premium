@@ -537,4 +537,51 @@
     <string name="TP_L10N_533" formatted="false">"Allow installs from this source and try again"</string>
     <string name="TP_L10N_534" formatted="false">"Downloading the update…"</string>
     <string name="TP_L10N_535" formatted="false">"Update not installed"</string>
+    <string name="TP_FX_TITLE" formatted="false">"Sound and equalizer"</string>
+    <string name="TP_FX_SUBTITLE" formatted="false">"Equalizer, bass, surround, stereo balance"</string>
+    <string name="TP_FX_RESET" formatted="false">"Reset"</string>
+    <string name="TP_FX_EQ" formatted="false">"Equalizer"</string>
+    <string name="TP_FX_CUSTOM" formatted="false">"Custom"</string>
+    <string name="TP_FX_UNAVAILABLE" formatted="false">"Start playback to tune the equalizer: it binds to the active audio session."</string>
+    <string name="TP_FX_EFFECTS" formatted="false">"Effects"</string>
+    <string name="TP_FX_BASS" formatted="false">"Bass boost"</string>
+    <string name="TP_FX_VIRT" formatted="false">"Surround (virtualizer)"</string>
+    <string name="TP_FX_LOUD" formatted="false">"Loudness"</string>
+    <string name="TP_FX_STEREO" formatted="false">"Stereo"</string>
+    <string name="TP_FX_BALANCE" formatted="false">"Balance"</string>
+    <string name="TP_FX_LEFT" formatted="false">"Left"</string>
+    <string name="TP_FX_RIGHT" formatted="false">"Right"</string>
+    <string name="TP_FX_MONO" formatted="false">"Mono (mix channels)"</string>
+    <string name="TP_MC_SORT" formatted="false">"Sort"</string>
+    <string name="TP_MC_SORT_DEFAULT" formatted="false">"By date"</string>
+    <string name="TP_MC_SORT_NAME" formatted="false">"By name"</string>
+    <string name="TP_MC_SORT_DURATION" formatted="false">"By duration"</string>
+    <string name="TP_MC_SORT_SIZE" formatted="false">"By size"</string>
+    <string name="TP_NET_RADIO" formatted="false">"Radio"</string>
+    <string name="TP_NET_IPTV" formatted="false">"TV (IPTV)"</string>
+    <string name="TP_NET_LINK" formatted="false">"Link"</string>
+    <string name="TP_NET_IPTV_ADD" formatted="false">"Add playlist"</string>
+    <string name="TP_NET_ALL_GROUPS" formatted="false">"All groups"</string>
+    <string name="TP_NET_GROUP" formatted="false">"Channel group"</string>
+    <string name="TP_NET_COUNTRY" formatted="false">"Country"</string>
+    <string name="TP_NET_DELETE_PLAYLIST" formatted="false">"Delete current"</string>
+    <string name="TP_NET_ERROR" formatted="false">"Error: %1$s"</string>
+    <string name="TP_NET_IPTV_EMPTY" formatted="false">"Add an IPTV playlist (M3U / M3U8 link) to watch TV channels."</string>
+    <string name="TP_NET_IPTV_HINT" formatted="false">"Playlist URL (http://…/playlist.m3u)"</string>
+    <string name="TP_NET_RADIO_LOADING" formatted="false">"loading stations…"</string>
+    <string name="TP_NET_RADIO_SEARCH" formatted="false">"Search stations worldwide"</string>
+    <string name="TP_NET_STATIONS_FMT" formatted="false">"%1$d stations"</string>
+    <string name="TP_NET_CHANNELS_FMT" formatted="false">"%1$d channels"</string>
+    <string name="TP_P_END_OF_QUEUE" formatted="false">"End of queue"</string>
+    <string name="TP_P_LOCKSCREEN" formatted="false">"Player on lock screen"</string>
+    <string name="TP_P_LOCKSCREEN_INFO" formatted="false">"Control and seek without unlocking the phone"</string>
+    <string name="TP_P_NEXT_FMT" formatted="false">"Next: %1$s"</string>
+    <string name="TP_P_QUEUE" formatted="false">"Queue"</string>
+    <string name="TP_P_SEEK_BACK_FMT" formatted="false">"−%1$d s"</string>
+    <string name="TP_P_SEEK_FWD_FMT" formatted="false">"+%1$d s"</string>
+    <string name="TP_P_SPEED" formatted="false">"Speed"</string>
+    <string name="TP_P_STREAMING" formatted="false">"Streaming"</string>
+    <string name="TP_P_UP_NEXT" formatted="false">"Up next in playlist"</string>
+    <string name="TP_Q_ONLY_AUDIO" formatted="false">"The queue holds music now. Video plays in its own queue — start it from the Video tab."</string>
+    <string name="TP_Q_ONLY_VIDEO" formatted="false">"The queue holds video now. Music plays in its own queue — start it from the Music tab."</string>
 </resources>

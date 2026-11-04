@@ -53,7 +53,7 @@ public final class TPStrings {
         }
     }
 
-    private static boolean isRussian() {
+    public static boolean isRussian() {
         try {
             LocaleController.LocaleInfo info = LocaleController.getInstance().getCurrentLocaleInfo();
             String code = info != null ? info.shortName : null;

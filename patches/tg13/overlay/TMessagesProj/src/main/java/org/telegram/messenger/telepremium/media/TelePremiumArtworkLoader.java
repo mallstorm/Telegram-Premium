@@ -27,12 +27,17 @@ public final class TelePremiumArtworkLoader {
             return value == null ? 0 : Math.max(1, value.getByteCount() / 1024);
         }
     };
-    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2);
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(4);
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
     private TelePremiumArtworkLoader() {}
 
     public static void load(Context context, TelePremiumMediaItem item, int sizePx, Callback callback) {
+        if (context != null && item != null && callback != null && item.artworkUri != null
+                && (item.artworkUri.startsWith("https://") || item.artworkUri.startsWith("http://"))) {
+            loadRemote(item.artworkUri, sizePx, callback);
+            return;
+        }
         if (context == null || item == null || callback == null || item.sourceType != TelePremiumMediaItem.SOURCE_DEVICE || item.uri == null) {
             if (callback != null) MAIN.post(() -> callback.onLoaded(null));
             return;
@@ -51,6 +56,50 @@ public final class TelePremiumArtworkLoader {
                 if (item.isVideo()) bitmap = loadVideo(app, uri, sizePx);
                 else bitmap = loadAudio(app, uri);
             } catch (Throwable tpError) { org.telegram.messenger.FileLog.e(tpError); }
+            if (bitmap != null) CACHE.put(key, bitmap);
+            Bitmap result = bitmap;
+            MAIN.post(() -> callback.onLoaded(result));
+        });
+    }
+
+    /** Station / channel logos (radio favicon, IPTV tvg-logo). Small, cached, never blocks the UI. */
+    private static void loadRemote(String url, int sizePx, Callback callback) {
+        final String key = "remote:" + url + ":" + sizePx;
+        Bitmap cached = CACHE.get(key);
+        if (cached != null) {
+            callback.onLoaded(cached);
+            return;
+        }
+        EXECUTOR.execute(() -> {
+            Bitmap bitmap = null;
+            java.net.HttpURLConnection c = null;
+            try {
+                c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(10000);
+                c.setInstanceFollowRedirects(true);
+                c.setRequestProperty("User-Agent", "TelePremium/MediaCenter");
+                if (c.getResponseCode() / 100 == 2 && c.getContentLength() < 3 * 1024 * 1024) {
+                    try (java.io.InputStream in = c.getInputStream(); java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                        byte[] buf = new byte[16 * 1024];
+                        int n;
+                        while ((n = in.read(buf)) > 0 && out.size() < 3 * 1024 * 1024) out.write(buf, 0, n);
+                        byte[] data = out.toByteArray();
+                        BitmapFactory.Options bounds = new BitmapFactory.Options();
+                        bounds.inJustDecodeBounds = true;
+                        BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
+                        BitmapFactory.Options opts = new BitmapFactory.Options();
+                        int sample = 1;
+                        while (bounds.outWidth / (sample * 2) >= sizePx && bounds.outHeight / (sample * 2) >= sizePx) sample *= 2;
+                        opts.inSampleSize = sample;
+                        bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+                    }
+                }
+            } catch (Throwable e) {
+                // Broken logos are common in public catalogs; the UI keeps its fallback icon.
+            } finally {
+                if (c != null) c.disconnect();
+            }
             if (bitmap != null) CACHE.put(key, bitmap);
             Bitmap result = bitmap;
             MAIN.post(() -> callback.onLoaded(result));
