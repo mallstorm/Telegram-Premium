@@ -66,6 +66,10 @@ TelePremium includes ten global presets integrated through Telegram theme keys r
 
 The Drawer day/night control is replaced by the current-theme pictogram and a compact quick selector. Long press opens the full Appearance screen. Drawer profile headers and Cloud use lightweight runtime artwork so the selected theme affects both color tokens and the surrounding visual atmosphere without large bitmap bundles.
 
+## Telegram 13.1.1 port
+
+Branch `port/tg-13.1.1`: TelePremium on Telegram Android 13.1.1 as one SHA-checked overlay (`patches/tg13`). See `docs/TG13_PORT.md`.
+
 ## Secure Vault and Player (V11 offline pass)
 
 Secure Vault V3.5 Quiet Preview, Player V3.6 and the SDK 36 build environment are applied by `scripts/apply_offline_v11_overlay.py` from `patches/v11-offline`. See `docs/V11_OFFLINE_PASS.md`.
