@@ -7,6 +7,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.Utilities;
@@ -67,6 +68,14 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         Utilities.globalQueue.postRunnable(() -> {
             File temp=null;
             try {
+                long declaredSize=querySize(uri);
+                long limit=maxUploadBytes(account);
+                if(declaredSize>0 && declaredSize>limit){
+                    String msg="Файл больше лимита Telegram ("+(limit/(1024L*1024L))+" МБ"
+                            +(UserConfig.getInstance(account).isPremium()?")":"; с Telegram Premium — до 4000 МБ)");
+                    AndroidUtilities.runOnUIThread(() -> callback.onComplete(null,msg));
+                    return;
+                }
                 String safe=(displayName==null||displayName.trim().isEmpty())?"cloud-file":displayName.replaceAll("[\\\\/:*?\"<>|]","_");
                 // A secure file is encrypted BEFORE it reaches SendMessagesHelper.
                 // Plaintext never goes to the Telegram service peer in Vault mode.
@@ -165,6 +174,22 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         });
     }
 
+    /** Telegram document size limit for the account: 2000 MiB, 4000 MiB with Premium (minus Vault envelope overhead). */
+    public static long maxUploadBytes(int account) {
+        long mib = UserConfig.getInstance(account).isPremium() ? 4000L : 2000L;
+        return (mib - 1L) * 1024L * 1024L; // 1 MiB margin for the Vault chunk tags and header
+    }
+
+    private static long querySize(Uri uri) {
+        try (android.database.Cursor c = ApplicationLoader.applicationContext.getContentResolver()
+                .query(uri, new String[]{android.provider.OpenableColumns.SIZE}, null, null, null)) {
+            if (c != null && c.moveToFirst() && !c.isNull(0)) return c.getLong(0);
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
+        return -1;
+    }
+
     public void resumePending(ImportCallback callback) {
         CloudTransferManager.Task task=transferManager.getTask();
         if(task==null || task.type!=CloudTransferManager.TYPE_UPLOAD) return;
@@ -198,7 +223,6 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                 0,
                 null,
                 null,
-                0,
                 false
         );
     }

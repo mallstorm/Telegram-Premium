@@ -3540,10 +3540,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         }
 
         private void requestTelePremiumPassword() {
-            TLRPC.TL_account_getPassword req = new TLRPC.TL_account_getPassword();
+            TL_account.getPassword req = new TL_account.getPassword();
             ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, requestError) -> AndroidUtilities.runOnUIThread(() -> {
                 if (requestError == null) {
-                    TLRPC.account_Password password = (TLRPC.account_Password) response;
+                    TL_account.Password password = (TL_account.Password) response;
                     if (!TwoStepVerificationActivity.canHandleCurrentPassword(password, true)) {
                         AlertsCreator.showUpdateAppAlert(getParentActivity(), getString("UpdateAppAlert", R.string.UpdateAppAlert), true);
                         return;

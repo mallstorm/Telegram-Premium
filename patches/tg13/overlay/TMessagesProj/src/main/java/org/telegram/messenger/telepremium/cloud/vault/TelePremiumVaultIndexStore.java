@@ -314,7 +314,7 @@ public final class TelePremiumVaultIndexStore {
         try {
             SendMessagesHelper.prepareSendingDocument(AccountInstance.getInstance(account),
                     uploadFile.getAbsolutePath(),uploadFile.getAbsolutePath(),null,
-                    expectedCaption,"application/octet-stream",dialogId,null,null,null,null,null,false,0,null,null,0,false);
+                    expectedCaption,"application/octet-stream",dialogId,null,null,null,null,null,false,0,null,null,false);
         } catch (RuntimeException e) {
             FileLog.e(e);
             nc.removeObserver(listener, NotificationCenter.messageReceivedByServer);

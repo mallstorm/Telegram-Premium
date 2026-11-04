@@ -116,11 +116,11 @@ public final class CloudMigrationV1ToV2 {
         if (!(response instanceof TLRPC.Updates)) return 0;
         TLRPC.Updates updates = (TLRPC.Updates) response;
         for (TLRPC.Update update : updates.updates) {
-            if (update instanceof TLRPC.TL_updateNewChannelMessage) {
-                return ((TLRPC.TL_updateNewChannelMessage) update).message.id;
+            if (update instanceof org.telegram.tgnet.tl.TL_update.TL_updateNewChannelMessage) {
+                return ((org.telegram.tgnet.tl.TL_update.TL_updateNewChannelMessage) update).message.id;
             }
-            if (update instanceof TLRPC.TL_updateNewMessage) {
-                return ((TLRPC.TL_updateNewMessage) update).message.id;
+            if (update instanceof org.telegram.tgnet.tl.TL_update.TL_updateNewMessage) {
+                return ((org.telegram.tgnet.tl.TL_update.TL_updateNewMessage) update).message.id;
             }
         }
         return 0;

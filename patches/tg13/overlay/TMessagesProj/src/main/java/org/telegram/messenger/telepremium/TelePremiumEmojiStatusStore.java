@@ -71,8 +71,9 @@ public final class TelePremiumEmojiStatusStore {
         }
         int until = getUntil(account, userId, 0);
         if (until > 0) {
-            TLRPC.TL_emojiStatusUntil status = new TLRPC.TL_emojiStatusUntil();
+            TLRPC.TL_emojiStatus status = new TLRPC.TL_emojiStatus();
             status.document_id = documentId;
+            status.flags |= 1;
             status.until = until;
             return status;
         }

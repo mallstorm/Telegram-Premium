@@ -56,6 +56,9 @@ public class TelePremiumCenterActivity extends BaseFragment {
         addRow(content, context, "Настройки чатов", "Текст, жесты, медиа и параметры сообщений — без смены оболочки", R.drawable.msg2_discussion, v -> presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC)));
         addRow(content, context, "Масштаб интерфейса", "Сейчас " + TelePremiumUiScale.getScalePercent(context) + "%", R.drawable.msg2_discussion, v -> presentFragment(new TelePremiumAppearanceActivity()));
 
+        addSection(content, context, "Сервис");
+        addRow(content, context, "Обновления и диагностика", "Свои релизы TelePremium, отчёт и логи, автоочистка корзины", R.drawable.msg2_data, v -> presentFragment(new TelePremiumServiceActivity()));
+
         fragmentView = scrollView;
         return fragmentView;
     }

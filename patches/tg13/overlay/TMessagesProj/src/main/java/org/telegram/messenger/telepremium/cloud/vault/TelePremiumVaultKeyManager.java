@@ -42,6 +42,7 @@ public final class TelePremiumVaultKeyManager {
     private static final String WRAPPED_RECOVERY = "wrapped_recovery";
     private static final String RECOVERY_SALT = "recovery_salt";
     private static final String ENABLED = "enabled";
+    private static final String RECOVERY_CONFIRMED = "recovery_confirmed";
     private static final int ITERATIONS = 600_000;
     private static final int KEY_BITS = 256;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -130,9 +131,45 @@ public final class TelePremiumVaultKeyManager {
                     .putString(WRAPPED_RECOVERY, envelopeB64)
                     .putString(RECOVERY_SALT, saltB64)
                     .putBoolean(ENABLED, false)
+                    .putBoolean(RECOVERY_CONFIRMED, true)
                     .commit()) throw new IllegalStateException("Unable to restore Vault master key");
         } finally {
             Arrays.fill(master, (byte) 0);
+            Arrays.fill(salt, (byte) 0);
+        }
+    }
+
+    /** True once the user confirmed that the recovery code is stored outside this device. */
+    public static boolean isRecoveryConfirmed(Context context) {
+        return prefs(context).getBoolean(RECOVERY_CONFIRMED, false);
+    }
+
+    public static void setRecoveryConfirmed(Context context, boolean confirmed) {
+        prefs(context).edit().putBoolean(RECOVERY_CONFIRMED, confirmed).commit();
+    }
+
+    /**
+     * Checks that the passphrase still opens the stored recovery envelope and yields the
+     * same master key as the local AndroidKeyStore copy. Nothing is written.
+     */
+    public static boolean verifyRecoveryPassphrase(Context context, char[] passphrase) throws Exception {
+        checkScreenGate(context);
+        if (!hasMasterKey(context)) throw new IllegalStateException("Vault not configured");
+        SharedPreferences p = prefs(context);
+        byte[] salt = fromB64(p.getString(RECOVERY_SALT, null));
+        byte[] fromRecovery = null;
+        byte[] fromLocal = null;
+        try {
+            try {
+                fromRecovery = unwrap(derivePasswordKey(passphrase, salt), fromB64(p.getString(WRAPPED_RECOVERY, null)));
+            } catch (javax.crypto.AEADBadTagException wrongPassphrase) {
+                return false;
+            }
+            fromLocal = unwrap(getOrCreateKey(), fromB64(p.getString(WRAPPED_LOCAL, null)));
+            return java.security.MessageDigest.isEqual(fromRecovery, fromLocal);
+        } finally {
+            if (fromRecovery != null) Arrays.fill(fromRecovery, (byte) 0);
+            if (fromLocal != null) Arrays.fill(fromLocal, (byte) 0);
             Arrays.fill(salt, (byte) 0);
         }
     }

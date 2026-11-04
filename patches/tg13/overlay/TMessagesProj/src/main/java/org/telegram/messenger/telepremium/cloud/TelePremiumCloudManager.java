@@ -76,7 +76,68 @@ public final class TelePremiumCloudManager {
         });
     }
 
+    private static final String MAINTENANCE_PREFS = "telepremium_cloud_maintenance";
+    private static final String KEY_TRASH_DAYS = "trash_retention_days";
+    private static final long DAY_MS = 24L * 60L * 60L * 1000L;
+    public static final int[] TRASH_RETENTION_CHOICES = {0, 7, 30, 90};
+
+    private static android.content.SharedPreferences maintenancePrefs() {
+        return ApplicationLoader.applicationContext.getSharedPreferences(MAINTENANCE_PREFS, android.content.Context.MODE_PRIVATE);
+    }
+
+    /** Days a trashed item stays recoverable before it is removed from the catalog; 0 disables auto-clean. */
+    public static int getTrashRetentionDays() {
+        return maintenancePrefs().getInt(KEY_TRASH_DAYS, 30);
+    }
+
+    public static void setTrashRetentionDays(int days) {
+        maintenancePrefs().edit().putInt(KEY_TRASH_DAYS, Math.max(0, days)).apply();
+    }
+
+    /** Trash entries whose retention period has expired (top-level items only). */
+    public List<CloudNode> expiredTrash(long now, int retentionDays) {
+        if (snapshot == null || retentionDays <= 0) return Collections.emptyList();
+        ArrayList<CloudNode> out = new ArrayList<>();
+        long limit = retentionDays * DAY_MS;
+        for (CloudNode n : trashItems()) {
+            if (n.deletedAt > 0 && now - n.deletedAt >= limit) out.add(n);
+        }
+        return out;
+    }
+
+    public interface PurgeCallback { void onComplete(int removed, String error); }
+
+    /**
+     * Removes expired trash entries from the catalog in one commit. Payload attachments are kept
+     * (same anti-delete policy as {@link #deleteMetadataPermanently}).
+     */
+    public void purgeExpiredTrash(PurgeCallback callback) {
+        int days = getTrashRetentionDays();
+        List<CloudNode> expired = expiredTrash(System.currentTimeMillis(), days);
+        if (expired.isEmpty()) { callback.onComplete(0, null); return; }
+        if (vaultMode && !remoteReady) { callback.onComplete(0, "Vault offline"); return; }
+        long now = System.currentTimeMillis();
+        HashSet<Integer> payloadMessages = new HashSet<>();
+        for (CloudNode node : expired) markDeleted(node, now, payloadMessages);
+        commit(error -> callback.onComplete(error == null ? expired.size() : 0, error));
+    }
+
+    private void maybeAutoPurgeTrash() {
+        if (snapshot == null || getTrashRetentionDays() <= 0 || (vaultMode && !remoteReady)) return;
+        String key = "last_purge_" + account + (vaultMode ? "_v3" : "_v2");
+        long now = System.currentTimeMillis();
+        if (now - maintenancePrefs().getLong(key, 0L) < DAY_MS) return;
+        maintenancePrefs().edit().putLong(key, now).apply();
+        purgeExpiredTrash((removed, error) -> {
+            if (error != null) org.telegram.messenger.FileLog.e("TelePremium trash auto-clean: " + error);
+            else if (removed > 0) org.telegram.messenger.FileLog.d("TelePremium trash auto-clean removed " + removed + " entries");
+        });
+    }
+
     private void completeBootstrap(String error) {
+        if (error == null) {
+            try { maybeAutoPurgeTrash(); } catch (Throwable e) { org.telegram.messenger.FileLog.e(e); }
+        }
         final ArrayList<Callback> listeners;
         synchronized (this) {
             listeners = new ArrayList<>(bootstrapWaiters);

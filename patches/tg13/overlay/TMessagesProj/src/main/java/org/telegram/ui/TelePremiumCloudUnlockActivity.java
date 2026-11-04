@@ -97,22 +97,40 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
         return fragmentView;
     }
 
+    private boolean verifying;
+
+    private static String formatLockout(long ms) {
+        long seconds = Math.max(1, (ms + 999) / 1000);
+        if (seconds < 120) {
+            return org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_DurationSeconds, (int) seconds);
+        }
+        return org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_DurationMinutes, (int) ((seconds + 59) / 60));
+    }
+
     private void verifyPattern(String pattern) {
         Context context = getParentActivity();
-        if (context == null || completed || patternView == null) return;
+        if (context == null || completed || patternView == null || verifying) return;
         long lockout = TelePremiumCloudSecurityStore.remainingLockoutMs(context);
         if (lockout > 0) {
-            status.setText("Слишком много попыток. Повторите через " + Math.max(1, (lockout + 999) / 1000) + " сек.");
+            status.setText(org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_PatternTooManyAttempts, formatLockout(lockout)));
             patternView.showError();
             return;
         }
-        if (TelePremiumCloudSecurityStore.verifyPattern(context, pattern)) {
-            completeUnlock();
-        } else {
-            long after = TelePremiumCloudSecurityStore.remainingLockoutMs(context);
-            status.setText(after > 0 ? "Ввод временно заблокирован на 30 секунд" : "Неверный графический ключ");
+        verifying = true;
+        status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_PatternChecking));
+        TelePremiumCloudSecurityStore.verifyPatternAsync(context, pattern, ok -> {
+            verifying = false;
+            if (completed || patternView == null || getParentActivity() == null) return;
+            if (ok) {
+                completeUnlock();
+                return;
+            }
+            long after = TelePremiumCloudSecurityStore.remainingLockoutMs(getParentActivity());
+            status.setText(after > 0
+                    ? org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_PatternLockedFor, formatLockout(after))
+                    : org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_PatternWrongLeft, TelePremiumCloudSecurityStore.attemptsBeforeLockout(getParentActivity())));
             patternView.showError();
-        }
+        });
     }
 
     private void requestBiometric() {

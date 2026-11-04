@@ -9,4 +9,10 @@
     <string name="TP_SettingsMediaInfo">Player, playlists and downloads</string>
     <string name="TP_SettingsAppearance">Appearance presets</string>
     <string name="TP_SettingsAppearanceInfo">Ten global TelePremium themes</string>
+    <string name="TP_PatternTooManyAttempts">Too many attempts. Try again in %1$s</string>
+    <string name="TP_PatternWrongLeft">Wrong pattern. Attempts left: %1$d</string>
+    <string name="TP_PatternLockedFor">Input locked for %1$s</string>
+    <string name="TP_PatternChecking">Checking…</string>
+    <string name="TP_DurationSeconds">%1$d s</string>
+    <string name="TP_DurationMinutes">%1$d min</string>
 </resources>

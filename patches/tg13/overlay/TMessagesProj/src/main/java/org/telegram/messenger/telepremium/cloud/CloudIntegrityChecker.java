@@ -10,8 +10,12 @@ public final class CloudIntegrityChecker {
     }
     public Result check(CloudSnapshot snapshot) {
         Result r=new Result(); if(snapshot==null){r.errors++;return r;}
-        Set<String> ids=new HashSet<>(); ids.add("root");
+        Set<String> ids=new HashSet<>();
         for(CloudNode n:snapshot.nodes){r.nodes++; if(n.id==null || !ids.add(n.id)){r.duplicateIds++;r.errors++;}}
+        // "root" is a valid parent even when the snapshot has no explicit root node. It must not be
+        // pre-seeded before the duplicate check: the real root node would then count as a duplicate
+        // and every snapshot would fail integrity (recovery would never pick a stored generation).
+        ids.add("root");
         for(CloudNode n:snapshot.nodes){
             if(!"root".equals(n.id) && n.parentId!=null && !ids.contains(n.parentId)){r.orphanNodes++;r.errors++;}
             Set<String> seen=new HashSet<>(); CloudNode cur=n;

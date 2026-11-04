@@ -25,6 +25,10 @@ public final class TelePremiumCloudSecurityStore {
     private static final String KEY_AUTO_LOCK = "auto_lock_seconds";
     private static final String KEY_FAILURES = "pattern_failures";
     private static final String KEY_LOCKOUT_UNTIL = "pattern_lockout_until";
+    private static final String KEY_LOCKOUT_LEVEL = "pattern_lockout_level";
+    /** Escalating lockout after every 5 wrong patterns: 30 s, 5 min, 15 min, then 1 h. */
+    private static final long[] LOCKOUT_STEPS_MS = {30_000L, 5 * 60_000L, 15 * 60_000L, 60 * 60_000L};
+    private static final int FAILURES_PER_LOCKOUT = 5;
     private static final String PREFIX_CATEGORY = "category_";
 
     public static final String CATEGORY_IMAGES = "images";
@@ -117,7 +121,8 @@ public final class TelePremiumCloudSecurityStore {
                     .putBoolean(KEY_ENABLED, true)
                     .putInt(KEY_FAILURES, 0)
                     .putLong(KEY_LOCKOUT_UNTIL, 0L)
-                    .apply();
+                    .putInt(KEY_LOCKOUT_LEVEL, 0)
+                    .commit();
             TelePremiumCloudSecuritySession.lockNow();
             return true;
         } catch (Throwable ignore) {
@@ -133,7 +138,7 @@ public final class TelePremiumCloudSecurityStore {
         boolean legacy = !expected.startsWith(HASH_V2_PREFIX);
         boolean ok = constantTimeEquals(expected, legacy ? hashLegacy(pattern, salt) : hashV2Matching(pattern, salt, expected));
         if (ok) {
-            SharedPreferences.Editor editor = p.edit().putInt(KEY_FAILURES, 0).putLong(KEY_LOCKOUT_UNTIL, 0L);
+            SharedPreferences.Editor editor = p.edit().putInt(KEY_FAILURES, 0).putLong(KEY_LOCKOUT_UNTIL, 0L).putInt(KEY_LOCKOUT_LEVEL, 0);
             if (legacy) {
                 // Transparent upgrade: legacy single-pass SHA-256 -> PBKDF2 on the first successful unlock.
                 String upgraded = hashV2(pattern, salt);
@@ -168,10 +173,39 @@ public final class TelePremiumCloudSecurityStore {
         SharedPreferences p = prefs(context);
         int failures = p.getInt(KEY_FAILURES, 0) + 1;
         SharedPreferences.Editor e = p.edit().putInt(KEY_FAILURES, failures);
-        if (failures >= 5) {
-            e.putInt(KEY_FAILURES, 0).putLong(KEY_LOCKOUT_UNTIL, System.currentTimeMillis() + 30_000L);
+        if (failures >= FAILURES_PER_LOCKOUT) {
+            int level = Math.max(0, p.getInt(KEY_LOCKOUT_LEVEL, 0));
+            long duration = LOCKOUT_STEPS_MS[Math.min(level, LOCKOUT_STEPS_MS.length - 1)];
+            e.putInt(KEY_FAILURES, 0)
+                    .putInt(KEY_LOCKOUT_LEVEL, level + 1)
+                    .putLong(KEY_LOCKOUT_UNTIL, System.currentTimeMillis() + duration);
         }
-        e.apply();
+        e.commit();
+    }
+
+    /** Remaining wrong attempts before the next lockout. */
+    public static int attemptsBeforeLockout(Context context) {
+        return Math.max(1, FAILURES_PER_LOCKOUT - prefs(context).getInt(KEY_FAILURES, 0));
+    }
+
+    /**
+     * PBKDF2 takes noticeable time on low-end phones, so pattern checks run off the UI thread.
+     * The callback is delivered on the UI thread.
+     */
+    public static void verifyPatternAsync(Context context, String pattern, org.telegram.messenger.Utilities.Callback<Boolean> callback) {
+        final Context app = context.getApplicationContext();
+        org.telegram.messenger.Utilities.globalQueue.postRunnable(() -> {
+            boolean ok = verifyPattern(app, pattern);
+            org.telegram.messenger.AndroidUtilities.runOnUIThread(() -> callback.run(ok));
+        });
+    }
+
+    public static void setPatternAsync(Context context, String pattern, org.telegram.messenger.Utilities.Callback<Boolean> callback) {
+        final Context app = context.getApplicationContext();
+        org.telegram.messenger.Utilities.globalQueue.postRunnable(() -> {
+            boolean ok = setPattern(app, pattern);
+            org.telegram.messenger.AndroidUtilities.runOnUIThread(() -> callback.run(ok));
+        });
     }
 
     public static boolean isCategoryLocked(Context context, String category) {

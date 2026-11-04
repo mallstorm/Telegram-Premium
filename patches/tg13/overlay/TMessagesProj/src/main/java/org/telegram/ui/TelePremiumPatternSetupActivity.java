@@ -108,15 +108,21 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
             return;
         }
         Context context = getParentActivity();
-        if (context == null || !TelePremiumCloudSecurityStore.setPattern(context, pattern)) {
-            firstPattern = null;
-            title.setText("Не удалось сохранить ключ");
-            subtitle.setText("Попробуйте ещё раз.");
-            patternView.showError();
-            return;
-        }
-        TelePremiumCloudSecurityStore.setProtectionEnabled(context, true);
-        if (onSaved != null) onSaved.run();
-        finishFragment();
+        if (context == null) return;
+        subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_PatternChecking));
+        TelePremiumCloudSecurityStore.setPatternAsync(context, pattern, ok -> {
+            Context current = getParentActivity();
+            if (current == null) return;
+            if (!ok) {
+                firstPattern = null;
+                title.setText("Не удалось сохранить ключ");
+                subtitle.setText("Попробуйте ещё раз.");
+                patternView.showError();
+                return;
+            }
+            TelePremiumCloudSecurityStore.setProtectionEnabled(current, true);
+            if (onSaved != null) onSaved.run();
+            finishFragment();
+        });
     }
 }

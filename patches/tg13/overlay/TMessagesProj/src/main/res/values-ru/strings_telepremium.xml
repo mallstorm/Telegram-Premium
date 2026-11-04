@@ -9,4 +9,10 @@
     <string name="TP_SettingsMediaInfo">Плеер, плейлисты и загрузки</string>
     <string name="TP_SettingsAppearance">Оформление</string>
     <string name="TP_SettingsAppearanceInfo">Десять глобальных тем TelePremium</string>
+    <string name="TP_PatternTooManyAttempts">Слишком много попыток. Повторите через %1$s</string>
+    <string name="TP_PatternWrongLeft">Неверный графический ключ. Осталось попыток: %1$d</string>
+    <string name="TP_PatternLockedFor">Ввод заблокирован на %1$s</string>
+    <string name="TP_PatternChecking">Проверка…</string>
+    <string name="TP_DurationSeconds">%1$d сек.</string>
+    <string name="TP_DurationMinutes">%1$d мин.</string>
 </resources>

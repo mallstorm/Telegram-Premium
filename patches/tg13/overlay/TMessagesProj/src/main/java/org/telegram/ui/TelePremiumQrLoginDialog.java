@@ -69,6 +69,6 @@ public class TelePremiumQrLoginDialog extends Dialog implements NotificationCent
     }
     private void schedule(long delay){if(refresh!=null)AndroidUtilities.cancelRunOnUIThread(refresh);refresh=this::requestToken;AndroidUtilities.runOnUIThread(refresh,delay);}
     @Override public void didReceivedNotification(int id,int notificationAccount,Object...args){if(id==NotificationCenter.didReceiveLoginToken&&notificationAccount==account&&!stopped){AndroidUtilities.runOnUIThread(()->{if(refresh!=null)AndroidUtilities.cancelRunOnUIThread(refresh);status.setText("QR-код принят. Завершаем вход…");requestToken();});}}
-    private void render(String text){try{Bitmap b=new QRCodeWriter().encode(text,700,700,null,null);qr.setImageBitmap(b);}catch(Exception e){FileLog.e(e);status.setText("Не удалось создать QR-код");}}
+    private void render(String text){try{Bitmap b=new org.telegram.messenger.TelegramQRCodeWriter().encode(text,700,700,null,null);qr.setImageBitmap(b);}catch(Exception e){FileLog.e(e);status.setText("Не удалось создать QR-код");}}
     @Override public void dismiss(){stopped=true;if(refresh!=null)AndroidUtilities.cancelRunOnUIThread(refresh);NotificationCenter.getInstance(account).removeObserver(this,NotificationCenter.didReceiveLoginToken);super.dismiss();}
 }

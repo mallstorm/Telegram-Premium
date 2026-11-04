@@ -6077,9 +6077,15 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     public void checkAppUpdate(boolean force, Browser.Progress progress) {
         if (org.telegram.messenger.telepremium.TelePremiumFeatures.DISABLE_TELEGRAM_UPDATER) {
             // TelePremium: Telegram's own APK updater would replace this fork with the official client.
+            // The fork's own channel (GitHub release + SHA-256 + signature check) is used instead.
             if (progress != null) {
-                progress.end();
+                progress.init();
             }
+            org.telegram.messenger.telepremium.TelePremiumUpdateChecker.checkFromLaunch(this, force, () -> {
+                if (progress != null) {
+                    progress.end();
+                }
+            });
             return;
         }
         if (!ApplicationLoader.isStandaloneBuild() && !ApplicationLoader.isBetaBuild()) {

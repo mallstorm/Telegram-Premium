@@ -5,5 +5,7 @@
     <files-path name="cache" path="/cache/"/>
     <!-- Only authenticated temporary decrypted Vault files can be granted to a viewer. -->
     <cache-path name="tpvault_decrypted" path="tpvault_dec/"/>
+    <!-- Verified TelePremium update APKs handed to the system installer. -->
+    <cache-path name="tp_updates" path="tp_updates/"/>
     <root-path name="external_files" path="/storage/" />
 </paths>

@@ -9,9 +9,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.SurfaceView;
 
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import androidx.media3.common.C;
+import androidx.media3.common.Player;
+import androidx.media3.exoplayer.analytics.AnalyticsListener;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -316,7 +316,7 @@ public final class TelePremiumPlaybackController {
         });
         player.setPlayWhenReady(true);
         try {
-            player.preparePlayer(uri, typeFor(item, uri), FileLoader.PRIORITY_HIGH);
+            player.preparePlayer(uri, typeFor(item, uri), FileLoader.PRIORITY_HIGH, 0);
             player.setPlaybackSpeed(speed);
             setSubtitlesEnabled(subtitlesEnabled);
         } catch (Throwable t) {

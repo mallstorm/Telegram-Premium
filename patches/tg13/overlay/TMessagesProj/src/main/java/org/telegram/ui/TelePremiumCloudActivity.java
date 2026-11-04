@@ -67,6 +67,10 @@ import java.util.List;
 public class TelePremiumCloudActivity extends BaseFragment {
     private static final int PICK_FILE = 7301;
     private static final int SAVE_FILE = 7302;
+    private static final int PICK_FOLDER = 7303;
+    private static final int MAX_BATCH_FILES = 500;
+    private final java.util.ArrayDeque<Uri> uploadQueue = new java.util.ArrayDeque<>();
+    private int uploadQueueTotal, uploadQueueDone, uploadQueueAccount = -1;
     private int selectedAccount;
     private int pendingUploadAccount;
     private int syncGeneration;
@@ -135,7 +139,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         search.setSingleLine(true);
         search.setTextSize(16);
         search.setHint("Поиск файлов и папок");
-        search.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_ab_search, 0, 0, 0);
+        search.setCompoundDrawablesWithIntrinsicBounds(R.drawable.msg_search, 0, 0, 0);
         search.setCompoundDrawablePadding(AndroidUtilities.dp(12));
         search.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), 0);
         search.setTextColor(visualTheme.textPrimary);
@@ -205,9 +209,9 @@ public class TelePremiumCloudActivity extends BaseFragment {
         return false;
     }
 
-    @Override public boolean onBackPressed() {
+    @Override public boolean onBackPressed(boolean invoked) {
         if (navigateBackWithinCloud()) return false;
-        return super.onBackPressed();
+        return super.onBackPressed(invoked);
     }
 
     private void createTransferStrip(LinearLayout page) {
@@ -371,6 +375,13 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private void commitUploadedVaultNode(int account, CloudNode node,
                                          TelePremiumCloudManager targetCloud,
                                          CloudTransferManager targetTransfer) {
+        commitUploadedVaultNode(account, node, targetCloud, targetTransfer, null);
+    }
+
+    private void commitUploadedVaultNode(int account, CloudNode node,
+                                         TelePremiumCloudManager targetCloud,
+                                         CloudTransferManager targetTransfer,
+                                         Runnable onCommitted) {
         if(node==null || targetCloud==null)return;
         targetCloud.addFile(node,error->{
             if(error==null) {
@@ -380,6 +391,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
                     setSyncText("✓  Файл сохранён в Vault",true);
                     renderBody();
                 }
+                if(onCommitted!=null)onCommitted.run();
             } else {
                 targetTransfer.failRetryable("Индекс Vault не сохранён: "+shortError(error));
                 if(!disposed && (selectedAccount==account || selectedAccount==-1)) {
@@ -864,7 +876,11 @@ public class TelePremiumCloudActivity extends BaseFragment {
                         .setPositiveButton("Понятно",null).show();return;
             }
         }
-        if (upload) pickFile(account); else createFolder(account);
+        if (!upload) { createFolder(account); return; }
+        if (!uploadQueue.isEmpty()) { setSyncText("Идёт пакетная загрузка: "+uploadQueueDone+" из "+uploadQueueTotal,false); return; }
+        new AlertDialog.Builder(context).setTitle("Загрузить в облако")
+                .setItems(new CharSequence[]{"Файлы (можно несколько)","Папку целиком"},(d,w)->{ if(w==0)pickFile(account); else pickFolder(account); })
+                .show();
     }
 
     private void pickFile(int account) {
@@ -872,8 +888,57 @@ public class TelePremiumCloudActivity extends BaseFragment {
         Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType("*/*");
+        i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
         startActivityForResult(i,PICK_FILE);
+    }
+
+    private void pickFolder(int account) {
+        pendingUploadAccount=account;
+        Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        startActivityForResult(i,PICK_FOLDER);
+    }
+
+    /** Files of a SAF tree (sub-folders flattened, depth-limited), off the UI thread. */
+    private static void collectTreeFiles(android.content.ContentResolver resolver, Uri tree, String documentId, int depth, java.util.List<Uri> out) {
+        if (depth > 4 || out.size() >= MAX_BATCH_FILES) return;
+        Uri children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(tree, documentId);
+        try (Cursor c = resolver.query(children, new String[]{android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID, android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE}, null, null, null)) {
+            if (c == null) return;
+            while (c.moveToNext() && out.size() < MAX_BATCH_FILES) {
+                String id = c.getString(0);
+                String mime = c.getString(1);
+                if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) {
+                    collectTreeFiles(resolver, tree, id, depth + 1, out);
+                } else {
+                    out.add(android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, id));
+                }
+            }
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e(e);
+        }
+    }
+
+    private void enqueueUploads(int account, java.util.List<Uri> uris) {
+        if (uris.isEmpty()) { setSyncText("Нет файлов для загрузки",false); return; }
+        uploadQueue.addAll(uris);
+        uploadQueueAccount = account;
+        uploadQueueTotal = uploadQueue.size();
+        uploadQueueDone = 0;
+        uploadNextFromQueue();
+    }
+
+    private void uploadNextFromQueue() {
+        if (disposed) { uploadQueue.clear(); return; }
+        Uri next = uploadQueue.poll();
+        if (next == null) {
+            if (uploadQueueTotal > 1) setSyncText("✓  Загружено файлов: "+uploadQueueDone,true);
+            uploadQueueTotal = 0;
+            return;
+        }
+        if (uploadQueueTotal > 1) setSyncText("Загрузка "+(uploadQueueDone+1)+" из "+uploadQueueTotal+"…",false);
+        uploadSingle(uploadQueueAccount, next, () -> { uploadQueueDone++; uploadNextFromQueue(); });
     }
 
     private void createFolder(int account) {
@@ -888,15 +953,36 @@ public class TelePremiumCloudActivity extends BaseFragment {
             else{pendingExportFile=null;pendingExportName=null;}
             return;
         }
-        if(requestCode!=PICK_FILE||resultCode!=Activity.RESULT_OK||data==null||data.getData()==null)return;
-        Uri uri=data.getData();
-        try{getParentActivity().getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignore){}
+        if(requestCode==PICK_FOLDER){
+            if(resultCode!=Activity.RESULT_OK||data==null||data.getData()==null)return;
+            final Uri tree=data.getData();
+            final int account=pendingUploadAccount;
+            try{getParentActivity().getContentResolver().takePersistableUriPermission(tree,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception e){org.telegram.messenger.FileLog.e(e);}
+            final android.content.ContentResolver resolver=getParentActivity().getContentResolver();
+            setSyncText("Чтение папки…",false);
+            Utilities.globalQueue.postRunnable(()->{
+                java.util.ArrayList<Uri> files=new java.util.ArrayList<>();
+                collectTreeFiles(resolver,tree,android.provider.DocumentsContract.getTreeDocumentId(tree),0,files);
+                AndroidUtilities.runOnUIThread(()->enqueueUploads(account,files));
+            });
+            return;
+        }
+        if(requestCode!=PICK_FILE||resultCode!=Activity.RESULT_OK||data==null)return;
+        java.util.ArrayList<Uri> picked=new java.util.ArrayList<>();
+        if(data.getClipData()!=null){
+            for(int i=0;i<data.getClipData().getItemCount()&&picked.size()<MAX_BATCH_FILES;i++){Uri u=data.getClipData().getItemAt(i).getUri();if(u!=null)picked.add(u);}
+        } else if(data.getData()!=null) picked.add(data.getData());
+        for(Uri u:picked){try{getParentActivity().getContentResolver().takePersistableUriPermission(u,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignore){}}
+        enqueueUploads(pendingUploadAccount,picked);
+    }
+
+    private void uploadSingle(final int uploadAccount, Uri uri, Runnable onUploaded) {
         // Bind this upload to the chosen account. Never commit its metadata
         // into a different Cloud if the user switches accounts while uploading.
-        final int uploadAccount = pendingUploadAccount;
         final TelePremiumCloudManager uploadCloud = TelePremiumCloudManager.getInstance(uploadAccount);
         if(TelePremiumVaultKeyManager.isEnabled(context) && !uploadCloud.isRemoteReady()) {
             setSyncText("Облако потеряло соединение. Файл не отправлен; повторите после синхронизации.",false);
+            uploadQueue.clear();
             return;
         }
         final CloudPayloadRepository uploadPayloads = new CloudPayloadRepository(uploadAccount);
@@ -907,18 +993,20 @@ public class TelePremiumCloudActivity extends BaseFragment {
         setSyncText("Подготовка и загрузка файла…",false);
         uploadPayloads.importUri(uri,uploadFolder,name,mime,(node,error)->{
             if(error!=null){
-                if(!disposed && selectedAccount==uploadAccount) setSyncText("Не удалось загрузить: "+error,false);
+                if(!disposed && selectedAccount==uploadAccount) setSyncText("Не удалось загрузить «"+name+"»: "+error,false);
+                uploadQueue.clear();
                 return;
             }
             if(TelePremiumVaultKeyManager.isEnabled(context)) {
                 commitUploadedVaultNode(uploadAccount,node,uploadCloud,
-                        CloudTransferManager.getInstance(uploadAccount));
+                        CloudTransferManager.getInstance(uploadAccount),onUploaded);
             } else {
                 uploadCloud.addFile(node,e->{
                     if(!disposed && (selectedAccount==uploadAccount || selectedAccount==-1)) {
                         setSyncText(e==null?"✓  Синхронизировано":"Не удалось синхронизировать: "+shortError(e),e==null);
                         renderBody();
                     }
+                    if(e==null) onUploaded.run(); else uploadQueue.clear();
                 });
             }
         });

@@ -170,7 +170,10 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             addAction("Создать один Master Key", "Один ключ на все Telegram-аккаунты; требуется пароль восстановления", this::showVaultSetup);
             addAction("Восстановить Master Key", "Восстановление после смены телефона по резервному коду и паролю", this::showVaultRecovery);
         } else {
-            addAction("Код восстановления Vault", "Сохрани отдельно от Telegram. Не отправляй его в чат или облачный канал.", this::showVaultRecoveryCode);
+            addAction("Код восстановления Vault", TelePremiumVaultKeyManager.isRecoveryConfirmed(context)
+                    ? "Сохранён. Храни отдельно от Telegram, не отправляй в чат или облачный канал."
+                    : "⚠ Код ещё не сохранён — без него Vault не восстановить после сброса телефона", this::showVaultRecoveryCode);
+            addAction("Проверить пароль восстановления", "Убедиться, что пароль подходит к коду, ничего не меняя", this::showVaultPassphraseCheck);
             if(!active){
                 addAction("Включить новое шифрованное облако", "Новые файлы и каталоги будут E2EE на всех подключённых аккаунтах", this::confirmVaultActivation);
             } else {
@@ -220,9 +223,49 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             view.setPadding(AndroidUtilities.dp(20),AndroidUtilities.dp(12),AndroidUtilities.dp(20),AndroidUtilities.dp(12));
             view.setTextSize(13);
             new AlertDialog.Builder(context).setTitle("Восстановление Vault")
-                    .setMessage("Сохрани этот код отдельно и приватно. Для восстановления дополнительно потребуется пароль. Никогда не публикуй код вместе с паролем.")
-                    .setView(view).setPositiveButton("Закрыть",null).show();
+                    .setMessage("Сохрани этот код отдельно и приватно: менеджер паролей, бумага, флешка. Для восстановления дополнительно потребуется пароль. Никогда не храни код вместе с паролем и не отправляй их в Telegram.")
+                    .setView(view)
+                    .setPositiveButton("Я сохранил код",(d,w)->{TelePremiumVaultKeyManager.setRecoveryConfirmed(context,true);render();})
+                    .setNeutralButton("Сохранить / скопировать",(d,w)->shareRecoveryCode(code))
+                    .setNegativeButton("Закрыть",null).show();
         }catch(Exception e){toastStatus(e.getMessage());}
+    }
+
+    private void shareRecoveryCode(String code) {
+        try {
+            android.content.ClipboardManager clipboard=(android.content.ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if(clipboard!=null){
+                android.content.ClipData clip=android.content.ClipData.newPlainText("TelePremium Vault recovery",code);
+                if(Build.VERSION.SDK_INT>=33){
+                    android.os.PersistableBundle extras=new android.os.PersistableBundle();
+                    extras.putBoolean("android.content.extra.IS_SENSITIVE",true);
+                    clip.getDescription().setExtras(extras);
+                }
+                clipboard.setPrimaryClip(clip);
+            }
+            android.content.Intent send=new android.content.Intent(android.content.Intent.ACTION_SEND);
+            send.setType("text/plain");
+            send.putExtra(android.content.Intent.EXTRA_SUBJECT,"TelePremium Vault recovery code");
+            send.putExtra(android.content.Intent.EXTRA_TEXT,code);
+            context.startActivity(android.content.Intent.createChooser(send,"Сохранить код восстановления"));
+            toastStatus("Код скопирован. Не сохраняй его в Telegram.");
+        }catch(Exception e){toastStatus(e.getMessage());}
+    }
+
+    private void showVaultPassphraseCheck() {
+        EditText password=new EditText(context);password.setHint("Пароль восстановления");
+        password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        LinearLayout box=new LinearLayout(context);box.setPadding(AndroidUtilities.dp(20),0,AndroidUtilities.dp(20),0);box.addView(password,new LinearLayout.LayoutParams(-1,-2));
+        new AlertDialog.Builder(context).setTitle("Проверка пароля").setView(box)
+                .setPositiveButton("Проверить",(d,w)->{
+                    char[] chars=password.getText().toString().toCharArray();password.setText("");
+                    Utilities.globalQueue.postRunnable(()->{
+                        try{boolean ok=TelePremiumVaultKeyManager.verifyRecoveryPassphrase(context,chars);
+                            AndroidUtilities.runOnUIThread(()->toastStatus(ok?"Пароль верный: восстановление сработает":"Пароль не подходит к коду восстановления"));
+                        }catch(Exception e){AndroidUtilities.runOnUIThread(()->toastStatus("Ошибка проверки: "+e.getMessage()));}
+                        finally{Arrays.fill(chars,'\0');}
+                    });
+                }).setNegativeButton("Отмена",null).show();
     }
 
     private void showVaultRecovery() {
@@ -250,6 +293,11 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
     }
 
     private void confirmVaultActivation() {
+        if(!TelePremiumVaultKeyManager.isRecoveryConfirmed(context)){
+            toastStatus("Сначала сохрани код восстановления");
+            showVaultRecoveryCode();
+            return;
+        }
         new AlertDialog.Builder(context)
             .setTitle("Включить новый E2EE Vault?")
             .setMessage("Будет создан отдельный приватный Vault V3 для каждого подключённого аккаунта. Новые файлы и каталоги станут зашифрованными. Старые файлы и сообщения V2 останутся в предыдущих каналах в открытом виде. Это НЕ миграция старых данных. Сохрани код восстановления до включения!")

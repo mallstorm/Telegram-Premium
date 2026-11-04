@@ -72,14 +72,16 @@ public class AccountNetworkController {
 
     public long checkProfile(int account, AccountNetworkProfile profile, RequestTimeDelegate delegate) {
         if (profile != null && profile.isConfiguredProxy()) {
-            return ConnectionsManager.getInstance(account).checkProxy(
-                    safe(profile.address),
-                    profile.port,
-                    safe(profile.username),
-                    safe(profile.password),
-                    safe(profile.secret),
-                    delegate
-            );
+            String secret = safe(profile.secret);
+            org.telegram.utils.proxy.ProxySettings settings = org.telegram.utils.proxy.ProxySettings.builder()
+                    .setType(secret.isEmpty() ? org.telegram.utils.proxy.ProxySettings.Type.SOCKS5 : org.telegram.utils.proxy.ProxySettings.Type.MTPROTO)
+                    .setAddress(safe(profile.address))
+                    .setPort(profile.port)
+                    .setUser(safe(profile.username))
+                    .setPassword(safe(profile.password))
+                    .setSecret(secret)
+                    .build();
+            return ConnectionsManager.getInstance(account).checkProxy(settings, delegate);
         }
 
         if (delegate != null) {
