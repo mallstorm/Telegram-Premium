@@ -16,6 +16,8 @@ SOURCES = [
     "cloud/CloudConflictResolver.java",
     "cloud/CloudIntegrityChecker.java",
     "cloud/CloudRecoveryEngine.java",
+    "cloud/TelePremiumCloudFormat.java",
+    "media/TelePremiumPlayerMath.java",
 ]
 stubs = sorted(str(p) for p in (ROOT / "scripts/tests/stubs").rglob("*.java"))
 print(" ".join([str(BASE / s) for s in SOURCES] + stubs))

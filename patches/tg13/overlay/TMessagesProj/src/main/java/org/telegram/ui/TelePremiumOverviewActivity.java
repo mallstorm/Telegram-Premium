@@ -77,7 +77,7 @@ public class TelePremiumOverviewActivity extends BaseFragment {
         hero.addView(title, titleParams);
 
         TextView subtitle = new TextView(context);
-        subtitle.setText("Собственные возможности клиента. Локальные функции работают внутри TelePremium без экранов покупки подписки.");
+        subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_378));
         subtitle.setTextSize(15);
         subtitle.setTextColor(0xEEFFFFFF);
         subtitle.setGravity(Gravity.CENTER);
@@ -96,22 +96,22 @@ public class TelePremiumOverviewActivity extends BaseFragment {
         heroParams.setMargins(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(14));
         content.addView(hero, heroParams);
 
-        addFeature(content, context, "Цвет имени и профиля", "Цвет, фон профиля и фоновый emoji хранятся локально и отображаются только внутри TelePremium.", R.drawable.menu_premium_main,
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_379), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_380), R.drawable.menu_premium_main,
                 v -> presentFragment(new PeerColorActivity(0)));
-        addFeature(content, context, "Локальный emoji-статус", "Выбранный статус хранится локально в TelePremium и не отправляется как серверная подписочная функция.", R.drawable.msg_smile_status,
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_381), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_382), R.drawable.msg_smile_status,
                 v -> openSelfProfile());
-        addFeature(content, context, "Реакция по двойному тапу", "Стандартная или custom emoji-реакция выбирается локально для этого клиента.", R.drawable.msg_reactions,
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_383), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_384), R.drawable.msg_reactions,
                 v -> presentFragment(new ReactionsDoubleTapManageActivity()));
-        addFeature(content, context, "Истории", "Просмотр и инструменты историй Telegram. Локальные расширения будут подключаться отдельными модулями.", R.drawable.menu_premium_main, null);
-        addFeature(content, context, "Файлы и хранилище", "File Center, загрузки всех аккаунтов и управление кэшем.", R.drawable.msg2_folder,
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_385), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_386), R.drawable.menu_premium_main, null);
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_387), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_388), R.drawable.msg2_folder,
                 v -> presentFragment(new TelePremiumFileCenterActivity()));
-        addFeature(content, context, "Расширенные возможности клиента", "До 10 аккаунтов, отдельные сетевые профили и локальные функции.", R.drawable.msg2_devices,
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_389), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_390), R.drawable.msg2_devices,
                 v -> presentFragment(new TelePremiumAccountCenterActivity()));
-        addFeature(content, context, "Без рекламы", "Sponsored messages отключены на уровне клиента.", R.drawable.msg2_data, null);
-        addFeature(content, context, "Перевод чатов", "Перевод сообщений и режим перевода целого чата без локального Premium-замка.", R.drawable.msg2_language,
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_391), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_392), R.drawable.msg2_data, null);
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_393), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_394), R.drawable.msg2_language,
                 v -> presentFragment(new LanguageSelectActivity()));
-        addFeature(content, context, "Расшифровка голосовых", "Локальный Voice-to-Text через системный Speech Recognizer на Android 13+.", R.drawable.msg2_discussion, null);
-        addFeature(content, context, "Настройки TelePremium", "Аккаунты, сеть, файлы, масштаб интерфейса и оформление.", R.drawable.menu_premium_main,
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_395), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_396), R.drawable.msg2_discussion, null);
+        addFeature(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_397), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_398), R.drawable.menu_premium_main,
                 v -> presentFragment(new TelePremiumCenterActivity()));
 
         fragmentView = scroll;

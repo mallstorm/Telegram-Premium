@@ -44,7 +44,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
         boolean biometric = TelePremiumCloudSecurityStore.isBiometricEnabled(context) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P;
 
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle("Защита облака");
+        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_054));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
@@ -56,7 +56,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
         root.setBackgroundColor(theme.background);
 
         TextView title = new TextView(context);
-        title.setText(category == null ? "Облако защищено" : "Защищено: " + TelePremiumCloudSecurityStore.categoryLabel(category));
+        title.setText(category == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_282) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_283) + TelePremiumCloudSecurityStore.categoryLabel(category));
         title.setTextSize(22);
         title.setTypeface(AndroidUtilities.bold());
         title.setTextColor(theme.textPrimary);
@@ -64,7 +64,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
         root.addView(title, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(46)));
 
         status = new TextView(context);
-        status.setText(hasPattern ? "Проведите графический ключ" : biometric ? "Подтвердите отпечаток или биометрию" : "Способ разблокировки не настроен");
+        status.setText(hasPattern ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_284) : biometric ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_285) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_286));
         status.setTextSize(14);
         status.setTextColor(theme.textSecondary);
         status.setGravity(Gravity.CENTER);
@@ -81,7 +81,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
 
         if (biometric) {
             TextView biometricButton = new TextView(context);
-            biometricButton.setText("Использовать биометрию");
+            biometricButton.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_287));
             biometricButton.setTextSize(15);
             biometricButton.setTextColor(theme.accent);
             biometricButton.setGravity(Gravity.CENTER);
@@ -142,12 +142,12 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
             biometricCancellation = new CancellationSignal();
             Executor executor = context.getMainExecutor();
             BiometricPrompt.Builder builder = new BiometricPrompt.Builder(context)
-                    .setTitle("Открыть TelePremium Cloud")
-                    .setSubtitle(category == null ? "Подтвердите личность" : "Раздел: " + TelePremiumCloudSecurityStore.categoryLabel(category));
+                    .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_288))
+                    .setSubtitle(category == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_289) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_290) + TelePremiumCloudSecurityStore.categoryLabel(category));
             if (TelePremiumCloudSecurityStore.hasPattern(context)) {
-                builder.setNegativeButton("Графический ключ", executor, (DialogInterface dialog, int which) -> status.setText("Проведите графический ключ"));
+                builder.setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_261), executor, (DialogInterface dialog, int which) -> status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_284)));
             } else {
-                builder.setNegativeButton("Отмена", executor, (DialogInterface dialog, int which) -> status.setText("Разблокировка отменена"));
+                builder.setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), executor, (DialogInterface dialog, int which) -> status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_291)));
             }
             BiometricPrompt prompt = builder.build();
             prompt.authenticate(biometricCancellation, executor, new BiometricPrompt.AuthenticationCallback() {
@@ -157,20 +157,20 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
                 }
                 @Override public void onAuthenticationFailed() {
                     super.onAuthenticationFailed();
-                    status.setText("Биометрия не распознана. Попробуйте снова.");
+                    status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_292));
                 }
                 @Override public void onAuthenticationError(int errorCode, CharSequence errString) {
                     super.onAuthenticationError(errorCode, errString);
                     if (errorCode != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED
                             && errorCode != BiometricPrompt.BIOMETRIC_ERROR_CANCELED) {
-                        status.setText(errString == null ? "Биометрия недоступна" : errString);
+                        status.setText(errString == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_267) : errString);
                     }
                 }
             });
         } catch (Throwable e) {
             status.setText(TelePremiumCloudSecurityStore.hasPattern(context)
-                    ? "Биометрия недоступна. Используйте графический ключ."
-                    : "Биометрия недоступна на этом устройстве.");
+                    ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_293)
+                    : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_294));
         }
     }
 
@@ -184,7 +184,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
             // The previous host fragment may already have been destroyed.
             if (!presentFragment(new TelePremiumCloudActivity(account), true)) {
                 completed = false;
-                status.setText("Не удалось открыть облако. Повторите попытку.");
+                status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_295));
             }
         } else {
             finishFragment();

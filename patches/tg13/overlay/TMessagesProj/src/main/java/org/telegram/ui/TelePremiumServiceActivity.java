@@ -55,7 +55,7 @@ public class TelePremiumServiceActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle("Сервис");
+        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_066));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
@@ -76,31 +76,31 @@ public class TelePremiumServiceActivity extends BaseFragment {
         if (context == null || content == null) return;
         content.removeAllViews();
 
-        section("Обновления");
+        section(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_496));
         String source = TelePremiumUpdateChecker.getSource();
-        row("Источник обновлений", TextUtils.isEmpty(source) ? "Не задан — нажмите, чтобы указать owner/repo" : source, R.drawable.msg2_data, v -> editSource());
-        row("Автопроверка раз в сутки", TelePremiumUpdateChecker.isAutoCheck() ? "Включена" : "Выключена", R.drawable.msg2_notifications, v -> {
+        row(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_497), TextUtils.isEmpty(source) ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_498) : source, R.drawable.msg2_data, v -> editSource());
+        row(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_499), TelePremiumUpdateChecker.isAutoCheck() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_500) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_501), R.drawable.msg2_notifications, v -> {
             TelePremiumUpdateChecker.setAutoCheck(!TelePremiumUpdateChecker.isAutoCheck());
             render();
         });
         long last = TelePremiumUpdateChecker.getLastCheck();
-        row("Проверить сейчас", "Установлена версия " + TelePremiumUpdateChecker.installedVersionCode()
-                + (last > 0 ? " · проверка " + new SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(new Date(last)) : ""), R.drawable.msg_retry, v -> checkNow());
+        row(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_502), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_503) + TelePremiumUpdateChecker.installedVersionCode()
+                + (last > 0 ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_504) + new SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(new Date(last)) : ""), R.drawable.msg_retry, v -> checkNow());
 
-        section("Диагностика");
-        row("Запись логов", (BuildVars.LOGS_ENABLED ? "Включена" : "Выключена") + " · изменение действует после перезапуска", R.drawable.msg_log, v -> toggleLogs());
-        row("Отправить отчёт", "Версия, устройство, состояние Cloud/Vault и последние логи (без ключей и переписки)", R.drawable.msg_share, v -> shareReport());
-        row("Диагностика облака", "Целостность каталога текущего аккаунта", R.drawable.msg2_folder, v -> presentFragment(new TelePremiumCloudDiagnosticsActivity(UserConfig.selectedAccount)));
-        row("Очистить логи", "Удалить файлы журналов", R.drawable.msg_delete, v -> {
+        section(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_505));
+        row(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_506), (BuildVars.LOGS_ENABLED ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_500) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_501)) + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_507), R.drawable.msg_log, v -> toggleLogs());
+        row(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_508), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_509), R.drawable.msg_share, v -> shareReport());
+        row(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_166), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_510), R.drawable.msg2_folder, v -> presentFragment(new TelePremiumCloudDiagnosticsActivity(UserConfig.selectedAccount)));
+        row(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_511), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_512), R.drawable.msg_delete, v -> {
             Utilities.globalQueue.postRunnable(() -> {
                 FileLog.cleanupLogs();
-                AndroidUtilities.runOnUIThread(() -> toast("Логи очищены"));
+                AndroidUtilities.runOnUIThread(() -> toast(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_513)));
             });
         });
 
-        section("Облако");
+        section(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_069));
         int days = TelePremiumCloudManager.getTrashRetentionDays();
-        row("Автоочистка корзины", days == 0 ? "Выключена" : "Через " + days + " дн. после удаления", R.drawable.msg_delete, v -> chooseTrashRetention());
+        row(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_514), days == 0 ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_501) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_515) + days + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_516), R.drawable.msg_delete, v -> chooseTrashRetention());
     }
 
     private void editSource() {
@@ -109,29 +109,29 @@ public class TelePremiumServiceActivity extends BaseFragment {
         EditText input = new EditText(context);
         input.setSingleLine(true);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        input.setHint("owner/repo или https://…/telepremium-update.json");
+        input.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_517));
         input.setText(TelePremiumUpdateChecker.getSource());
         LinearLayout box = new LinearLayout(context);
         box.setPadding(AndroidUtilities.dp(20), 0, AndroidUtilities.dp(20), 0);
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
         new AlertDialog.Builder(context)
-                .setTitle("Источник обновлений")
-                .setMessage("Публичный GitHub-репозиторий с релизами TelePremium (APK + telepremium-update.json) или прямая HTTPS-ссылка на манифест. Приватный репозиторий без токена недоступен.")
+                .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_497))
+                .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_518))
                 .setView(box)
-                .setPositiveButton("Сохранить", (d, w) -> { TelePremiumUpdateChecker.setSource(input.getText().toString()); render(); })
-                .setNegativeButton("Отмена", null)
+                .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_137), (d, w) -> { TelePremiumUpdateChecker.setSource(input.getText().toString()); render(); })
+                .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), null)
                 .show();
     }
 
     private void checkNow() {
         if (!TelePremiumUpdateChecker.isConfigured()) { editSource(); return; }
-        toast("Проверка обновлений…");
+        toast(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_519));
         TelePremiumUpdateChecker.check((newer, error) -> {
             Activity activity = getParentActivity();
             if (activity == null) return;
             render();
-            if (error != null) toast("Не удалось проверить: " + error);
-            else if (newer == null) toast("Установлена последняя версия");
+            if (error != null) toast(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_520) + error);
+            else if (newer == null) toast(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_521));
             else TelePremiumUpdateUi.offer(activity, newer);
         });
     }
@@ -142,7 +142,7 @@ public class TelePremiumServiceActivity extends BaseFragment {
         prefs.edit().putBoolean("logsEnabled", enabled).commit();
         BuildVars.LOGS_ENABLED = enabled;
         render();
-        toast(enabled ? "Логи включены" : "Логи выключены");
+        toast(enabled ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_522) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_523));
     }
 
     private void chooseTrashRetention() {
@@ -150,9 +150,9 @@ public class TelePremiumServiceActivity extends BaseFragment {
         if (context == null) return;
         int[] choices = TelePremiumCloudManager.TRASH_RETENTION_CHOICES;
         CharSequence[] labels = new CharSequence[choices.length];
-        for (int i = 0; i < choices.length; i++) labels[i] = choices[i] == 0 ? "Не очищать" : choices[i] + " дней";
+        for (int i = 0; i < choices.length; i++) labels[i] = choices[i] == 0 ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_524) : choices[i] + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_525);
         new AlertDialog.Builder(context)
-                .setTitle("Автоочистка корзины")
+                .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_514))
                 .setItems(labels, (d, which) -> { TelePremiumCloudManager.setTrashRetentionDays(choices[which]); render(); })
                 .show();
     }
@@ -188,7 +188,7 @@ public class TelePremiumServiceActivity extends BaseFragment {
     private void shareReport() {
         Activity activity = getParentActivity();
         if (activity == null) return;
-        toast("Подготовка отчёта…");
+        toast(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_526));
         Utilities.globalQueue.postRunnable(() -> {
             File zip = null;
             String error = null;
@@ -226,14 +226,14 @@ public class TelePremiumServiceActivity extends BaseFragment {
             AndroidUtilities.runOnUIThread(() -> {
                 Activity a = getParentActivity();
                 if (a == null) return;
-                if (err != null || result == null) { toast("Не удалось собрать отчёт: " + err); return; }
+                if (err != null || result == null) { toast(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_527) + err); return; }
                 Uri uri = FileProvider.getUriForFile(a, ApplicationLoader.getApplicationId() + ".provider", result);
                 Intent send = new Intent(Intent.ACTION_SEND);
                 send.setType("application/zip");
                 send.putExtra(Intent.EXTRA_STREAM, uri);
                 send.putExtra(Intent.EXTRA_SUBJECT, "TelePremium diagnostics");
                 send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                a.startActivity(Intent.createChooser(send, "Отправить отчёт"));
+                a.startActivity(Intent.createChooser(send, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_508)));
             });
         });
     }

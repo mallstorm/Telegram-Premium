@@ -23,7 +23,7 @@ public class TelePremiumCloudFolderPickerActivity extends BaseFragment {
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick(){@Override public void onItemClick(int id){if(id==-1)finishFragment();}});
         ScrollView s=new ScrollView(context);LinearLayout list=new LinearLayout(context);list.setOrientation(LinearLayout.VERTICAL);s.addView(list);fragmentView=s;
         TelePremiumCloudManager cloud=TelePremiumCloudManager.getInstance(account);
-        addTarget(context,list,folderId,"root".equals(folderId)?"Корень облака":title,0);
+        addTarget(context,list,folderId,"root".equals(folderId)?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_175):title,0);
         addFolderTargets(context,list,cloud,folderId,1,new HashSet<>());
         return fragmentView;
     }
@@ -39,7 +39,7 @@ public class TelePremiumCloudFolderPickerActivity extends BaseFragment {
     private void addTarget(Context context,LinearLayout list,String id,String name,int depth){
         TextCell cell=new TextCell(context,getResourceProvider());
         StringBuilder prefix=new StringBuilder();for(int i=0;i<depth;i++)prefix.append("  ");
-        cell.setTextAndValue(prefix+(depth==0?"☁  ":"📁  ")+name,"Переместить сюда",true);
+        cell.setTextAndValue(prefix+(depth==0?"☁  ":"📁  ")+name,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_176),true);
         cell.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         cell.setOnClickListener(v->{callback.onFolder(id,name);finishFragment();});
         list.addView(cell,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(60)));

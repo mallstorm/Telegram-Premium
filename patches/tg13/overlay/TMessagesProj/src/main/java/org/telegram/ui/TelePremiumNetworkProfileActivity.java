@@ -49,7 +49,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
 
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle("Сетевой профиль");
+        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_352));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -71,29 +71,29 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                 ScrollView.LayoutParams.WRAP_CONTENT
         ));
 
-        modeCell = addCell(content, context, "Режим подключения", "");
+        modeCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_353), "");
         modeCell.setOnClickListener(v -> chooseMode());
 
-        nameCell = addCell(content, context, "Название профиля", "");
-        nameCell.setOnClickListener(v -> editText("Название профиля", profile.displayName, false, value -> {
+        nameCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_354), "");
+        nameCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_354), profile.displayName, false, value -> {
             profile.displayName = value;
             refresh();
         }));
 
-        locationCell = addCell(content, context, "Метка региона", "");
-        locationCell.setOnClickListener(v -> editText("Регион / страна", profile.locationName, false, value -> {
+        locationCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_355), "");
+        locationCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_356), profile.locationName, false, value -> {
             profile.locationName = value;
             refresh();
         }));
 
-        addressCell = addCell(content, context, "Адрес сервера", "");
+        addressCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_357), "");
         addressCell.setOnClickListener(v -> editText("Host / IP", profile.address, false, value -> {
             profile.address = value;
             refresh();
         }));
 
-        portCell = addCell(content, context, "Порт", "");
-        portCell.setOnClickListener(v -> editText("Порт", String.valueOf(profile.port), false, value -> {
+        portCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_358), "");
+        portCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_358), String.valueOf(profile.port), false, value -> {
             try {
                 profile.port = Math.max(1, Math.min(65535, Integer.parseInt(value.trim())));
             } catch (Throwable ignore) {
@@ -101,14 +101,14 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
             refresh();
         }));
 
-        usernameCell = addCell(content, context, "Логин", "");
-        usernameCell.setOnClickListener(v -> editText("Логин SOCKS5", profile.username, false, value -> {
+        usernameCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_359), "");
+        usernameCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_360), profile.username, false, value -> {
             profile.username = value;
             refresh();
         }));
 
-        passwordCell = addCell(content, context, "Пароль", "");
-        passwordCell.setOnClickListener(v -> editText("Пароль SOCKS5", profile.password, true, value -> {
+        passwordCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_361), "");
+        passwordCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_362), profile.password, true, value -> {
             profile.password = value;
             refresh();
         }));
@@ -119,19 +119,19 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
             refresh();
         }));
 
-        ipCell = addCell(content, context, "IP стратегия", "");
+        ipCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_363), "");
         ipCell.setOnClickListener(v -> chooseIpStrategy());
 
-        testCell = addCell(content, context, "Проверить соединение", "Нажмите для проверки");
+        testCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_365));
         testCell.setOnClickListener(v -> testConnection());
 
-        TextCell save = addCell(content, context, "Сохранить и применить", "Только для этого аккаунта");
+        TextCell save = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_366), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_367));
         save.setOnClickListener(v -> {
             controller.saveAndApply(account, profile);
             finishFragment();
         });
 
-        TextCell reset = addCell(content, context, "Использовать общий маршрут Telegram", "Удалить индивидуальный профиль");
+        TextCell reset = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_368), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_369));
         reset.setOnClickListener(v -> {
             controller.resetToGlobal(account);
             finishFragment();
@@ -157,15 +157,15 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
         if (modeCell == null) {
             return;
         }
-        modeCell.setTextAndValue("Режим подключения", AccountNetworkProfile.modeLabel(profile.mode), true);
-        nameCell.setTextAndValue("Название профиля", empty(profile.displayName), true);
-        locationCell.setTextAndValue("Метка региона", empty(profile.locationName), true);
-        addressCell.setTextAndValue("Адрес сервера", empty(profile.address), true);
-        portCell.setTextAndValue("Порт", String.valueOf(profile.port), true);
-        usernameCell.setTextAndValue("Логин", empty(profile.username), true);
-        passwordCell.setTextAndValue("Пароль", profile.password == null || profile.password.isEmpty() ? "Не задан" : "••••••", true);
-        secretCell.setTextAndValue("MTProto secret", profile.secret == null || profile.secret.isEmpty() ? "Не задан" : "••••••", true);
-        ipCell.setTextAndValue("IP стратегия", ipLabel(profile.ipStrategy), true);
+        modeCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_353), AccountNetworkProfile.modeLabel(profile.mode), true);
+        nameCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_354), empty(profile.displayName), true);
+        locationCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_355), empty(profile.locationName), true);
+        addressCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_357), empty(profile.address), true);
+        portCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_358), String.valueOf(profile.port), true);
+        usernameCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_359), empty(profile.username), true);
+        passwordCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_361), profile.password == null || profile.password.isEmpty() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_370) : "••••••", true);
+        secretCell.setTextAndValue("MTProto secret", profile.secret == null || profile.secret.isEmpty() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_370) : "••••••", true);
+        ipCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_363), ipLabel(profile.ipStrategy), true);
     }
 
     private void chooseMode() {
@@ -173,14 +173,14 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
             return;
         }
         CharSequence[] items = new CharSequence[]{
-                "Общий маршрут Telegram",
-                "Прямое подключение",
-                "Авто",
+                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_371),
+                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_372),
+                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_373),
                 "MTProto proxy",
                 "SOCKS5 proxy"
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
-        builder.setTitle("Режим подключения");
+        builder.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_353));
         builder.setItems(items, (dialog, which) -> {
             profile.mode = which;
             refresh();
@@ -198,7 +198,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                 "IPv4 + IPv6"
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
-        builder.setTitle("IP стратегия");
+        builder.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_363));
         builder.setItems(items, (dialog, which) -> {
             if (which == 0) {
                 profile.ipStrategy = ConnectionsManager.USE_IPV4_ONLY;
@@ -228,26 +228,26 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
         builder.setTitle(title);
         builder.setView(input);
-        builder.setPositiveButton("Сохранить", (dialog, which) -> receiver.onValue(input.getText().toString()));
-        builder.setNegativeButton("Отмена", null);
+        builder.setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_137), (dialog, which) -> receiver.onValue(input.getText().toString()));
+        builder.setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), null);
         showDialog(builder.create());
     }
 
     private void testConnection() {
-        testCell.setTextAndValue("Проверить соединение", "Проверка…", true);
+        testCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_374), true);
         controller.checkProfile(account, profile, time -> AndroidUtilities.runOnUIThread(() -> {
             if (time < 0) {
-                testCell.setTextAndValue("Проверить соединение", "Недоступно", true);
+                testCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_375), true);
             } else if (time == 0) {
-                testCell.setTextAndValue("Проверить соединение", "Соединение активно", true);
+                testCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_376), true);
             } else {
-                testCell.setTextAndValue("Проверить соединение", time + " мс", true);
+                testCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), time + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_003), true);
             }
         }));
     }
 
     private static String empty(String value) {
-        return value == null || value.isEmpty() ? "Не задано" : value;
+        return value == null || value.isEmpty() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_377) : value;
     }
 
     private static String ipLabel(byte strategy) {

@@ -1,5 +1,9 @@
 package org.telegram.ui;
 
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudFolderScanner;
+
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudFormat;
+
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.Context;
@@ -100,7 +104,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private File pendingExportFile;
     private String pendingExportName;
 
-    public TelePremiumCloudActivity(int account) { this(account, "root", "Облако"); }
+    public TelePremiumCloudActivity(int account) { this(account, "root", org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_069)); }
     private TelePremiumCloudActivity(int account, String folderId, String folderName) {
         selectedAccount = account;
         pendingUploadAccount = account;
@@ -138,7 +142,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         search = new EditText(context);
         search.setSingleLine(true);
         search.setTextSize(16);
-        search.setHint("Поиск файлов и папок");
+        search.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_070));
         search.setCompoundDrawablesWithIntrinsicBounds(R.drawable.msg_search, 0, 0, 0);
         search.setCompoundDrawablePadding(AndroidUtilities.dp(12));
         search.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), 0);
@@ -177,7 +181,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         add.setTextSize(36);
         add.setTextColor(Color.WHITE);
         add.setGravity(Gravity.CENTER);
-        add.setContentDescription("Добавить");
+        add.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_071));
         add.setBackground(roundRect(visualTheme.fab, 32));
         add.setElevation(AndroidUtilities.dp(6));
         add.setOnClickListener(v -> showAddMenu());
@@ -224,7 +228,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
 
         LinearLayout top = new LinearLayout(context);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        transferTitle = label("Подготовка файла", 14, true);
+        transferTitle = label(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_072), 14, true);
         top.addView(transferTitle, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(24), 1f));
         transferPercent = label("0%", 14, true);
         transferPercent.setTextColor(visualTheme.accent);
@@ -271,12 +275,12 @@ public class TelePremiumCloudActivity extends BaseFragment {
         transferTitle.setText(CloudTransferManager.stateLabel(task));
         transferPercent.setText(percent + "%");
         transferProgress.setProgress(percent * 10);
-        StringBuilder details = new StringBuilder(task.fileName == null ? "Файл" : task.fileName);
+        StringBuilder details = new StringBuilder(task.fileName == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_073) : task.fileName);
         if (task.total > 0) {
             details.append("  ·  ").append(humanSize(task.transferred)).append(" / ").append(humanSize(task.total));
         }
         if (task.speedBytesPerSec > 1) {
-            details.append("  ·  ").append(humanSize((long) task.speedBytesPerSec)).append("/с");
+            details.append("  ·  ").append(humanSize((long) task.speedBytesPerSec)).append(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_074));
         } else if (task.error != null && !task.error.isEmpty()) {
             details.append("  ·  ").append(task.error);
         }
@@ -322,7 +326,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
                 }
             } catch(Exception recoveryError) {
                 org.telegram.messenger.FileLog.e(recoveryError);
-                setSyncText("Ожидается разблокировка или восстановление записи Vault",false);
+                setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_075),false);
                 return;
             }
         }
@@ -330,11 +334,11 @@ public class TelePremiumCloudActivity extends BaseFragment {
         if (task == null) return;
         if (TelePremiumVaultKeyManager.isEnabled(context) && task.type==CloudTransferManager.TYPE_UPLOAD &&
                 task.messageId>0 && task.nodeId!=null) {
-            setSyncText("Файл уже в канале; требуется восстановить запись Vault",false);
+            setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_076),false);
             return; // Do not re-upload the same .tpv payload.
         }
         if (task.state == CloudTransferManager.INDEXING) {
-            setSyncText("Файл в канале: восстановление индекса Vault требуется вручную",false);
+            setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_077),false);
             return;
         }
         if (task.type == CloudTransferManager.TYPE_UPLOAD &&
@@ -345,12 +349,12 @@ public class TelePremiumCloudActivity extends BaseFragment {
                         commitUploadedVaultNode(account,node,cloud,transferManager);
                     } else {
                         cloud.addFile(node,e->{
-                            setSyncText(e==null?"✓  Загрузка восстановлена":"Не удалось синхронизировать: "+shortError(e),e==null);
+                            setSyncText(e==null?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_078):org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_079)+shortError(e),e==null);
                             renderBody();
                         });
                     }
                 } else if (error != null) {
-                    setSyncText("Ожидание повторной загрузки: " + error, false);
+                    setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_080) + error, false);
                 }
             });
         } else if (task.type == CloudTransferManager.TYPE_DOWNLOAD && task.messageId != 0 &&
@@ -363,10 +367,10 @@ public class TelePremiumCloudActivity extends BaseFragment {
                     if (task.nodeId != null && task.nodeId.equals(candidate.id)) { node=candidate; break; }
                 }
             }
-            if(node==null){setSyncText("Для докачки Vault необходимо повторно открыть облако",false);return;}
+            if(node==null){setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_081),false);return;}
             new CloudDownloadManager(account).download(node, (state, file, error) -> {
-                if (error != null) setSyncText("Докачка приостановлена: " + error, false);
-                else if (state == CloudDownloadManager.OFFLINE_AVAILABLE) setSyncText("✓  Докачка завершена", true);
+                if (error != null) setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_082) + error, false);
+                else if (state == CloudDownloadManager.OFFLINE_AVAILABLE) setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_083), true);
             });
         }
     }
@@ -388,14 +392,14 @@ public class TelePremiumCloudActivity extends BaseFragment {
                 TelePremiumVaultPendingIndexStore.remove(account,node.id);
                 targetTransfer.complete();
                 if(!disposed && (selectedAccount==account || selectedAccount==-1)) {
-                    setSyncText("✓  Файл сохранён в Vault",true);
+                    setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_084),true);
                     renderBody();
                 }
                 if(onCommitted!=null)onCommitted.run();
             } else {
-                targetTransfer.failRetryable("Индекс Vault не сохранён: "+shortError(error));
+                targetTransfer.failRetryable(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_085)+shortError(error));
                 if(!disposed && (selectedAccount==account || selectedAccount==-1)) {
-                    setSyncText("Файл в канале, ожидает записи в каталог: "+shortError(error),false);
+                    setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_086)+shortError(error),false);
                     renderBody();
                 }
             }
@@ -423,8 +427,8 @@ public class TelePremiumCloudActivity extends BaseFragment {
         final TelePremiumCloudManager cachedManager = requestedAccount >= 0
                 ? TelePremiumCloudManager.getInstance(requestedAccount) : null;
         setSyncText(cachedManager != null && cachedManager.getSnapshot() != null
-                ? "●  Локальный каталог · проверка обновлений…"
-                : "●  Синхронизация облака…", false);
+                ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_087)
+                : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_088), false);
         renderAccounts();
         renderBody();
         if (requestedAccount >= 0) {
@@ -437,19 +441,19 @@ public class TelePremiumCloudActivity extends BaseFragment {
                         + " result=" + (error == null ? "ok" : "failed"));
                 if (disposed || syncGeneration != generation || selectedAccount != requestedAccount) return;
                 if (error == null) {
-                    setSyncText("✓  Синхронизировано", true);
+                    setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_089), true);
                     // Resume interrupted transfers only AFTER this account has a
                     // confirmed remote index; otherwise payloads can become orphans.
                     resumePendingTransfer(requestedAccount);
                 } else {
-                    setSyncText("Облако недоступно: " + shortError(error)
-                            + (requestedCloud.getSnapshot()==null ? "" : " · показан локальный каталог"), false);
+                    setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_090) + shortError(error)
+                            + (requestedCloud.getSnapshot()==null ? "" : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_091)), false);
                 }
                 renderBody();
             }));
         } else {
             List<Integer> accounts = activatedAccounts();
-            if (accounts.isEmpty()) { setSyncText("Нет подключённых аккаунтов", false); return; }
+            if (accounts.isEmpty()) { setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_092), false); return; }
             final int[] remaining = {accounts.size()};
             final boolean[] failed = {false};
             for (int account : accounts) TelePremiumCloudManager.getInstance(account).bootstrap(error ->
@@ -457,17 +461,14 @@ public class TelePremiumCloudActivity extends BaseFragment {
                     if (disposed || syncGeneration != generation || selectedAccount != -1) return;
                     if (error != null) failed[0] = true;
                     if (--remaining[0] == 0) {
-                        setSyncText(failed[0] ? "Часть аккаунтов недоступна · показан локальный каталог" : "✓  Синхронизировано", !failed[0]);
+                        setSyncText(failed[0] ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_093) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_089), !failed[0]);
                         renderBody();
                     }
                 }));
         }
     }
 
-    private static String shortError(String error) {
-        if (error == null || error.isEmpty()) return "неизвестная ошибка";
-        return error.length() > 90 ? error.substring(0,90) + "…" : error;
-    }
+    private static String shortError(String error) { return TelePremiumCloudFormat.shortError(error); }
 
     private void configureAccount(int account) {
         cloud = TelePremiumCloudManager.getInstance(account);
@@ -503,7 +504,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
             placeholder.setInfo(user);
             avatar.setForUserOrChat(user, placeholder);
         } else {
-            placeholder.setInfo(account, "Аккаунт " + (account + 1), null);
+            placeholder.setInfo(account, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_002) + (account + 1), null);
             avatar.setImageDrawable(placeholder);
         }
         frame.addView(avatar, new FrameLayout.LayoutParams(-1, -1));
@@ -517,7 +518,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         FrameLayout frame = new FrameLayout(context);
         frame.setPadding(AndroidUtilities.dp(13), AndroidUtilities.dp(13), AndroidUtilities.dp(13), AndroidUtilities.dp(13));
         frame.setBackground(roundRect(active ? visualTheme.listSelector : visualTheme.surfaceElevated, 13));
-        frame.setContentDescription("Все аккаунты");
+        frame.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_094));
         ImageView icon = new ImageView(context);
         icon.setImageResource(R.drawable.tp_cloud_accounts);
         frame.addView(icon, new FrameLayout.LayoutParams(-1, -1));
@@ -549,13 +550,13 @@ public class TelePremiumCloudActivity extends BaseFragment {
         body.removeAllViews();
         String query = search == null ? "" : search.getText().toString().trim().toLowerCase();
         if (!query.isEmpty()) {
-            addSectionTitle("Результаты поиска", null);
+            addSectionTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_095), null);
             List<AccountNode> results = collectSearchNodes(query);
             if (results.isEmpty()) addEmpty(); else for (AccountNode item : results) addFileRow(item);
             return;
         }
         if (activeCategory != null) {
-            addSectionTitle(categoryTitle(activeCategory), "Фильтры");
+            addSectionTitle(categoryTitle(activeCategory), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_096));
             List<AccountNode> shown = collectCategoryNodes(activeCategory);
             Collections.sort(shown, (a,b) -> Long.compare(b.node.modifiedAt, a.node.modifiedAt));
             if (shown.isEmpty()) addEmpty(); else for (AccountNode item : shown) addFileRow(item);
@@ -572,19 +573,19 @@ public class TelePremiumCloudActivity extends BaseFragment {
     }
 
     private void addCategories() {
-        addSectionTitle("Фильтры", null);
+        addSectionTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_096), null);
         GridLayout grid = new GridLayout(context);
         grid.setColumnCount(3);
         body.addView(grid, new LinearLayout.LayoutParams(-1, -2));
-        addCategory(grid, "images", R.drawable.tp_cloud_photo, "Фото", 0xffdceeff);
-        addCategory(grid, "video", R.drawable.tp_cloud_video, "Видео", 0xffffdede);
-        addCategory(grid, "documents", R.drawable.tp_cloud_document, "Документы", 0xffffedc8);
-        addCategory(grid, "audio", R.drawable.tp_cloud_audio, "Аудио", 0xffdff4ed);
-        addCategory(grid, "archives", R.drawable.tp_cloud_archive, "Архивы", 0xffeadcff);
+        addCategory(grid, "images", R.drawable.tp_cloud_photo, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_097), 0xffdceeff);
+        addCategory(grid, "video", R.drawable.tp_cloud_video, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_098), 0xffffdede);
+        addCategory(grid, "documents", R.drawable.tp_cloud_document, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_099), 0xffffedc8);
+        addCategory(grid, "audio", R.drawable.tp_cloud_audio, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_100), 0xffdff4ed);
+        addCategory(grid, "archives", R.drawable.tp_cloud_archive, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_101), 0xffeadcff);
         addCategory(grid, "apk", R.drawable.tp_cloud_apk, "APK", 0xffdff0ff);
-        addCategory(grid, "favorites", R.drawable.tp_cloud_favorite, "Избранное", 0xffffecd5);
-        addCategory(grid, "trash", R.drawable.tp_cloud_trash, "Корзина", 0xffeceff2);
-        addCategory(grid, "all", R.drawable.tp_cloud_all_files, "Все файлы", 0xffdff0ff);
+        addCategory(grid, "favorites", R.drawable.tp_cloud_favorite, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_102), 0xffffecd5);
+        addCategory(grid, "trash", R.drawable.tp_cloud_trash, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_103), 0xffeceff2);
+        addCategory(grid, "all", R.drawable.tp_cloud_all_files, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_104), 0xffdff0ff);
     }
 
     private void addCategory(GridLayout grid, String kind, int icon, String title, int bg) {
@@ -598,7 +599,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         LinearLayout text = new LinearLayout(context); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(AndroidUtilities.dp(8),0,0,0);
         TextView name = label(title, 13, true); name.setSingleLine(true);
         boolean protectedCategory = TelePremiumCloudSecurityStore.requiresCategoryUnlock(context, kind);
-        TextView value = label(protectedCategory ? "Защищено" : compactCount(collectCategoryNodes(kind).size()), 12, false); value.setSingleLine(true); value.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        TextView value = label(protectedCategory ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_105) : compactCount(collectCategoryNodes(kind).size()), 12, false); value.setSingleLine(true); value.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         text.addView(name); text.addView(value); card.addView(text, new LinearLayout.LayoutParams(0,-2,1));
         card.setOnClickListener(v -> TelePremiumCloudAccessGate.openCategory(this, selectedAccount, kind, () -> { activeCategory = kind; renderBody(); }));
         GridLayout.LayoutParams lp = new GridLayout.LayoutParams(); lp.width=0; lp.height=AndroidUtilities.dp(72); lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1,1f); lp.setMargins(AndroidUtilities.dp(3),AndroidUtilities.dp(4),AndroidUtilities.dp(3),AndroidUtilities.dp(4));
@@ -606,10 +607,10 @@ public class TelePremiumCloudActivity extends BaseFragment {
     }
 
     private void addUserFolders() {
-        addSectionTitle("Мои папки", null);
+        addSectionTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_106), null);
         List<AccountNode> folders = collectFolders();
         if (folders.isEmpty()) {
-            TextView empty = label("Создайте первую папку кнопкой +", 14, false);
+            TextView empty = label(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_107), 14, false);
             empty.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
             empty.setGravity(Gravity.CENTER_VERTICAL);
             empty.setPadding(AndroidUtilities.dp(4), 0, 0, 0);
@@ -664,7 +665,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         LinearLayout row=new LinearLayout(context); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(AndroidUtilities.dp(4),AndroidUtilities.dp(7),AndroidUtilities.dp(4),AndroidUtilities.dp(7)); row.setBackgroundColor(visualTheme.surfaceElevated);
         ImageView icon=new ImageView(context); icon.setImageResource(node.type==CloudNode.TYPE_FOLDER?R.drawable.tp_cloud_folder:fileIcon(node)); icon.setPadding(AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12)); icon.setBackground(roundRect(visualTheme.searchBackground,10)); row.addView(icon,new LinearLayout.LayoutParams(AndroidUtilities.dp(50),AndroidUtilities.dp(50)));
         LinearLayout labels=new LinearLayout(context);labels.setOrientation(LinearLayout.VERTICAL);labels.setPadding(AndroidUtilities.dp(12),0,AndroidUtilities.dp(8),0);
-        TextView name=label(node.name,16,true);TextView detail=label(node.type==CloudNode.TYPE_FOLDER?"Папка":humanSize(node.size),13,false);detail.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));labels.addView(name);labels.addView(detail);row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
+        TextView name=label(node.name,16,true);TextView detail=label(node.type==CloudNode.TYPE_FOLDER?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_108):humanSize(node.size),13,false);detail.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));labels.addView(name);labels.addView(detail);row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
         BackupImageView ownerAvatar = accountAvatar(item.account, 32);
         row.addView(ownerAvatar, new LinearLayout.LayoutParams(AndroidUtilities.dp(32),AndroidUtilities.dp(32)));
         TextView more=label("⋮",26,false);more.setGravity(Gravity.CENTER);more.setOnClickListener(v->showNodeMenu(item));row.addView(more,new LinearLayout.LayoutParams(AndroidUtilities.dp(42),AndroidUtilities.dp(50)));
@@ -692,8 +693,8 @@ public class TelePremiumCloudActivity extends BaseFragment {
                 card.setAlpha(1f); return true;
             case DragEvent.ACTION_DROP:
                 card.setAlpha(1f);
-                if(source.account!=folder.account){setSyncText("Файл и папка относятся к разным аккаунтам",false);return true;}
-                TelePremiumCloudManager.getInstance(source.account).move(source.node,folder.node.id,e->finishMutation(e,"Файл перемещён"));
+                if(source.account!=folder.account){setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_109),false);return true;}
+                TelePremiumCloudManager.getInstance(source.account).move(source.node,folder.node.id,e->finishMutation(e,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_110)));
                 return true;
             case DragEvent.ACTION_DRAG_ENDED:
                 card.setAlpha(1f); return true;
@@ -738,7 +739,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         new CloudDownloadManager(item.account).download(item.node, (state, file, error) -> {
             if (disposed) return;
             if (error != null) {
-                setSyncText("Не удалось открыть: " + error, false);
+                setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_111) + error, false);
                 return;
             }
             if (state == CloudDownloadManager.DOWNLOADING) {
@@ -747,7 +748,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
             }
             if (disposed || getParentActivity() == null) return;
             if (file == null || !file.exists()) {
-                setSyncText("Скачанный файл не найден в кэше", false);
+                setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_112), false);
                 return;
             }
             try {
@@ -757,11 +758,11 @@ public class TelePremiumCloudActivity extends BaseFragment {
                     TelePremiumPlayerActivity.open(getParentActivity(), file, item.node.name, mime);
                 } else if (!AndroidUtilities.openForView(file, item.node.name, mime,
                         getParentActivity(), getResourceProvider(), false)) {
-                    setSyncText("Нет приложения для открытия этого формата", false);
+                    setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_113), false);
                 }
             } catch (RuntimeException viewerError) {
                 org.telegram.messenger.FileLog.e(viewerError);
-                setSyncText("Не удалось открыть просмотрщик: " + viewerError.getClass().getSimpleName(), false);
+                setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_114) + viewerError.getClass().getSimpleName(), false);
             }
         });
     }
@@ -770,9 +771,9 @@ public class TelePremiumCloudActivity extends BaseFragment {
         quietPreviewDownload = false;
         attachTransferManager(item.account);
         new CloudDownloadManager(item.account).download(item.node,(state,file,error)->{
-            if(error!=null){setSyncText("Не удалось скачать: "+error,false);return;}
-            if(state==CloudDownloadManager.DOWNLOADING){setSyncText("Скачивание файла…",false);return;}
-            if(file==null || !file.exists()){setSyncText("Скачанный файл не найден в кэше",false);return;}
+            if(error!=null){setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_115)+error,false);return;}
+            if(state==CloudDownloadManager.DOWNLOADING){setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_116),false);return;}
+            if(file==null || !file.exists()){setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_112),false);return;}
             pendingExportFile=file;pendingExportName=item.node.name;
             Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType(resolvedMime(item.node));
@@ -791,56 +792,56 @@ public class TelePremiumCloudActivity extends BaseFragment {
         TelePremiumCloudManager manager=TelePremiumCloudManager.getInstance(item.account); CloudNode node=item.node;
         if(node.state==CloudNode.STATE_TRASHED){
             new BottomSheet.Builder(context).setTitle(node.name).setItems(
-                    new CharSequence[]{"Открыть","Восстановить","Скрыть из каталога"},
+                    new CharSequence[]{org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_117),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_118),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_119)},
                     new int[]{R.drawable.tp_cloud_download,R.drawable.tp_cloud_restore,R.drawable.tp_cloud_delete_forever},
-                    (d,w)->{if(w==0)openNode(item);else if(w==1)manager.restore(node,e->finishMutation(e,"Файл восстановлен"));else confirmPermanentDelete(manager,node);}
+                    (d,w)->{if(w==0)openNode(item);else if(w==1)manager.restore(node,e->finishMutation(e,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_120)));else confirmPermanentDelete(manager,node);}
             ).create().show();
             return;
         }
         if(node.type==CloudNode.TYPE_FILE){
             new BottomSheet.Builder(context).setTitle(node.name).setItems(
-                    new CharSequence[]{"Открыть","Скачать на устройство","Переместить","Переименовать",node.favorite?"Убрать из избранного":"В избранное","В корзину"},
+                    new CharSequence[]{org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_117),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_121),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_122),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_123),node.favorite?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_124):org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_125),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_126)},
                     new int[]{R.drawable.tp_cloud_download,R.drawable.tp_cloud_download,R.drawable.tp_cloud_folder,R.drawable.tp_cloud_rename,R.drawable.tp_cloud_favorite,R.drawable.tp_cloud_trash},
-                    (d,w)->{if(w==0)openNode(item);else if(w==1)saveToDevice(item);else if(w==2)chooseMoveFolder(item);else if(w==3)rename(manager,node);else if(w==4)manager.toggleFavorite(node,e->finishMutation(e,"Изменения сохранены"));else manager.trash(node,e->finishMutation(e,"Перемещено в корзину"));}
+                    (d,w)->{if(w==0)openNode(item);else if(w==1)saveToDevice(item);else if(w==2)chooseMoveFolder(item);else if(w==3)rename(manager,node);else if(w==4)manager.toggleFavorite(node,e->finishMutation(e,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_127)));else manager.trash(node,e->finishMutation(e,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_128)));}
             ).create().show();
         }else{
             new BottomSheet.Builder(context).setTitle(node.name).setItems(
-                    new CharSequence[]{"Открыть","Переименовать","В корзину"},
+                    new CharSequence[]{org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_117),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_123),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_126)},
                     new int[]{R.drawable.tp_cloud_folder,R.drawable.tp_cloud_rename,R.drawable.tp_cloud_trash},
-                    (d,w)->{if(w==0)openNode(item);else if(w==1)rename(manager,node);else manager.trash(node,e->finishMutation(e,"Перемещено в корзину"));}
+                    (d,w)->{if(w==0)openNode(item);else if(w==1)rename(manager,node);else manager.trash(node,e->finishMutation(e,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_128)));}
             ).create().show();
         }
     }
 
     private void chooseMoveFolder(AccountNode item) {
-        presentFragment(new TelePremiumCloudFolderPickerActivity(item.account,"root","Куда переместить?",(id,name)->
-                TelePremiumCloudManager.getInstance(item.account).move(item.node,id,e->finishMutation(e,"Перемещено в «"+name+"»"))));
+        presentFragment(new TelePremiumCloudFolderPickerActivity(item.account,"root",org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_129),(id,name)->
+                TelePremiumCloudManager.getInstance(item.account).move(item.node,id,e->finishMutation(e,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_130)+name+"»"))));
     }
 
     private void confirmPermanentDelete(TelePremiumCloudManager manager, CloudNode node) {
         new AlertDialog.Builder(context)
-                .setTitle("Скрыть из каталога?")
-                .setMessage("Запись будет скрыта из каталога. Для защиты от потери сам файл остаётся в служебном канале и может быть восстановлен из резервной копии индекса.")
-                .setPositiveButton("Удалить",(d,w)->manager.deleteMetadataPermanently(node,e->finishMutation(e,"Удалено из каталога; копия сохранена")))
-                .setNegativeButton("Отмена",null)
+                .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_131))
+                .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_132))
+                .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_133),(d,w)->manager.deleteMetadataPermanently(node,e->finishMutation(e,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_134))))
+                .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null)
                 .show();
     }
 
     private void finishMutation(String error,String success) {
-        setSyncText(error==null?"✓  "+success:"Не удалось выполнить: "+error,error==null);
+        setSyncText(error==null?"✓  "+success:org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_136)+error,error==null);
         renderBody();
     }
 
     private void rename(TelePremiumCloudManager manager, CloudNode node) {
         EditText input=new EditText(context);input.setSingleLine(true);input.setText(node.name);
-        new AlertDialog.Builder(context).setTitle("Переименовать").setView(input).setPositiveButton("Сохранить",(d,w)->{String n=input.getText().toString().trim();if(!n.isEmpty())manager.rename(node,n,e->finishMutation(e,"Имя изменено"));}).setNegativeButton("Отмена",null).show();
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_123)).setView(input).setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_137),(d,w)->{String n=input.getText().toString().trim();if(!n.isEmpty())manager.rename(node,n,e->finishMutation(e,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_138)));}).setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null).show();
     }
 
     private void showAddMenu() {
         new BottomSheet.Builder(context)
-                .setTitle("Добавить в облако")
+                .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_139))
                 .setItems(
-                        new CharSequence[]{"Загрузить файлы","Создать папку"},
+                        new CharSequence[]{org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_140),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_141)},
                         new int[]{R.drawable.tp_cloud_upload,R.drawable.tp_cloud_new_folder},
                         (d,w)->chooseTargetAccount(w==0)
                 )
@@ -850,9 +851,9 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private void chooseTargetAccount(boolean upload) {
         if(selectedAccount>=0){beginCloudMutation(selectedAccount,upload);return;}
         List<Integer> accounts=activatedAccounts();
-        if(accounts.isEmpty()){setSyncText("Нет подключённых аккаунтов",false);return;}
+        if(accounts.isEmpty()){setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_092),false);return;}
         CharSequence[] names=new CharSequence[accounts.size()];for(int i=0;i<accounts.size();i++)names[i]=accountName(accounts.get(i));
-        new AlertDialog.Builder(context).setTitle("Выберите аккаунт").setItems(names,(d,w)->beginCloudMutation(accounts.get(w),upload)).show();
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_142)).setItems(names,(d,w)->beginCloudMutation(accounts.get(w),upload)).show();
     }
 
     private void beginCloudMutation(int account, boolean upload) {
@@ -860,9 +861,9 @@ public class TelePremiumCloudActivity extends BaseFragment {
         if (org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultKeyManager.isEnabled(context)
                 && !TelePremiumCloudManager.getInstance(account).isRemoteReady()) {
             new AlertDialog.Builder(context)
-                    .setTitle("Облако ещё не синхронизировано")
-                    .setMessage("Дождитесь подключения выбранного аккаунта и синхронизации индекса Vault. Зашифрованная локальная версия доступна только для просмотра.")
-                    .setPositiveButton("Понятно",null).show();
+                    .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_143))
+                    .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_144))
+                    .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_145),null).show();
             return;
         }
         if (upload && TelePremiumVaultKeyManager.isEnabled(context)) {
@@ -871,15 +872,15 @@ public class TelePremiumCloudActivity extends BaseFragment {
                    t.state!=CloudTransferManager.COMPLETED && t.state!=CloudTransferManager.CANCELLED &&
                    (t.state==CloudTransferManager.UPLOADING || t.state==CloudTransferManager.INDEXING ||
                     (t.state==CloudTransferManager.FAILED_RETRYABLE && t.messageId>0))) {
-                new AlertDialog.Builder(context).setTitle("Незавершённая загрузка Vault")
-                        .setMessage("Сначала дождитесь записи предыдущего файла в зашифрованный каталог. Не загружайте его повторно, пока не восстановлен индекс.")
-                        .setPositiveButton("Понятно",null).show();return;
+                new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_146))
+                        .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_147))
+                        .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_145),null).show();return;
             }
         }
         if (!upload) { createFolder(account); return; }
-        if (!uploadQueue.isEmpty()) { setSyncText("Идёт пакетная загрузка: "+uploadQueueDone+" из "+uploadQueueTotal,false); return; }
-        new AlertDialog.Builder(context).setTitle("Загрузить в облако")
-                .setItems(new CharSequence[]{"Файлы (можно несколько)","Папку целиком"},(d,w)->{ if(w==0)pickFile(account); else pickFolder(account); })
+        if (!uploadQueue.isEmpty()) { setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_148)+uploadQueueDone+org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_149)+uploadQueueTotal,false); return; }
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_150))
+                .setItems(new CharSequence[]{org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_151),org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_152)},(d,w)->{ if(w==0)pickFile(account); else pickFolder(account); })
                 .show();
     }
 
@@ -900,28 +901,8 @@ public class TelePremiumCloudActivity extends BaseFragment {
         startActivityForResult(i,PICK_FOLDER);
     }
 
-    /** Files of a SAF tree (sub-folders flattened, depth-limited), off the UI thread. */
-    private static void collectTreeFiles(android.content.ContentResolver resolver, Uri tree, String documentId, int depth, java.util.List<Uri> out) {
-        if (depth > 4 || out.size() >= MAX_BATCH_FILES) return;
-        Uri children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(tree, documentId);
-        try (Cursor c = resolver.query(children, new String[]{android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID, android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE}, null, null, null)) {
-            if (c == null) return;
-            while (c.moveToNext() && out.size() < MAX_BATCH_FILES) {
-                String id = c.getString(0);
-                String mime = c.getString(1);
-                if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) {
-                    collectTreeFiles(resolver, tree, id, depth + 1, out);
-                } else {
-                    out.add(android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, id));
-                }
-            }
-        } catch (Exception e) {
-            org.telegram.messenger.FileLog.e(e);
-        }
-    }
-
     private void enqueueUploads(int account, java.util.List<Uri> uris) {
-        if (uris.isEmpty()) { setSyncText("Нет файлов для загрузки",false); return; }
+        if (uris.isEmpty()) { setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_153),false); return; }
         uploadQueue.addAll(uris);
         uploadQueueAccount = account;
         uploadQueueTotal = uploadQueue.size();
@@ -933,17 +914,17 @@ public class TelePremiumCloudActivity extends BaseFragment {
         if (disposed) { uploadQueue.clear(); return; }
         Uri next = uploadQueue.poll();
         if (next == null) {
-            if (uploadQueueTotal > 1) setSyncText("✓  Загружено файлов: "+uploadQueueDone,true);
+            if (uploadQueueTotal > 1) setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_154)+uploadQueueDone,true);
             uploadQueueTotal = 0;
             return;
         }
-        if (uploadQueueTotal > 1) setSyncText("Загрузка "+(uploadQueueDone+1)+" из "+uploadQueueTotal+"…",false);
+        if (uploadQueueTotal > 1) setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_155)+(uploadQueueDone+1)+org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_149)+uploadQueueTotal+"…",false);
         uploadSingle(uploadQueueAccount, next, () -> { uploadQueueDone++; uploadNextFromQueue(); });
     }
 
     private void createFolder(int account) {
-        EditText input=new EditText(context);input.setHint("Имя папки");input.setSingleLine(true);
-        new AlertDialog.Builder(context).setTitle("Новая папка").setView(input).setPositiveButton("Создать",(d,w)->{String n=input.getText().toString().trim();if(!n.isEmpty())TelePremiumCloudManager.getInstance(account).createFolder(folderId,n,e->renderBody());}).setNegativeButton("Отмена",null).show();
+        EditText input=new EditText(context);input.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_156));input.setSingleLine(true);
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_157)).setView(input).setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_158),(d,w)->{String n=input.getText().toString().trim();if(!n.isEmpty())TelePremiumCloudManager.getInstance(account).createFolder(folderId,n,e->renderBody());}).setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null).show();
     }
 
     @Override public void onActivityResultFragment(int requestCode,int resultCode,Intent data){
@@ -959,10 +940,10 @@ public class TelePremiumCloudActivity extends BaseFragment {
             final int account=pendingUploadAccount;
             try{getParentActivity().getContentResolver().takePersistableUriPermission(tree,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception e){org.telegram.messenger.FileLog.e(e);}
             final android.content.ContentResolver resolver=getParentActivity().getContentResolver();
-            setSyncText("Чтение папки…",false);
+            setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_159),false);
             Utilities.globalQueue.postRunnable(()->{
                 java.util.ArrayList<Uri> files=new java.util.ArrayList<>();
-                collectTreeFiles(resolver,tree,android.provider.DocumentsContract.getTreeDocumentId(tree),0,files);
+                TelePremiumCloudFolderScanner.collect(resolver,tree,MAX_BATCH_FILES,files);
                 AndroidUtilities.runOnUIThread(()->enqueueUploads(account,files));
             });
             return;
@@ -981,7 +962,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
         // into a different Cloud if the user switches accounts while uploading.
         final TelePremiumCloudManager uploadCloud = TelePremiumCloudManager.getInstance(uploadAccount);
         if(TelePremiumVaultKeyManager.isEnabled(context) && !uploadCloud.isRemoteReady()) {
-            setSyncText("Облако потеряло соединение. Файл не отправлен; повторите после синхронизации.",false);
+            setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_160),false);
             uploadQueue.clear();
             return;
         }
@@ -990,10 +971,10 @@ public class TelePremiumCloudActivity extends BaseFragment {
         final String uploadFolder = folderId;
         final String mime = getParentActivity().getContentResolver().getType(uri);
         final String name = displayName(uri);
-        setSyncText("Подготовка и загрузка файла…",false);
+        setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_161),false);
         uploadPayloads.importUri(uri,uploadFolder,name,mime,(node,error)->{
             if(error!=null){
-                if(!disposed && selectedAccount==uploadAccount) setSyncText("Не удалось загрузить «"+name+"»: "+error,false);
+                if(!disposed && selectedAccount==uploadAccount) setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_162)+name+"»: "+error,false);
                 uploadQueue.clear();
                 return;
             }
@@ -1003,7 +984,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
             } else {
                 uploadCloud.addFile(node,e->{
                     if(!disposed && (selectedAccount==uploadAccount || selectedAccount==-1)) {
-                        setSyncText(e==null?"✓  Синхронизировано":"Не удалось синхронизировать: "+shortError(e),e==null);
+                        setSyncText(e==null?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_089):org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_079)+shortError(e),e==null);
                         renderBody();
                     }
                     if(e==null) onUploaded.run(); else uploadQueue.clear();
@@ -1014,11 +995,11 @@ public class TelePremiumCloudActivity extends BaseFragment {
 
     private void exportFile(Uri target){
         final File source=pendingExportFile;final String name=pendingExportName;
-        pendingExportFile=null;pendingExportName=null;setSyncText("Сохранение файла…",false);
+        pendingExportFile=null;pendingExportName=null;setSyncText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_163),false);
         Utilities.globalQueue.postRunnable(()->{
             String error=null;
             try(FileInputStream input=new FileInputStream(source);OutputStream output=context.getContentResolver().openOutputStream(target,"w")){
-                if(output==null)throw new IllegalStateException("Хранилище недоступно");
+                if(output==null)throw new IllegalStateException(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_164));
                 byte[] buffer=new byte[64*1024];int read;while((read=input.read(buffer))!=-1)output.write(buffer,0,read);output.flush();
             }catch(Exception e){error=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}
             final String result=error;AndroidUtilities.runOnUIThread(()->setSyncText(result==null?"✓  «"+name+"» сохранён":"Не удалось сохранить: "+result,result==null));
@@ -1026,19 +1007,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
     }
 
     private String resolvedMime(CloudNode node){
-        String name=node.name==null?"":node.name;int dot=name.lastIndexOf('.');String ext=dot>=0?name.substring(dot+1).toLowerCase():"";
-        String mapped=MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-        if("apk".equals(ext))mapped="application/vnd.android.package-archive";
-        else if("rar".equals(ext))mapped="application/vnd.rar";
-        else if("7z".equals(ext))mapped="application/x-7z-compressed";
-        else if("doc".equals(ext))mapped="application/msword";
-        else if("docx".equals(ext))mapped="application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-        else if("xls".equals(ext))mapped="application/vnd.ms-excel";
-        else if("xlsx".equals(ext))mapped="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        else if("ppt".equals(ext))mapped="application/vnd.ms-powerpoint";
-        else if("pptx".equals(ext))mapped="application/vnd.openxmlformats-officedocument.presentationml.presentation";
-        String stored=node.mimeType;
-        return mapped!=null?mapped:stored!=null&&!stored.isEmpty()?stored:"application/octet-stream";
+        return TelePremiumCloudFormat.resolveMime(node.name,node.mimeType,ext->MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext));
     }
 
     private String displayName(Uri uri){
@@ -1055,20 +1024,19 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private List<AccountNode> collectFolders(){ArrayList<AccountNode> out=new ArrayList<>();for(AccountNode item:collectNodes())if(item.node.type==CloudNode.TYPE_FOLDER)out.add(item);return out;}
     private List<AccountNode> collectSearchNodes(String query){ArrayList<AccountNode> out=new ArrayList<>();List<Integer> accounts=selectedAccount>=0?Collections.singletonList(selectedAccount):activatedAccounts();for(int a:accounts)for(CloudNode n:TelePremiumCloudManager.getInstance(a).search(query))if(n.type==CloudNode.TYPE_FOLDER||TelePremiumCloudAccessGate.canExposeNode(context,n))out.add(new AccountNode(a,n));Collections.sort(out,(x,y)->Long.compare(y.node.modifiedAt,x.node.modifiedAt));return out;}
     private List<AccountNode> collectCategoryNodes(String kind){ArrayList<AccountNode> out=new ArrayList<>();List<Integer> accounts=selectedAccount>=0?Collections.singletonList(selectedAccount):activatedAccounts();for(int a:accounts){TelePremiumCloudManager m=TelePremiumCloudManager.getInstance(a);List<CloudNode> nodes="all".equals(kind)?m.allFiles():"trash".equals(kind)?m.trashItems():"favorites".equals(kind)?m.favorites():m.category(kind);for(CloudNode n:nodes)if(n.type==CloudNode.TYPE_FOLDER||TelePremiumCloudAccessGate.canExposeNode(context,n))out.add(new AccountNode(a,n));}return out;}
-    private BackupImageView accountAvatar(int account,int size){TLRPC.User user=UserConfig.getInstance(account).getCurrentUser();BackupImageView avatar=new BackupImageView(context);avatar.setRoundRadius(AndroidUtilities.dp(Math.max(7,size/5)));avatar.getImageReceiver().setCurrentAccount(account);AvatarDrawable placeholder=new AvatarDrawable();if(user!=null){placeholder.setInfo(user);avatar.setForUserOrChat(user,placeholder);}else{placeholder.setInfo(account,"Аккаунт "+(account+1),null);avatar.setImageDrawable(placeholder);}avatar.setContentDescription(accountName(account));return avatar;}
+    private BackupImageView accountAvatar(int account,int size){TLRPC.User user=UserConfig.getInstance(account).getCurrentUser();BackupImageView avatar=new BackupImageView(context);avatar.setRoundRadius(AndroidUtilities.dp(Math.max(7,size/5)));avatar.getImageReceiver().setCurrentAccount(account);AvatarDrawable placeholder=new AvatarDrawable();if(user!=null){placeholder.setInfo(user);avatar.setForUserOrChat(user,placeholder);}else{placeholder.setInfo(account,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_002)+(account+1),null);avatar.setImageDrawable(placeholder);}avatar.setContentDescription(accountName(account));return avatar;}
     private List<Integer> activatedAccounts(){ArrayList<Integer> out=new ArrayList<>();for(int a=0;a<UserConfig.MAX_ACCOUNT_COUNT;a++)if(UserConfig.getInstance(a).isClientActivated())out.add(a);return out;}
-    private String accountName(int account){TLRPC.User u=UserConfig.getInstance(account).getCurrentUser();return u==null?"Аккаунт "+(account+1):UserObject.getFirstName(u);}
+    private String accountName(int account){TLRPC.User u=UserConfig.getInstance(account).getCurrentUser();return u==null?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_002)+(account+1):UserObject.getFirstName(u);}
     private String accountInitial(int account){String n=accountName(account);return n.isEmpty()?"●":n.substring(0,1).toUpperCase();}
     private int count(List<AccountNode> list,String kind){int n=0;for(AccountNode i:list)if(matches(i.node,kind))n++;return n;}
     private boolean matches(CloudNode n,String kind){if(n.type!=CloudNode.TYPE_FILE)return false;String x=n.name==null?"":n.name.toLowerCase();String m=n.mimeType==null?"":n.mimeType;return "images".equals(kind)&&m.startsWith("image/")||"video".equals(kind)&&m.startsWith("video/")||"archives".equals(kind)&&(x.endsWith(".zip")||x.endsWith(".rar")||x.endsWith(".7z"))||"documents".equals(kind)&&(m.startsWith("text/")||x.endsWith(".pdf")||x.endsWith(".doc")||x.endsWith(".docx")||x.endsWith(".xls")||x.endsWith(".xlsx"));}
-    private String categoryTitle(String kind){if("images".equals(kind))return"Фото";if("video".equals(kind))return"Видео";if("audio".equals(kind))return"Аудио";if("archives".equals(kind))return"Архивы";if("apk".equals(kind))return"APK";if("favorites".equals(kind))return"Избранное";if("trash".equals(kind))return"Корзина";if("all".equals(kind))return"Все файлы";return"Документы";}
+    private String categoryTitle(String kind){return TelePremiumCloudFormat.categoryTitle(kind);}
     private int fileIcon(CloudNode n){String name=n.name==null?"":n.name.toLowerCase();String m=n.mimeType==null?"":n.mimeType.toLowerCase();if(m.startsWith("image/"))return R.drawable.tp_cloud_photo;if(m.startsWith("video/"))return R.drawable.tp_cloud_video;if(m.startsWith("audio/"))return R.drawable.tp_cloud_audio;if(name.endsWith(".apk"))return R.drawable.tp_cloud_apk;if(name.endsWith(".zip")||name.endsWith(".rar")||name.endsWith(".7z")||name.endsWith(".tar")||name.endsWith(".gz"))return R.drawable.tp_cloud_archive;return R.drawable.tp_cloud_document;}
     private TextView label(String text,int size,boolean bold){TextView v=new TextView(context);v.setText(text);v.setTextSize(size);v.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));v.setTypeface(Typeface.DEFAULT,bold?Typeface.BOLD:Typeface.NORMAL);return v;}
     private GradientDrawable roundRect(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(AndroidUtilities.dp(radius));return d;}
     private GradientDrawable outlinedCard(){GradientDrawable d=roundRect(visualTheme.surfaceElevated,12);d.setStroke(AndroidUtilities.dp(1),visualTheme.divider);return d;}
-    private void addEmpty(){TextView empty=label("Здесь пока нет файлов",15,false);empty.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));empty.setGravity(Gravity.CENTER);body.addView(empty,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(100)));}
-    private String compactCount(int n){if(n>=1000000)return compactNumber(n/1000000d)+" млн";if(n>=1000)return compactNumber(n/1000d)+" тыс.";int mod100=n%100,mod10=n%10;String word=mod100>=11&&mod100<=14?"файлов":mod10==1?"файл":mod10>=2&&mod10<=4?"файла":"файлов";return n+" "+word;}
-    private String compactNumber(double value){if(value>=10||Math.abs(value-Math.rint(value))<0.05)return String.valueOf((int)Math.round(value));return String.format(java.util.Locale.US,"%.1f",value).replace('.',',');}
-    private String humanSize(long n){if(n<1024)return n+" Б";if(n<1024*1024)return(n/1024)+" КБ";if(n<1024L*1024*1024)return(n/(1024*1024))+" МБ";return String.format("%.1f ГБ",n/(1024d*1024d*1024d));}
+    private void addEmpty(){TextView empty=label(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_165),15,false);empty.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));empty.setGravity(Gravity.CENTER);body.addView(empty,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(100)));}
+    private String compactCount(int n){return TelePremiumCloudFormat.compactCount(n);}
+    private String humanSize(long n){return TelePremiumCloudFormat.humanSize(n);}
     private static final class AccountNode{final int account;final CloudNode node;AccountNode(int account,CloudNode node){this.account=account;this.node=node;}}
 }

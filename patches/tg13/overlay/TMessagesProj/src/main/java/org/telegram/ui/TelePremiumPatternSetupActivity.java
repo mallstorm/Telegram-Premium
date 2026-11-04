@@ -36,7 +36,7 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
     public View createView(Context context) {
         TelePremiumThemePreset theme = TelePremiumThemeController.getCurrent(context);
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle("Графический ключ");
+        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_261));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
@@ -48,7 +48,7 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
         root.setBackgroundColor(theme.background);
 
         title = new TextView(context);
-        title.setText("Нарисуйте ключ");
+        title.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_399));
         title.setTextSize(21);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setTextColor(theme.textPrimary);
@@ -56,7 +56,7 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
         root.addView(title, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(42)));
 
         subtitle = new TextView(context);
-        subtitle.setText("Соедините минимум 4 точки. Затем повторите рисунок.");
+        subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_400));
         subtitle.setTextSize(14);
         subtitle.setTextColor(theme.textSecondary);
         subtitle.setGravity(Gravity.CENTER);
@@ -77,7 +77,7 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
         root.addView(patternView, pp);
 
         TextView hint = new TextView(context);
-        hint.setText("Ключ хранится только на устройстве в виде salted SHA‑256. Сам рисунок не сохраняется.");
+        hint.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_401));
         hint.setTextSize(12);
         hint.setTextColor(theme.textSecondary);
         hint.setGravity(Gravity.CENTER);
@@ -89,21 +89,21 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
 
     private void onPattern(String pattern) {
         if (pattern == null || pattern.length() < 4) {
-            subtitle.setText("Нужно выбрать минимум 4 точки");
+            subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_402));
             patternView.showError();
             return;
         }
         if (firstPattern == null) {
             firstPattern = pattern;
-            title.setText("Повторите ключ");
-            subtitle.setText("Нарисуйте тот же рисунок ещё раз для подтверждения.");
+            title.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_403));
+            subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_404));
             patternView.clearPattern();
             return;
         }
         if (!firstPattern.equals(pattern)) {
             firstPattern = null;
-            title.setText("Ключи не совпали");
-            subtitle.setText("Начните заново и повторите один и тот же рисунок.");
+            title.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_405));
+            subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_406));
             patternView.showError();
             return;
         }
@@ -115,8 +115,8 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
             if (current == null) return;
             if (!ok) {
                 firstPattern = null;
-                title.setText("Не удалось сохранить ключ");
-                subtitle.setText("Попробуйте ещё раз.");
+                title.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_407));
+                subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_408));
                 patternView.showError();
                 return;
             }

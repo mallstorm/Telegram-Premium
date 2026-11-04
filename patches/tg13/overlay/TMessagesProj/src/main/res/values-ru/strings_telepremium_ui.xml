@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated: TelePremium UI strings (en default, ru). -->
+<resources>
+    <string name="TP_L10N_000" formatted="false">"Центр аккаунтов"</string>
+    <string name="TP_L10N_001" formatted="false">" аккаунтов"</string>
+    <string name="TP_L10N_002" formatted="false">"Аккаунт "</string>
+    <string name="TP_L10N_003" formatted="false">" мс"</string>
+    <string name="TP_L10N_004" formatted="false">"+ Добавить аккаунт"</string>
+    <string name="TP_L10N_005" formatted="false">"Свободный слот "</string>
+    <string name="TP_L10N_006" formatted="false">"Нажатие переключает аккаунт. Долгое нажатие открывает его сетевой профиль."</string>
+    <string name="TP_L10N_007" formatted="false">"Оформление"</string>
+    <string name="TP_L10N_008" formatted="false">"Оболочка приложения"</string>
+    <string name="TP_L10N_009" formatted="false">"Акцент оболочки"</string>
+    <string name="TP_L10N_010" formatted="false">"10 глобальных тем"</string>
+    <string name="TP_L10N_011" formatted="false">"Чат и сообщения"</string>
+    <string name="TP_L10N_012" formatted="false">"Фон чатов"</string>
+    <string name="TP_L10N_013" formatted="false">"Акцент сообщений"</string>
+    <string name="TP_L10N_014" formatted="false">"Скругление пузырей"</string>
+    <string name="TP_L10N_015" formatted="false">"Расширенные настройки чатов"</string>
+    <string name="TP_L10N_016" formatted="false">"Текст, жесты, медиа и прочие параметры — без смены оболочки"</string>
+    <string name="TP_L10N_017" formatted="false">"Размер интерфейса"</string>
+    <string name="TP_L10N_018" formatted="false">"Сбросить дополнительные настройки оформления"</string>
+    <string name="TP_L10N_019" formatted="false">"Темы"</string>
+    <string name="TP_L10N_020" formatted="false">"Акценты"</string>
+    <string name="TP_L10N_021" formatted="false">"Привет! Как дела?"</string>
+    <string name="TP_L10N_022" formatted="false">"Всё отлично!   ✓✓"</string>
+    <string name="TP_L10N_023" formatted="false">"✓ Выбрана"</string>
+    <string name="TP_L10N_024" formatted="false">"Применить"</string>
+    <string name="TP_L10N_025" formatted="false">"Не удалось применить тему"</string>
+    <string name="TP_L10N_026" formatted="false">"Светлая · листья и мягкая зелень"</string>
+    <string name="TP_L10N_027" formatted="false">"Светлая · морозный воздух и горы"</string>
+    <string name="TP_L10N_028" formatted="false">"Светлая · лавандовые сумерки"</string>
+    <string name="TP_L10N_029" formatted="false">"Светлая · бирюзовые волны"</string>
+    <string name="TP_L10N_030" formatted="false">"Светлая · розовый песок"</string>
+    <string name="TP_L10N_031" formatted="false">"Светлая · тёплая бумага и песок"</string>
+    <string name="TP_L10N_032" formatted="false">"Светлая · персиковый закат"</string>
+    <string name="TP_L10N_033" formatted="false">"Светлая · графит и ледяные грани"</string>
+    <string name="TP_L10N_034" formatted="false">"Светлая · чистое серебро"</string>
+    <string name="TP_L10N_035" formatted="false">"Тёмная · глубокий графит"</string>
+    <string name="TP_L10N_036" formatted="false">"По теме"</string>
+    <string name="TP_L10N_037" formatted="false">"Чистый фон"</string>
+    <string name="TP_L10N_038" formatted="false">"Мягкий тематический рисунок"</string>
+    <string name="TP_L10N_039" formatted="false">"Мягкий"</string>
+    <string name="TP_L10N_040" formatted="false">"Контрастный"</string>
+    <string name="TP_L10N_041" formatted="false">"Компактные · 12 dp"</string>
+    <string name="TP_L10N_042" formatted="false">"Стандартные · 18 dp"</string>
+    <string name="TP_L10N_043" formatted="false">"Мягкие · 24 dp"</string>
+    <string name="TP_L10N_044" formatted="false">"Выбрано"</string>
+    <string name="TP_L10N_045" formatted="false">"Масштаб интерфейса: "</string>
+    <string name="TP_L10N_046" formatted="false">"TelePremium\nБольше, чем мессенджер"</string>
+    <string name="TP_L10N_047" formatted="false">"Инструменты"</string>
+    <string name="TP_L10N_048" formatted="false">"Мультиаккаунты"</string>
+    <string name="TP_L10N_049" formatted="false">"До 10 аккаунтов и быстрое переключение"</string>
+    <string name="TP_L10N_050" formatted="false">"Сеть и стабильность"</string>
+    <string name="TP_L10N_051" formatted="false">"Отдельный маршрут для каждого аккаунта"</string>
+    <string name="TP_L10N_052" formatted="false">"Файлы"</string>
+    <string name="TP_L10N_053" formatted="false">"Загрузки, документы и локальное хранилище"</string>
+    <string name="TP_L10N_054" formatted="false">"Защита облака"</string>
+    <string name="TP_L10N_055" formatted="false">"Графический ключ, биометрия и защищённые категории"</string>
+    <string name="TP_L10N_056" formatted="false">"Перевод"</string>
+    <string name="TP_L10N_057" formatted="false">"Штатный перевод Telegram и языковые настройки"</string>
+    <string name="TP_L10N_058" formatted="false">"Кэш и память"</string>
+    <string name="TP_L10N_059" formatted="false">"Использование хранилища и очистка"</string>
+    <string name="TP_L10N_060" formatted="false">"Темы и оформление"</string>
+    <string name="TP_L10N_061" formatted="false">"10 тем, фон чатов, акценты и пузыри"</string>
+    <string name="TP_L10N_062" formatted="false">"Настройки чатов"</string>
+    <string name="TP_L10N_063" formatted="false">"Текст, жесты, медиа и параметры сообщений — без смены оболочки"</string>
+    <string name="TP_L10N_064" formatted="false">"Масштаб интерфейса"</string>
+    <string name="TP_L10N_065" formatted="false">"Сейчас "</string>
+    <string name="TP_L10N_066" formatted="false">"Сервис"</string>
+    <string name="TP_L10N_067" formatted="false">"Обновления и диагностика"</string>
+    <string name="TP_L10N_068" formatted="false">"Свои релизы TelePremium, отчёт и логи, автоочистка корзины"</string>
+    <string name="TP_L10N_069" formatted="false">"Облако"</string>
+    <string name="TP_L10N_070" formatted="false">"Поиск файлов и папок"</string>
+    <string name="TP_L10N_071" formatted="false">"Добавить"</string>
+    <string name="TP_L10N_072" formatted="false">"Подготовка файла"</string>
+    <string name="TP_L10N_073" formatted="false">"Файл"</string>
+    <string name="TP_L10N_074" formatted="false">"/с"</string>
+    <string name="TP_L10N_075" formatted="false">"Ожидается разблокировка или восстановление записи Vault"</string>
+    <string name="TP_L10N_076" formatted="false">"Файл уже в канале; требуется восстановить запись Vault"</string>
+    <string name="TP_L10N_077" formatted="false">"Файл в канале: восстановление индекса Vault требуется вручную"</string>
+    <string name="TP_L10N_078" formatted="false">"✓  Загрузка восстановлена"</string>
+    <string name="TP_L10N_079" formatted="false">"Не удалось синхронизировать: "</string>
+    <string name="TP_L10N_080" formatted="false">"Ожидание повторной загрузки: "</string>
+    <string name="TP_L10N_081" formatted="false">"Для докачки Vault необходимо повторно открыть облако"</string>
+    <string name="TP_L10N_082" formatted="false">"Докачка приостановлена: "</string>
+    <string name="TP_L10N_083" formatted="false">"✓  Докачка завершена"</string>
+    <string name="TP_L10N_084" formatted="false">"✓  Файл сохранён в Vault"</string>
+    <string name="TP_L10N_085" formatted="false">"Индекс Vault не сохранён: "</string>
+    <string name="TP_L10N_086" formatted="false">"Файл в канале, ожидает записи в каталог: "</string>
+    <string name="TP_L10N_087" formatted="false">"●  Локальный каталог · проверка обновлений…"</string>
+    <string name="TP_L10N_088" formatted="false">"●  Синхронизация облака…"</string>
+    <string name="TP_L10N_089" formatted="false">"✓  Синхронизировано"</string>
+    <string name="TP_L10N_090" formatted="false">"Облако недоступно: "</string>
+    <string name="TP_L10N_091" formatted="false">" · показан локальный каталог"</string>
+    <string name="TP_L10N_092" formatted="false">"Нет подключённых аккаунтов"</string>
+    <string name="TP_L10N_093" formatted="false">"Часть аккаунтов недоступна · показан локальный каталог"</string>
+    <string name="TP_L10N_094" formatted="false">"Все аккаунты"</string>
+    <string name="TP_L10N_095" formatted="false">"Результаты поиска"</string>
+    <string name="TP_L10N_096" formatted="false">"Фильтры"</string>
+    <string name="TP_L10N_097" formatted="false">"Фото"</string>
+    <string name="TP_L10N_098" formatted="false">"Видео"</string>
+    <string name="TP_L10N_099" formatted="false">"Документы"</string>
+    <string name="TP_L10N_100" formatted="false">"Аудио"</string>
+    <string name="TP_L10N_101" formatted="false">"Архивы"</string>
+    <string name="TP_L10N_102" formatted="false">"Избранное"</string>
+    <string name="TP_L10N_103" formatted="false">"Корзина"</string>
+    <string name="TP_L10N_104" formatted="false">"Все файлы"</string>
+    <string name="TP_L10N_105" formatted="false">"Защищено"</string>
+    <string name="TP_L10N_106" formatted="false">"Мои папки"</string>
+    <string name="TP_L10N_107" formatted="false">"Создайте первую папку кнопкой +"</string>
+    <string name="TP_L10N_108" formatted="false">"Папка"</string>
+    <string name="TP_L10N_109" formatted="false">"Файл и папка относятся к разным аккаунтам"</string>
+    <string name="TP_L10N_110" formatted="false">"Файл перемещён"</string>
+    <string name="TP_L10N_111" formatted="false">"Не удалось открыть: "</string>
+    <string name="TP_L10N_112" formatted="false">"Скачанный файл не найден в кэше"</string>
+    <string name="TP_L10N_113" formatted="false">"Нет приложения для открытия этого формата"</string>
+    <string name="TP_L10N_114" formatted="false">"Не удалось открыть просмотрщик: "</string>
+    <string name="TP_L10N_115" formatted="false">"Не удалось скачать: "</string>
+    <string name="TP_L10N_116" formatted="false">"Скачивание файла…"</string>
+    <string name="TP_L10N_117" formatted="false">"Открыть"</string>
+    <string name="TP_L10N_118" formatted="false">"Восстановить"</string>
+    <string name="TP_L10N_119" formatted="false">"Скрыть из каталога"</string>
+    <string name="TP_L10N_120" formatted="false">"Файл восстановлен"</string>
+    <string name="TP_L10N_121" formatted="false">"Скачать на устройство"</string>
+    <string name="TP_L10N_122" formatted="false">"Переместить"</string>
+    <string name="TP_L10N_123" formatted="false">"Переименовать"</string>
+    <string name="TP_L10N_124" formatted="false">"Убрать из избранного"</string>
+    <string name="TP_L10N_125" formatted="false">"В избранное"</string>
+    <string name="TP_L10N_126" formatted="false">"В корзину"</string>
+    <string name="TP_L10N_127" formatted="false">"Изменения сохранены"</string>
+    <string name="TP_L10N_128" formatted="false">"Перемещено в корзину"</string>
+    <string name="TP_L10N_129" formatted="false">"Куда переместить?"</string>
+    <string name="TP_L10N_130" formatted="false">"Перемещено в «"</string>
+    <string name="TP_L10N_131" formatted="false">"Скрыть из каталога?"</string>
+    <string name="TP_L10N_132" formatted="false">"Запись будет скрыта из каталога. Для защиты от потери сам файл остаётся в служебном канале и может быть восстановлен из резервной копии индекса."</string>
+    <string name="TP_L10N_133" formatted="false">"Удалить"</string>
+    <string name="TP_L10N_134" formatted="false">"Удалено из каталога; копия сохранена"</string>
+    <string name="TP_L10N_135" formatted="false">"Отмена"</string>
+    <string name="TP_L10N_136" formatted="false">"Не удалось выполнить: "</string>
+    <string name="TP_L10N_137" formatted="false">"Сохранить"</string>
+    <string name="TP_L10N_138" formatted="false">"Имя изменено"</string>
+    <string name="TP_L10N_139" formatted="false">"Добавить в облако"</string>
+    <string name="TP_L10N_140" formatted="false">"Загрузить файлы"</string>
+    <string name="TP_L10N_141" formatted="false">"Создать папку"</string>
+    <string name="TP_L10N_142" formatted="false">"Выберите аккаунт"</string>
+    <string name="TP_L10N_143" formatted="false">"Облако ещё не синхронизировано"</string>
+    <string name="TP_L10N_144" formatted="false">"Дождитесь подключения выбранного аккаунта и синхронизации индекса Vault. Зашифрованная локальная версия доступна только для просмотра."</string>
+    <string name="TP_L10N_145" formatted="false">"Понятно"</string>
+    <string name="TP_L10N_146" formatted="false">"Незавершённая загрузка Vault"</string>
+    <string name="TP_L10N_147" formatted="false">"Сначала дождитесь записи предыдущего файла в зашифрованный каталог. Не загружайте его повторно, пока не восстановлен индекс."</string>
+    <string name="TP_L10N_148" formatted="false">"Идёт пакетная загрузка: "</string>
+    <string name="TP_L10N_149" formatted="false">" из "</string>
+    <string name="TP_L10N_150" formatted="false">"Загрузить в облако"</string>
+    <string name="TP_L10N_151" formatted="false">"Файлы (можно несколько)"</string>
+    <string name="TP_L10N_152" formatted="false">"Папку целиком"</string>
+    <string name="TP_L10N_153" formatted="false">"Нет файлов для загрузки"</string>
+    <string name="TP_L10N_154" formatted="false">"✓  Загружено файлов: "</string>
+    <string name="TP_L10N_155" formatted="false">"Загрузка "</string>
+    <string name="TP_L10N_156" formatted="false">"Имя папки"</string>
+    <string name="TP_L10N_157" formatted="false">"Новая папка"</string>
+    <string name="TP_L10N_158" formatted="false">"Создать"</string>
+    <string name="TP_L10N_159" formatted="false">"Чтение папки…"</string>
+    <string name="TP_L10N_160" formatted="false">"Облако потеряло соединение. Файл не отправлен; повторите после синхронизации."</string>
+    <string name="TP_L10N_161" formatted="false">"Подготовка и загрузка файла…"</string>
+    <string name="TP_L10N_162" formatted="false">"Не удалось загрузить «"</string>
+    <string name="TP_L10N_163" formatted="false">"Сохранение файла…"</string>
+    <string name="TP_L10N_164" formatted="false">"Хранилище недоступно"</string>
+    <string name="TP_L10N_165" formatted="false">"Здесь пока нет файлов"</string>
+    <string name="TP_L10N_166" formatted="false">"Диагностика облака"</string>
+    <string name="TP_L10N_167" formatted="false">"Состояние"</string>
+    <string name="TP_L10N_168" formatted="false">"Готово"</string>
+    <string name="TP_L10N_169" formatted="false">"Требуется восстановление"</string>
+    <string name="TP_L10N_170" formatted="false">"Поколение"</string>
+    <string name="TP_L10N_171" formatted="false">"Объекты"</string>
+    <string name="TP_L10N_172" formatted="false">"Ошибки целостности"</string>
+    <string name="TP_L10N_173" formatted="false">"Потерянные связи"</string>
+    <string name="TP_L10N_174" formatted="false">"Циклы каталогов"</string>
+    <string name="TP_L10N_175" formatted="false">"Корень облака"</string>
+    <string name="TP_L10N_176" formatted="false">"Переместить сюда"</string>
+    <string name="TP_L10N_177" formatted="false">"Доступ"</string>
+    <string name="TP_L10N_178" formatted="false">"Защищать облако"</string>
+    <string name="TP_L10N_179" formatted="false">"При открытии защищённых данных требуется ключ или биометрия"</string>
+    <string name="TP_L10N_180" formatted="false">"Изменить графический ключ"</string>
+    <string name="TP_L10N_181" formatted="false">"Задать графический ключ"</string>
+    <string name="TP_L10N_182" formatted="false">"Нарисуйте новый компактный ключ и подтвердите его"</string>
+    <string name="TP_L10N_183" formatted="false">"Минимум 4 из 9 точек"</string>
+    <string name="TP_L10N_184" formatted="false">"Биометрия останется доступной"</string>
+    <string name="TP_L10N_185" formatted="false">"Если других способов нет, защита будет выключена"</string>
+    <string name="TP_L10N_186" formatted="false">"Удалить графический ключ"</string>
+    <string name="TP_L10N_187" formatted="false">"Биометрия"</string>
+    <string name="TP_L10N_188" formatted="false">"Отпечаток пальца / системная биометрия"</string>
+    <string name="TP_L10N_189" formatted="false">"Требуется Android 9 или новее"</string>
+    <string name="TP_L10N_190" formatted="false">"Автоблокировка"</string>
+    <string name="TP_L10N_191" formatted="false">"Заблокировать сейчас"</string>
+    <string name="TP_L10N_192" formatted="false">"Завершить текущую разблокированную сессию"</string>
+    <string name="TP_L10N_193" formatted="false">"Облако заблокировано"</string>
+    <string name="TP_L10N_194" formatted="false">"Область защиты"</string>
+    <string name="TP_L10N_195" formatted="false">"Закрывать всё облако"</string>
+    <string name="TP_L10N_196" formatted="false">"Вход в пункт «Облако» сразу требует подтверждения"</string>
+    <string name="TP_L10N_197" formatted="false">"Сейчас защищено всё облако. Отключите этот пункт, чтобы закрывать только выбранные разделы."</string>
+    <string name="TP_L10N_198" formatted="false">"Можно оставить корень облака открытым, а закрыть только чувствительные категории. Их файлы не появятся в поиске и «Все файлы» до разблокировки."</string>
+    <string name="TP_L10N_199" formatted="false">"Избранное Cloud"</string>
+    <string name="TP_L10N_200" formatted="false">"Примечание"</string>
+    <string name="TP_L10N_201" formatted="false">"Графический ключ хранится только локально. Биометрия проверяется системным Android BiometricPrompt. Ни рисунок, ни биометрические данные не отправляются в Telegram Cloud V2."</string>
+    <string name="TP_L10N_202" formatted="false">"Шифрование E2EE · Secure Vault V3"</string>
+    <string name="TP_L10N_203" formatted="false">"E2EE недоступно"</string>
+    <string name="TP_L10N_204" formatted="false">"Для Vault необходим Android 8.0+"</string>
+    <string name="TP_L10N_205" formatted="false">"Создать один Master Key"</string>
+    <string name="TP_L10N_206" formatted="false">"Один ключ на все Telegram-аккаунты; требуется пароль восстановления"</string>
+    <string name="TP_L10N_207" formatted="false">"Восстановить Master Key"</string>
+    <string name="TP_L10N_208" formatted="false">"Восстановление после смены телефона по резервному коду и паролю"</string>
+    <string name="TP_L10N_209" formatted="false">"Код восстановления Vault"</string>
+    <string name="TP_L10N_210" formatted="false">"Сохранён. Храни отдельно от Telegram, не отправляй в чат или облачный канал."</string>
+    <string name="TP_L10N_211" formatted="false">"⚠ Код ещё не сохранён — без него Vault не восстановить после сброса телефона"</string>
+    <string name="TP_L10N_212" formatted="false">"Проверить пароль восстановления"</string>
+    <string name="TP_L10N_213" formatted="false">"Убедиться, что пароль подходит к коду, ничего не меняя"</string>
+    <string name="TP_L10N_214" formatted="false">"Включить новое шифрованное облако"</string>
+    <string name="TP_L10N_215" formatted="false">"Новые файлы и каталоги будут E2EE на всех подключённых аккаунтах"</string>
+    <string name="TP_L10N_216" formatted="false">"Vault V3 включён · AES-256-GCM"</string>
+    <string name="TP_L10N_217" formatted="false">"Вложения .tpv и бинарный каталог; общий Master Key"</string>
+    <string name="TP_L10N_218" formatted="false">"Secure Vault активен"</string>
+    <string name="TP_L10N_219" formatted="false">"Восстановить индекс из локального журнала"</string>
+    <string name="TP_L10N_220" formatted="false">"После удаления каталога из приватного канала: выбранный аккаунт"</string>
+    <string name="TP_L10N_221" formatted="false">"Переключиться к старому облаку V2"</string>
+    <string name="TP_L10N_222" formatted="false">"Не удаляет Vault; старые файлы V2 остаются незашифрованными"</string>
+    <string name="TP_L10N_223" formatted="false">"Важно: новый Vault V3 отделён от прежнего облака V2. Ранее загруженные файлы не шифруются автоматически и остаются доступными в старом канале до безопасной миграции. Telegram не позволяет запретить владельцу удалять канал. Локальный зашифрованный журнал защищает от части случайных удалений, но для полной защиты необходима независимая внешняя копия."</string>
+    <string name="TP_L10N_224" formatted="false">"Сначала включи защиту облака и разблокируй её"</string>
+    <string name="TP_L10N_225" formatted="false">"Пароль восстановления от 12 символов"</string>
+    <string name="TP_L10N_226" formatted="false">"Повтори пароль восстановления"</string>
+    <string name="TP_L10N_227" formatted="false">"Новый общий Master Key"</string>
+    <string name="TP_L10N_228" formatted="false">"Пароль нужен для восстановления на другом устройстве. Если его потерять, локального графического ключа будет недостаточно."</string>
+    <string name="TP_L10N_229" formatted="false">"Пароли не совпадают"</string>
+    <string name="TP_L10N_230" formatted="false">"Ошибка ключа: "</string>
+    <string name="TP_L10N_231" formatted="false">"Восстановление Vault"</string>
+    <string name="TP_L10N_232" formatted="false">"Сохрани этот код отдельно и приватно: менеджер паролей, бумага, флешка. Для восстановления дополнительно потребуется пароль. Никогда не храни код вместе с паролем и не отправляй их в Telegram."</string>
+    <string name="TP_L10N_233" formatted="false">"Я сохранил код"</string>
+    <string name="TP_L10N_234" formatted="false">"Сохранить / скопировать"</string>
+    <string name="TP_L10N_235" formatted="false">"Закрыть"</string>
+    <string name="TP_L10N_236" formatted="false">"Сохранить код восстановления"</string>
+    <string name="TP_L10N_237" formatted="false">"Код скопирован. Не сохраняй его в Telegram."</string>
+    <string name="TP_L10N_238" formatted="false">"Пароль восстановления"</string>
+    <string name="TP_L10N_239" formatted="false">"Проверка пароля"</string>
+    <string name="TP_L10N_240" formatted="false">"Проверить"</string>
+    <string name="TP_L10N_241" formatted="false">"Пароль верный: восстановление сработает"</string>
+    <string name="TP_L10N_242" formatted="false">"Пароль не подходит к коду восстановления"</string>
+    <string name="TP_L10N_243" formatted="false">"Ошибка проверки: "</string>
+    <string name="TP_L10N_244" formatted="false">"Неверный формат кода"</string>
+    <string name="TP_L10N_245" formatted="false">"Master Key восстановлен"</string>
+    <string name="TP_L10N_246" formatted="false">"Не удалось восстановить ключ"</string>
+    <string name="TP_L10N_247" formatted="false">"Сначала сохрани код восстановления"</string>
+    <string name="TP_L10N_248" formatted="false">"Включить новый E2EE Vault?"</string>
+    <string name="TP_L10N_249" formatted="false">"Будет создан отдельный приватный Vault V3 для каждого подключённого аккаунта. Новые файлы и каталоги станут зашифрованными. Старые файлы и сообщения V2 останутся в предыдущих каналах в открытом виде. Это НЕ миграция старых данных. Сохрани код восстановления до включения!"</string>
+    <string name="TP_L10N_250" formatted="false">"Включить V3"</string>
+    <string name="TP_L10N_251" formatted="false">"Vault включён. Заново открой раздел «Облако»."</string>
+    <string name="TP_L10N_252" formatted="false">"Восстановление каталога Vault"</string>
+    <string name="TP_L10N_253" formatted="false">"Восстановить последний зашифрованный каталог для текущего Telegram-аккаунта из локального журнала? Файлы, удалённые из Telegram, дополнительно потребуют собственных резервных копий."</string>
+    <string name="TP_L10N_254" formatted="false">"Каталог Vault восстановлен"</string>
+    <string name="TP_L10N_255" formatted="false">"Ошибка восстановления: "</string>
+    <string name="TP_L10N_256" formatted="false">"Вернуться к V2?"</string>
+    <string name="TP_L10N_257" formatted="false">"Старое облако V2 может содержать незашифрованные файлы. Данные V3 останутся зашифрованными в отдельном канале и снова появятся при включении V3."</string>
+    <string name="TP_L10N_258" formatted="false">"Вернуться"</string>
+    <string name="TP_L10N_259" formatted="false">"Режим V2. Открой облако заново."</string>
+    <string name="TP_L10N_260" formatted="false">"Способ защиты"</string>
+    <string name="TP_L10N_261" formatted="false">"Графический ключ"</string>
+    <string name="TP_L10N_262" formatted="false">"Отпечаток / биометрия"</string>
+    <string name="TP_L10N_263" formatted="false">"Биометрия недоступна на этом устройстве"</string>
+    <string name="TP_L10N_264" formatted="false">"Включить биометрию"</string>
+    <string name="TP_L10N_265" formatted="false">"Подтвердите отпечаток или другой системный метод"</string>
+    <string name="TP_L10N_266" formatted="false">"Биометрия не распознана"</string>
+    <string name="TP_L10N_267" formatted="false">"Биометрия недоступна"</string>
+    <string name="TP_L10N_268" formatted="false">"Биометрия недоступна. Проверьте отпечаток в настройках Android."</string>
+    <string name="TP_L10N_269" formatted="false">"Запрашивать подтверждение перед просмотром"</string>
+    <string name="TP_L10N_270" formatted="false">" секунд после разблокировки"</string>
+    <string name="TP_L10N_271" formatted="false">"1 минута после разблокировки"</string>
+    <string name="TP_L10N_272" formatted="false">" минут после разблокировки"</string>
+    <string name="TP_L10N_273" formatted="false">"30 секунд"</string>
+    <string name="TP_L10N_274" formatted="false">"1 минута"</string>
+    <string name="TP_L10N_275" formatted="false">"5 минут"</string>
+    <string name="TP_L10N_276" formatted="false">"Графический ключ будет удалён. Биометрическая разблокировка останется активной."</string>
+    <string name="TP_L10N_277" formatted="false">"Графический ключ будет удалён, и защита Cloud выключится до выбора нового способа."</string>
+    <string name="TP_L10N_278" formatted="false">"Удалить графический ключ?"</string>
+    <string name="TP_L10N_279" formatted="false">"Корзина пуста"</string>
+    <string name="TP_L10N_280" formatted="false">"Нет избранных файлов"</string>
+    <string name="TP_L10N_281" formatted="false">"Нажмите, чтобы восстановить"</string>
+    <string name="TP_L10N_282" formatted="false">"Облако защищено"</string>
+    <string name="TP_L10N_283" formatted="false">"Защищено: "</string>
+    <string name="TP_L10N_284" formatted="false">"Проведите графический ключ"</string>
+    <string name="TP_L10N_285" formatted="false">"Подтвердите отпечаток или биометрию"</string>
+    <string name="TP_L10N_286" formatted="false">"Способ разблокировки не настроен"</string>
+    <string name="TP_L10N_287" formatted="false">"Использовать биометрию"</string>
+    <string name="TP_L10N_288" formatted="false">"Открыть TelePremium Cloud"</string>
+    <string name="TP_L10N_289" formatted="false">"Подтвердите личность"</string>
+    <string name="TP_L10N_290" formatted="false">"Раздел: "</string>
+    <string name="TP_L10N_291" formatted="false">"Разблокировка отменена"</string>
+    <string name="TP_L10N_292" formatted="false">"Биометрия не распознана. Попробуйте снова."</string>
+    <string name="TP_L10N_293" formatted="false">"Биометрия недоступна. Используйте графический ключ."</string>
+    <string name="TP_L10N_294" formatted="false">"Биометрия недоступна на этом устройстве."</string>
+    <string name="TP_L10N_295" formatted="false">"Не удалось открыть облако. Повторите попытку."</string>
+    <string name="TP_L10N_296" formatted="false">"Загрузки"</string>
+    <string name="TP_L10N_297" formatted="false">"Файлы всех подключённых профилей"</string>
+    <string name="TP_L10N_298" formatted="false">"Облако по профилям"</string>
+    <string name="TP_L10N_299" formatted="false">"Папки и файлы профиля"</string>
+    <string name="TP_L10N_300" formatted="false">"Хранилище"</string>
+    <string name="TP_L10N_301" formatted="false">"Размеры медиа и очистка"</string>
+    <string name="TP_L10N_302" formatted="false">"Настройки загрузок"</string>
+    <string name="TP_L10N_303" formatted="false">"Автозагрузка, мобильная сеть и Wi-Fi"</string>
+    <string name="TP_L10N_304" formatted="false">"Медиатека"</string>
+    <string name="TP_L10N_305" formatted="false">"Сохранить очередь как плейлист"</string>
+    <string name="TP_L10N_306" formatted="false">"Открыть текущий плеер"</string>
+    <string name="TP_L10N_307" formatted="false">"▣\nУстройство"</string>
+    <string name="TP_L10N_308" formatted="false">"☁\nОблако"</string>
+    <string name="TP_L10N_309" formatted="false">"◎\nСеть"</string>
+    <string name="TP_L10N_310" formatted="false">"☷\nПлейлисты"</string>
+    <string name="TP_L10N_311" formatted="false">"Поиск по названию, исполнителю, альбому…"</string>
+    <string name="TP_L10N_312" formatted="false">"Все"</string>
+    <string name="TP_L10N_313" formatted="false">"♫ Музыка"</string>
+    <string name="TP_L10N_314" formatted="false">"▣ Видео"</string>
+    <string name="TP_L10N_315" formatted="false">"☷ Очередь"</string>
+    <string name="TP_L10N_316" formatted="false">"Загрузка…"</string>
+    <string name="TP_L10N_317" formatted="false">"Ничего не воспроизводится"</string>
+    <string name="TP_L10N_318" formatted="false">"Устройство · сканирование MediaStore…"</string>
+    <string name="TP_L10N_319" formatted="false">"Устройство · "</string>
+    <string name="TP_L10N_320" formatted="false">" файлов"</string>
+    <string name="TP_L10N_321" formatted="false">"Нет доступа к медиатеке: "</string>
+    <string name="TP_L10N_322" formatted="false">"TelePremium Cloud · загрузка метаданных…"</string>
+    <string name="TP_L10N_323" formatted="false">"Облако · "</string>
+    <string name="TP_L10N_324" formatted="false">" медиафайлов"</string>
+    <string name="TP_L10N_325" formatted="false">"Облако: "</string>
+    <string name="TP_L10N_326" formatted="false">"Сетевой источник"</string>
+    <string name="TP_L10N_327" formatted="false">"Сеть · подключение…"</string>
+    <string name="TP_L10N_328" formatted="false">"Сеть · "</string>
+    <string name="TP_L10N_329" formatted="false">" элементов"</string>
+    <string name="TP_L10N_330" formatted="false">"Сеть: "</string>
+    <string name="TP_L10N_331" formatted="false">"Сохранённых плейлистов пока нет"</string>
+    <string name="TP_L10N_332" formatted="false">"Плейлисты"</string>
+    <string name="TP_L10N_333" formatted="false">"Плейлист · "</string>
+    <string name="TP_L10N_334" formatted="false">"Управление"</string>
+    <string name="TP_L10N_335" formatted="false">"Очередь пуста"</string>
+    <string name="TP_L10N_336" formatted="false">"Название плейлиста"</string>
+    <string name="TP_L10N_337" formatted="false">"Сохранить очередь"</string>
+    <string name="TP_L10N_338" formatted="false">"Новый плейлист"</string>
+    <string name="TP_L10N_339" formatted="false">"Плейлист сохранён"</string>
+    <string name="TP_L10N_340" formatted="false">"Текущая очередь · "</string>
+    <string name="TP_L10N_341" formatted="false">"Добавить в очередь"</string>
+    <string name="TP_L10N_342" formatted="false">"Действия с файлом"</string>
+    <string name="TP_L10N_343" formatted="false">"Неизвестный исполнитель"</string>
+    <string name="TP_L10N_344" formatted="false">"Добавлено в очередь"</string>
+    <string name="TP_L10N_345" formatted="false">"Воспроизвести"</string>
+    <string name="TP_L10N_346" formatted="false">"Воспроизвести следующим"</string>
+    <string name="TP_L10N_347" formatted="false">"Добавлено следующим"</string>
+    <string name="TP_L10N_348" formatted="false">"Умное подключение\n"</string>
+    <string name="TP_L10N_349" formatted="false">" аккаунтов на связи"</string>
+    <string name="TP_L10N_350" formatted="false">"Маршруты аккаунтов"</string>
+    <string name="TP_L10N_351" formatted="false">"Каждый аккаунт может использовать собственный Direct, MTProto или SOCKS5 маршрут. Общие Telegram-прокси продолжают работать для аккаунтов в режиме «Общий маршрут»."</string>
+    <string name="TP_L10N_352" formatted="false">"Сетевой профиль"</string>
+    <string name="TP_L10N_353" formatted="false">"Режим подключения"</string>
+    <string name="TP_L10N_354" formatted="false">"Название профиля"</string>
+    <string name="TP_L10N_355" formatted="false">"Метка региона"</string>
+    <string name="TP_L10N_356" formatted="false">"Регион / страна"</string>
+    <string name="TP_L10N_357" formatted="false">"Адрес сервера"</string>
+    <string name="TP_L10N_358" formatted="false">"Порт"</string>
+    <string name="TP_L10N_359" formatted="false">"Логин"</string>
+    <string name="TP_L10N_360" formatted="false">"Логин SOCKS5"</string>
+    <string name="TP_L10N_361" formatted="false">"Пароль"</string>
+    <string name="TP_L10N_362" formatted="false">"Пароль SOCKS5"</string>
+    <string name="TP_L10N_363" formatted="false">"IP стратегия"</string>
+    <string name="TP_L10N_364" formatted="false">"Проверить соединение"</string>
+    <string name="TP_L10N_365" formatted="false">"Нажмите для проверки"</string>
+    <string name="TP_L10N_366" formatted="false">"Сохранить и применить"</string>
+    <string name="TP_L10N_367" formatted="false">"Только для этого аккаунта"</string>
+    <string name="TP_L10N_368" formatted="false">"Использовать общий маршрут Telegram"</string>
+    <string name="TP_L10N_369" formatted="false">"Удалить индивидуальный профиль"</string>
+    <string name="TP_L10N_370" formatted="false">"Не задан"</string>
+    <string name="TP_L10N_371" formatted="false">"Общий маршрут Telegram"</string>
+    <string name="TP_L10N_372" formatted="false">"Прямое подключение"</string>
+    <string name="TP_L10N_373" formatted="false">"Авто"</string>
+    <string name="TP_L10N_374" formatted="false">"Проверка…"</string>
+    <string name="TP_L10N_375" formatted="false">"Недоступно"</string>
+    <string name="TP_L10N_376" formatted="false">"Соединение активно"</string>
+    <string name="TP_L10N_377" formatted="false">"Не задано"</string>
+    <string name="TP_L10N_378" formatted="false">"Собственные возможности клиента. Локальные функции работают внутри TelePremium без экранов покупки подписки."</string>
+    <string name="TP_L10N_379" formatted="false">"Цвет имени и профиля"</string>
+    <string name="TP_L10N_380" formatted="false">"Цвет, фон профиля и фоновый emoji хранятся локально и отображаются только внутри TelePremium."</string>
+    <string name="TP_L10N_381" formatted="false">"Локальный emoji-статус"</string>
+    <string name="TP_L10N_382" formatted="false">"Выбранный статус хранится локально в TelePremium и не отправляется как серверная подписочная функция."</string>
+    <string name="TP_L10N_383" formatted="false">"Реакция по двойному тапу"</string>
+    <string name="TP_L10N_384" formatted="false">"Стандартная или custom emoji-реакция выбирается локально для этого клиента."</string>
+    <string name="TP_L10N_385" formatted="false">"Истории"</string>
+    <string name="TP_L10N_386" formatted="false">"Просмотр и инструменты историй Telegram. Локальные расширения будут подключаться отдельными модулями."</string>
+    <string name="TP_L10N_387" formatted="false">"Файлы и хранилище"</string>
+    <string name="TP_L10N_388" formatted="false">"File Center, загрузки всех аккаунтов и управление кэшем."</string>
+    <string name="TP_L10N_389" formatted="false">"Расширенные возможности клиента"</string>
+    <string name="TP_L10N_390" formatted="false">"До 10 аккаунтов, отдельные сетевые профили и локальные функции."</string>
+    <string name="TP_L10N_391" formatted="false">"Без рекламы"</string>
+    <string name="TP_L10N_392" formatted="false">"Sponsored messages отключены на уровне клиента."</string>
+    <string name="TP_L10N_393" formatted="false">"Перевод чатов"</string>
+    <string name="TP_L10N_394" formatted="false">"Перевод сообщений и режим перевода целого чата без локального Premium-замка."</string>
+    <string name="TP_L10N_395" formatted="false">"Расшифровка голосовых"</string>
+    <string name="TP_L10N_396" formatted="false">"Локальный Voice-to-Text через системный Speech Recognizer на Android 13+."</string>
+    <string name="TP_L10N_397" formatted="false">"Настройки TelePremium"</string>
+    <string name="TP_L10N_398" formatted="false">"Аккаунты, сеть, файлы, масштаб интерфейса и оформление."</string>
+    <string name="TP_L10N_399" formatted="false">"Нарисуйте ключ"</string>
+    <string name="TP_L10N_400" formatted="false">"Соедините минимум 4 точки. Затем повторите рисунок."</string>
+    <string name="TP_L10N_401" formatted="false">"Ключ хранится только на устройстве в виде хеша PBKDF2 с солью. Сам рисунок не сохраняется."</string>
+    <string name="TP_L10N_402" formatted="false">"Нужно выбрать минимум 4 точки"</string>
+    <string name="TP_L10N_403" formatted="false">"Повторите ключ"</string>
+    <string name="TP_L10N_404" formatted="false">"Нарисуйте тот же рисунок ещё раз для подтверждения."</string>
+    <string name="TP_L10N_405" formatted="false">"Ключи не совпали"</string>
+    <string name="TP_L10N_406" formatted="false">"Начните заново и повторите один и тот же рисунок."</string>
+    <string name="TP_L10N_407" formatted="false">"Не удалось сохранить ключ"</string>
+    <string name="TP_L10N_408" formatted="false">"Попробуйте ещё раз."</string>
+    <string name="TP_L10N_409" formatted="false">"Медиа не выбрано"</string>
+    <string name="TP_L10N_410" formatted="false">"Медиа"</string>
+    <string name="TP_L10N_411" formatted="false">"Устройство"</string>
+    <string name="TP_L10N_412" formatted="false">"☷    Далее в плейлисте                         ›"</string>
+    <string name="TP_L10N_413" formatted="false">"Назад"</string>
+    <string name="TP_L10N_414" formatted="false">"Сейчас играет"</string>
+    <string name="TP_L10N_415" formatted="false">"Аппаратное декодирование"</string>
+    <string name="TP_L10N_416" formatted="false">"Субтитры"</string>
+    <string name="TP_L10N_417" formatted="false">"Очередь воспроизведения"</string>
+    <string name="TP_L10N_418" formatted="false">"Дополнительно"</string>
+    <string name="TP_L10N_419" formatted="false">"Предыдущий"</string>
+    <string name="TP_L10N_420" formatted="false">"Следующий"</string>
+    <string name="TP_L10N_421" formatted="false">"Скорость воспроизведения"</string>
+    <string name="TP_L10N_422" formatted="false">"Масштаб видео"</string>
+    <string name="TP_L10N_423" formatted="false">"Картинка в картинке"</string>
+    <string name="TP_L10N_424" formatted="false">"Пауза или воспроизведение"</string>
+    <string name="TP_L10N_425" formatted="false">"Перемешивание очереди"</string>
+    <string name="TP_L10N_426" formatted="false">"Повтор очереди"</string>
+    <string name="TP_L10N_427" formatted="false">"⚙  Настройки"</string>
+    <string name="TP_L10N_428" formatted="false">"Настройки плеера"</string>
+    <string name="TP_L10N_429" formatted="false">"☷  Очередь"</string>
+    <string name="TP_L10N_430" formatted="false">"Онлайн-поток"</string>
+    <string name="TP_L10N_431" formatted="false">"Сеть"</string>
+    <string name="TP_L10N_432" formatted="false">"▣  Устройство"</string>
+    <string name="TP_L10N_433" formatted="false">"Подключение к источнику…"</string>
+    <string name="TP_L10N_434" formatted="false">"Онлайн · буферизация…"</string>
+    <string name="TP_L10N_435" formatted="false">"Буферизация…"</string>
+    <string name="TP_L10N_436" formatted="false">"Переход к фрагменту…"</string>
+    <string name="TP_L10N_437" formatted="false">"Ошибка воспроизведения"</string>
+    <string name="TP_L10N_438" formatted="false">"Масштаб: "</string>
+    <string name="TP_L10N_439" formatted="false">"Заполнить с обрезкой"</string>
+    <string name="TP_L10N_440" formatted="false">"Растянуть"</string>
+    <string name="TP_L10N_441" formatted="false">"Вписать"</string>
+    <string name="TP_L10N_442" formatted="false">"Декодер"</string>
+    <string name="TP_L10N_443" formatted="false">"HW используется автоматически, если кодек поддерживается устройством"</string>
+    <string name="TP_L10N_444" formatted="false">"Скорость"</string>
+    <string name="TP_L10N_445" formatted="false">"Шаг двойного тапа"</string>
+    <string name="TP_L10N_446" formatted="false">"Левая/правая половина видео"</string>
+    <string name="TP_L10N_447" formatted="false">" сек"</string>
+    <string name="TP_L10N_448" formatted="false">"Жест яркости"</string>
+    <string name="TP_L10N_449" formatted="false">"Вертикально по левой половине"</string>
+    <string name="TP_L10N_450" formatted="false">"Вкл"</string>
+    <string name="TP_L10N_451" formatted="false">"Выкл"</string>
+    <string name="TP_L10N_452" formatted="false">"Жест громкости"</string>
+    <string name="TP_L10N_453" formatted="false">"Вертикально по правой половине"</string>
+    <string name="TP_L10N_454" formatted="false">"Включение текстовой дорожки"</string>
+    <string name="TP_L10N_455" formatted="false">"Повтор"</string>
+    <string name="TP_L10N_456" formatted="false">"Перемешивание"</string>
+    <string name="TP_L10N_457" formatted="false">"Shuffle очереди"</string>
+    <string name="TP_L10N_458" formatted="false">"Ориентация"</string>
+    <string name="TP_L10N_459" formatted="false">"Авто / портрет / альбомная"</string>
+    <string name="TP_L10N_460" formatted="false">"Изменить"</string>
+    <string name="TP_L10N_461" formatted="false">"Блокировка"</string>
+    <string name="TP_L10N_462" formatted="false">"Отключить жесты и скрыть chrome"</string>
+    <string name="TP_L10N_463" formatted="false">"Таймер сна"</string>
+    <string name="TP_L10N_464" formatted="false">"Остановить воспроизведение позже"</string>
+    <string name="TP_L10N_465" formatted="false">"Очередь"</string>
+    <string name="TP_L10N_466" formatted="false">"Текущий плейлист"</string>
+    <string name="TP_L10N_467" formatted="false">"Продолжить поверх других приложений"</string>
+    <string name="TP_L10N_468" formatted="false">"Открыть медиатеку"</string>
+    <string name="TP_L10N_469" formatted="false">"5 секунд"</string>
+    <string name="TP_L10N_470" formatted="false">"10 секунд"</string>
+    <string name="TP_L10N_471" formatted="false">"15 секунд"</string>
+    <string name="TP_L10N_472" formatted="false">"Автоматически"</string>
+    <string name="TP_L10N_473" formatted="false">"Портрет"</string>
+    <string name="TP_L10N_474" formatted="false">"Альбомная"</string>
+    <string name="TP_L10N_475" formatted="false">"Управление заблокировано"</string>
+    <string name="TP_L10N_476" formatted="false">"Управление разблокировано"</string>
+    <string name="TP_L10N_477" formatted="false">"15 минут"</string>
+    <string name="TP_L10N_478" formatted="false">"30 минут"</string>
+    <string name="TP_L10N_479" formatted="false">"45 минут"</string>
+    <string name="TP_L10N_480" formatted="false">"60 минут"</string>
+    <string name="TP_L10N_481" formatted="false">"После текущего трека"</string>
+    <string name="TP_L10N_482" formatted="false">"Таймер сна: "</string>
+    <string name="TP_L10N_483" formatted="false">"Далее в очереди"</string>
+    <string name="TP_L10N_484" formatted="false">"＋  Открыть медиатеку"</string>
+    <string name="TP_L10N_485" formatted="false">"Музыка"</string>
+    <string name="TP_L10N_486" formatted="false">"Плейлистов пока нет.\nСоздайте их из очереди в Медиатеке."</string>
+    <string name="TP_L10N_487" formatted="false">"Удалить плейлист?"</string>
+    <string name="TP_L10N_488" formatted="false">"Очередь загружена: "</string>
+    <string name="TP_L10N_489" formatted="false">"Вход по QR-коду"</string>
+    <string name="TP_L10N_490" formatted="false">"Откройте Telegram на уже авторизованном устройстве → Настройки → Устройства → Подключить устройство и отсканируйте этот код."</string>
+    <string name="TP_L10N_491" formatted="false">"Получаем код…"</string>
+    <string name="TP_L10N_492" formatted="false">"Ошибка: "</string>
+    <string name="TP_L10N_493" formatted="false">"Ожидание сканирования…"</string>
+    <string name="TP_L10N_494" formatted="false">"QR-код принят. Завершаем вход…"</string>
+    <string name="TP_L10N_495" formatted="false">"Не удалось создать QR-код"</string>
+    <string name="TP_L10N_496" formatted="false">"Обновления"</string>
+    <string name="TP_L10N_497" formatted="false">"Источник обновлений"</string>
+    <string name="TP_L10N_498" formatted="false">"Не задан — нажмите, чтобы указать owner/repo"</string>
+    <string name="TP_L10N_499" formatted="false">"Автопроверка раз в сутки"</string>
+    <string name="TP_L10N_500" formatted="false">"Включена"</string>
+    <string name="TP_L10N_501" formatted="false">"Выключена"</string>
+    <string name="TP_L10N_502" formatted="false">"Проверить сейчас"</string>
+    <string name="TP_L10N_503" formatted="false">"Установлена версия "</string>
+    <string name="TP_L10N_504" formatted="false">" · проверка "</string>
+    <string name="TP_L10N_505" formatted="false">"Диагностика"</string>
+    <string name="TP_L10N_506" formatted="false">"Запись логов"</string>
+    <string name="TP_L10N_507" formatted="false">" · изменение действует после перезапуска"</string>
+    <string name="TP_L10N_508" formatted="false">"Отправить отчёт"</string>
+    <string name="TP_L10N_509" formatted="false">"Версия, устройство, состояние Cloud/Vault и последние логи (без ключей и переписки)"</string>
+    <string name="TP_L10N_510" formatted="false">"Целостность каталога текущего аккаунта"</string>
+    <string name="TP_L10N_511" formatted="false">"Очистить логи"</string>
+    <string name="TP_L10N_512" formatted="false">"Удалить файлы журналов"</string>
+    <string name="TP_L10N_513" formatted="false">"Логи очищены"</string>
+    <string name="TP_L10N_514" formatted="false">"Автоочистка корзины"</string>
+    <string name="TP_L10N_515" formatted="false">"Через "</string>
+    <string name="TP_L10N_516" formatted="false">" дн. после удаления"</string>
+    <string name="TP_L10N_517" formatted="false">"owner/repo или https://…/telepremium-update.json"</string>
+    <string name="TP_L10N_518" formatted="false">"Публичный GitHub-репозиторий с релизами TelePremium (APK + telepremium-update.json) или прямая HTTPS-ссылка на манифест. Приватный репозиторий без токена недоступен."</string>
+    <string name="TP_L10N_519" formatted="false">"Проверка обновлений…"</string>
+    <string name="TP_L10N_520" formatted="false">"Не удалось проверить: "</string>
+    <string name="TP_L10N_521" formatted="false">"Установлена последняя версия"</string>
+    <string name="TP_L10N_522" formatted="false">"Логи включены"</string>
+    <string name="TP_L10N_523" formatted="false">"Логи выключены"</string>
+    <string name="TP_L10N_524" formatted="false">"Не очищать"</string>
+    <string name="TP_L10N_525" formatted="false">" дней"</string>
+    <string name="TP_L10N_526" formatted="false">"Подготовка отчёта…"</string>
+    <string name="TP_L10N_527" formatted="false">"Не удалось собрать отчёт: "</string>
+    <string name="TP_L10N_528" formatted="false">"Доступно обновление TelePremium"</string>
+    <string name="TP_L10N_529" formatted="false">"Версия "</string>
+    <string name="TP_L10N_530" formatted="false">".\nAPK будет проверен по SHA-256 и подписи перед установкой."</string>
+    <string name="TP_L10N_531" formatted="false">"Скачать"</string>
+    <string name="TP_L10N_532" formatted="false">"Позже"</string>
+    <string name="TP_L10N_533" formatted="false">"Разрешите установку из этого источника и повторите"</string>
+    <string name="TP_L10N_534" formatted="false">"Загрузка обновления…"</string>
+    <string name="TP_L10N_535" formatted="false">"Обновление не установлено"</string>
+</resources>

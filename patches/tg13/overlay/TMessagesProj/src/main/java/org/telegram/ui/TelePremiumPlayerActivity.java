@@ -1,5 +1,7 @@
 package org.telegram.ui;
 
+import org.telegram.messenger.telepremium.media.TelePremiumPlayerMath;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -88,17 +90,17 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private ImageView artworkImage;
     private TextView headerTitleView, shuffleButton, repeatButton;
     private boolean portraitAudioLayout;
-    private AspectSurfaceView surface;
+    private TelePremiumAspectSurfaceView surface;
     private TextView audioArtwork, titleView, artistView, sourceView, stateView, positionView, durationView;
     private TextView playButton, speedButton, fitButton, subtitlesButton, hwButton, queueButton;
     private SeekBar seekBar;
     private View topChrome, bottomChrome;
     private TextView lockButton;
     private boolean userSeeking, landscape, chromeVisible = true, pip, controlsLocked;
-    private static final int SCALE_FIT = 0;
-    private static final int SCALE_CROP = 1;
-    private static final int SCALE_STRETCH = 2;
-    private static final int SCALE_ORIGINAL = 3;
+    private static final int SCALE_FIT = TelePremiumPlayerMath.SCALE_FIT;
+    private static final int SCALE_CROP = TelePremiumPlayerMath.SCALE_CROP;
+    private static final int SCALE_STRETCH = TelePremiumPlayerMath.SCALE_STRETCH;
+    private static final int SCALE_ORIGINAL = TelePremiumPlayerMath.SCALE_ORIGINAL;
     private int scaleMode = SCALE_FIT;
     private int seekStepSeconds = 10;
     private boolean gestureBrightness = true;
@@ -192,7 +194,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         buildUi();
         if (launchItem != null) controller.play(launchItem);
         else if (controller.getCurrent() == null) {
-            Toast.makeText(this, "Медиа не выбрано", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_409), Toast.LENGTH_SHORT).show();
             finish();
         } else {
             bindCurrent(controller.getCurrent());
@@ -226,7 +228,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         Uri uri = path == null ? intent.getData() : Uri.fromFile(new File(path));
         if (uri == null) return null;
         if (TextUtils.isEmpty(name)) name = resolveDisplayName(uri);
-        if (TextUtils.isEmpty(name)) name = path == null ? "Медиа" : new File(path).getName();
+        if (TextUtils.isEmpty(name)) name = path == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_410) : new File(path).getName();
         if (TextUtils.isEmpty(mime)) mime = intent.getType();
         String scheme = uri.getScheme();
         if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) return TelePremiumMediaItem.network(uri.toString(), name, mime, false);
@@ -283,7 +285,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         meta.setOrientation(LinearLayout.VERTICAL);
         meta.setGravity(Gravity.CENTER_HORIZONTAL);
         meta.setPadding(dp(24), dp(17), dp(24), dp(4));
-        titleView = text("Медиа", portraitAudioLayout ? 25 : 19, PLAYER_WHITE, true);
+        titleView = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_410), portraitAudioLayout ? 25 : 19, PLAYER_WHITE, true);
         titleView.setGravity(Gravity.CENTER);
         titleView.setSingleLine(true);
         titleView.setEllipsize(TextUtils.TruncateAt.END);
@@ -291,7 +293,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         artistView.setGravity(Gravity.CENTER);
         artistView.setSingleLine(true);
         artistView.setEllipsize(TextUtils.TruncateAt.END);
-        sourceView = pill("Устройство");
+        sourceView = pill(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_411));
         sourceView.setTextColor(PLAYER_MUTED);
         sourceView.setGravity(Gravity.CENTER);
         sourceView.setBackground(roundBg(PLAYER_PANEL, PLAYER_STROKE, 21));
@@ -305,7 +307,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         bottomChrome = createBottomControls(false);
         column.addView(bottomChrome, new LinearLayout.LayoutParams(-1, dp(portraitAudioLayout ? 193 : 156)));
 
-        queueButton = text("☷    Далее в плейлисте                         ›", 14, PLAYER_WHITE, false);
+        queueButton = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_412), 14, PLAYER_WHITE, false);
         queueButton.setGravity(Gravity.CENTER_VERTICAL);
         queueButton.setPadding(dp(20), 0, dp(16), 0);
         queueButton.setBackground(roundBg(PLAYER_PANEL, PLAYER_STROKE, 23));
@@ -390,23 +392,23 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         row.setGravity(Gravity.CENTER_VERTICAL);
         TextView back = transparentButton("‹", 36);
         back.setTextColor(PLAYER_WHITE);
-        back.setContentDescription("Назад");
+        back.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_413));
         back.setOnClickListener(v -> finish());
         row.addView(back, new LinearLayout.LayoutParams(dp(48), -1));
 
-        headerTitleView = text(landscape ? "TelePremium Media" : "Сейчас играет", landscape ? 17 : 20, PLAYER_WHITE, true);
+        headerTitleView = text(landscape ? "TelePremium Media" : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_414), landscape ? 17 : 20, PLAYER_WHITE, true);
         headerTitleView.setSingleLine(true);
         headerTitleView.setEllipsize(TextUtils.TruncateAt.END);
         row.addView(headerTitleView, new LinearLayout.LayoutParams(0, -1, 1f));
 
         hwButton = transparentButton("HW", 12);
-        hwButton.setContentDescription("Аппаратное декодирование");
+        hwButton.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_415));
         hwButton.setTextColor(PLAYER_MUTED);
         hwButton.setOnClickListener(v -> showPlayerSettings());
         row.addView(hwButton, new LinearLayout.LayoutParams(dp(42), dp(42)));
         subtitlesButton = transparentButton("▤", 23);
         subtitlesButton.setTextColor(PLAYER_WHITE);
-        subtitlesButton.setContentDescription("Субтитры");
+        subtitlesButton.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_416));
         subtitlesButton.setOnClickListener(v -> {
             controller.setSubtitlesEnabled(!controller.isSubtitlesEnabled());
             subtitlesButton.setAlpha(controller.isSubtitlesEnabled() ? 1f : .35f);
@@ -415,13 +417,13 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         if (landscape) {
             TextView videoQueue = transparentButton("☷", 23);
             videoQueue.setTextColor(PLAYER_WHITE);
-            videoQueue.setContentDescription("Очередь воспроизведения");
+            videoQueue.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_417));
             videoQueue.setOnClickListener(v -> showQueue());
             row.addView(videoQueue, new LinearLayout.LayoutParams(dp(42), dp(42)));
         }
         TextView more = transparentButton("⋮", 27);
         more.setTextColor(PLAYER_WHITE);
-        more.setContentDescription("Дополнительно");
+        more.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_418));
         more.setOnClickListener(v -> showMoreMenu());
         row.addView(more, new LinearLayout.LayoutParams(dp(40), dp(42)));
         wrap.addView(row, new LinearLayout.LayoutParams(-1, dp(48)));
@@ -444,7 +446,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private FrameLayout createStage() {
         FrameLayout stage = new FrameLayout(this);
         stage.setBackgroundColor(landscape ? Color.BLACK : PLAYER_BG);
-        surface = new AspectSurfaceView(this);
+        surface = new TelePremiumAspectSurfaceView(this);
         surface.setScaleMode(scaleMode);
         stage.addView(surface, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
         artworkImage = new ImageView(this);
@@ -501,23 +503,23 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         LinearLayout transport = new LinearLayout(this);
         transport.setGravity(Gravity.CENTER);
         TextView previous = transparentButton("|◀", 24);
-        previous.setContentDescription("Предыдущий");
+        previous.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_419));
         previous.setOnClickListener(v -> controller.previous());
         TextView next = transparentButton("▶|", 24);
-        next.setContentDescription("Следующий");
+        next.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_420));
         next.setOnClickListener(v -> controller.next());
         speedButton = transparentButton("1×", 15);
         speedButton.setOnClickListener(v -> cycleSpeed());
-        speedButton.setContentDescription("Скорость воспроизведения");
+        speedButton.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_421));
         fitButton = transparentButton(scaleModeIcon(), 21);
-        fitButton.setContentDescription("Масштаб видео");
+        fitButton.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_422));
         fitButton.setOnClickListener(v -> toggleFit());
         TextView pipButton = transparentButton("▣", 22);
-        pipButton.setContentDescription("Картинка в картинке");
+        pipButton.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_423));
         pipButton.setOnClickListener(v -> enterPip());
         playButton = roundButton(controller.isPlaying() ? "Ⅱ" : "▶", 30);
         playButton.setOnClickListener(v -> { controller.toggle(); scheduleChromeHide(); });
-        playButton.setContentDescription("Пауза или воспроизведение");
+        playButton.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_424));
         FrameLayout playSlot = new FrameLayout(this);
         playSlot.addView(playButton, new FrameLayout.LayoutParams(dp(66), dp(66), Gravity.CENTER));
         if (overlay) {
@@ -530,10 +532,10 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         } else {
             if (portraitAudioLayout) {
                 shuffleButton = transparentButton("⤨", 24);
-                shuffleButton.setContentDescription("Перемешивание очереди");
+                shuffleButton.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_425));
                 shuffleButton.setOnClickListener(v -> toggleShuffle());
                 repeatButton = transparentButton("↻", 26);
-                repeatButton.setContentDescription("Повтор очереди");
+                repeatButton.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_426));
                 repeatButton.setOnClickListener(v -> toggleRepeat());
                 transport.addView(shuffleButton, controlWeight());
             } else {
@@ -555,12 +557,12 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             extras.setGravity(Gravity.CENTER);
             speedButton.setTextColor(PLAYER_MUTED);
             extras.addView(speedButton, new LinearLayout.LayoutParams(0, dp(51), 1f));
-            TextView output = transparentButton("⚙  Настройки", 13);
-            output.setContentDescription("Настройки плеера");
+            TextView output = transparentButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_427), 13);
+            output.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_428));
             output.setTextColor(PLAYER_MUTED);
             output.setOnClickListener(v -> showPlayerSettings());
             extras.addView(output, new LinearLayout.LayoutParams(0, dp(51), 1.5f));
-            TextView queue = transparentButton("☷  Очередь", 13);
+            TextView queue = transparentButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_429), 13);
             queue.setTextColor(PLAYER_MUTED);
             queue.setOnClickListener(v -> showQueue());
             extras.addView(queue, new LinearLayout.LayoutParams(0, dp(51), 1.1f));
@@ -598,11 +600,11 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         displayItem = item;
         if (titleView != null) titleView.setText(item.isVideo() ? item.title : stripAudioExtension(item.title));
         if (artistView != null) artistView.setText(TextUtils.isEmpty(item.artist)
-                ? (item.isVideo() ? "Видео" : "Неизвестный исполнитель") : item.artist);
+                ? (item.isVideo() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_098) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_343)) : item.artist);
         if (sourceView != null) sourceView.setText(sourceText(item));
         if (headerTitleView != null) headerTitleView.setText(landscape
                 ? (TextUtils.isEmpty(item.title) ? "TelePremium Media" : item.title)
-                : item.isVideo() ? "Видео" : "Сейчас играет");
+                : item.isVideo() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_098) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_414));
 
         boolean video = item.isVideo();
         if (surface != null) {
@@ -638,8 +640,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private String sourceText(TelePremiumMediaItem item) {
         if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return item.encryptionVersion >= 3
                 ? "☁  TelePremium Cloud · Vault" : "☁  TelePremium Cloud";
-        if (item.sourceType == TelePremiumMediaItem.SOURCE_NETWORK) return "◉  " + (item.live ? "Онлайн-поток" : "Сеть");
-        return "▣  Устройство";
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_NETWORK) return "◉  " + (item.live ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_430) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_431));
+        return org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_432);
     }
 
     @Override public void onMediaChanged(TelePremiumMediaItem item) { displayItem = item; bindCurrent(item); }
@@ -648,10 +650,10 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         updatePlayButton();
         if (stateView == null) return;
         TelePremiumMediaItem item = controller.getCurrent();
-        if (state == TelePremiumPlaybackController.STATE_RESOLVING) stateView.setText("Подключение к источнику…");
-        else if (state == TelePremiumPlaybackController.STATE_BUFFERING) stateView.setText(controller.isCloudStreaming() ? "Онлайн · буферизация…" : "Буферизация…");
-        else if (state == TelePremiumPlaybackController.STATE_SEEKING) stateView.setText("Переход к фрагменту…");
-        else if (state == TelePremiumPlaybackController.STATE_ERROR) stateView.setText("Ошибка воспроизведения");
+        if (state == TelePremiumPlaybackController.STATE_RESOLVING) stateView.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_433));
+        else if (state == TelePremiumPlaybackController.STATE_BUFFERING) stateView.setText(controller.isCloudStreaming() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_434) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_435));
+        else if (state == TelePremiumPlaybackController.STATE_SEEKING) stateView.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_436));
+        else if (state == TelePremiumPlaybackController.STATE_ERROR) stateView.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_437));
         else if (item != null) stateView.setText(sourceText(item));
     }
 
@@ -703,7 +705,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         scaleMode = (scaleMode + 1) % 4;
         if (surface != null) surface.setScaleMode(scaleMode);
         if (fitButton != null) fitButton.setText(scaleModeIcon());
-        Toast.makeText(this, "Масштаб: " + scaleModeLabel(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_438) + scaleModeLabel(), Toast.LENGTH_SHORT).show();
     }
 
     private String scaleModeIcon() {
@@ -714,10 +716,10 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     }
 
     private String scaleModeLabel() {
-        if (scaleMode == SCALE_CROP) return "Заполнить с обрезкой";
-        if (scaleMode == SCALE_STRETCH) return "Растянуть";
+        if (scaleMode == SCALE_CROP) return org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_439);
+        if (scaleMode == SCALE_STRETCH) return org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_440);
         if (scaleMode == SCALE_ORIGINAL) return "100%";
-        return "Вписать";
+        return org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_441);
     }
 
     private void showMoreMenu() {
@@ -732,33 +734,33 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         content.setPadding(dp(16), dp(12), dp(16), dp(18));
         content.setBackground(roundBg(mediaTheme.surfaceElevated, mediaTheme.cardStroke, 22));
 
-        TextView heading = text("Настройки плеера", 20, mediaTheme.textPrimary, true);
+        TextView heading = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_428), 20, mediaTheme.textPrimary, true);
         content.addView(heading, new LinearLayout.LayoutParams(-1, dp(50)));
-        content.addView(settingsRow("Декодер", "Telegram ExoPlayer", controller.getDecoderLabel(), v ->
-                Toast.makeText(this, "HW используется автоматически, если кодек поддерживается устройством", Toast.LENGTH_LONG).show()));
-        content.addView(settingsRow("Масштаб видео", "Fit / Crop / Stretch / 100%", scaleModeLabel(), v -> { dialog.dismiss(); showScaleDialog(); }));
-        content.addView(settingsRow("Скорость", "Скорость воспроизведения", formatSpeed(controller.getSpeed()), v -> { dialog.dismiss(); showSpeedDialog(); }));
-        content.addView(settingsRow("Шаг двойного тапа", "Левая/правая половина видео", seekStepSeconds + " сек", v -> { dialog.dismiss(); showSeekStepDialog(); }));
-        content.addView(settingsRow("Жест яркости", "Вертикально по левой половине", gestureBrightness ? "Вкл" : "Выкл", v -> { gestureBrightness = !gestureBrightness; dialog.dismiss(); showPlayerSettings(); }));
-        content.addView(settingsRow("Жест громкости", "Вертикально по правой половине", gestureVolume ? "Вкл" : "Выкл", v -> { gestureVolume = !gestureVolume; dialog.dismiss(); showPlayerSettings(); }));
-        content.addView(settingsRow("Субтитры", "Включение текстовой дорожки", controller.isSubtitlesEnabled() ? "Вкл" : "Выкл", v -> { controller.setSubtitlesEnabled(!controller.isSubtitlesEnabled()); dialog.dismiss(); showPlayerSettings(); }));
-        content.addView(settingsRow("Повтор", "Повтор очереди", controller.getQueue().getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF ? "Выкл" : "Вкл", v -> {
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_442), "Telegram ExoPlayer", controller.getDecoderLabel(), v ->
+                Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_443), Toast.LENGTH_LONG).show()));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_422), "Fit / Crop / Stretch / 100%", scaleModeLabel(), v -> { dialog.dismiss(); showScaleDialog(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_444), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_421), formatSpeed(controller.getSpeed()), v -> { dialog.dismiss(); showSpeedDialog(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_445), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_446), seekStepSeconds + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_447), v -> { dialog.dismiss(); showSeekStepDialog(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_448), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_449), gestureBrightness ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_451), v -> { gestureBrightness = !gestureBrightness; dialog.dismiss(); showPlayerSettings(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_452), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_453), gestureVolume ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_451), v -> { gestureVolume = !gestureVolume; dialog.dismiss(); showPlayerSettings(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_416), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_454), controller.isSubtitlesEnabled() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_451), v -> { controller.setSubtitlesEnabled(!controller.isSubtitlesEnabled()); dialog.dismiss(); showPlayerSettings(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_455), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_426), controller.getQueue().getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_451) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_450), v -> {
             controller.getQueue().setRepeatMode(controller.getQueue().getRepeatMode() == TelePremiumQueueManager.REPEAT_OFF ? TelePremiumQueueManager.REPEAT_ALL : TelePremiumQueueManager.REPEAT_OFF);
             dialog.dismiss(); showPlayerSettings();
         }));
-        content.addView(settingsRow("Перемешивание", "Shuffle очереди", controller.getQueue().isShuffle() ? "Вкл" : "Выкл", v -> {
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_456), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_457), controller.getQueue().isShuffle() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_451), v -> {
             controller.getQueue().setShuffle(!controller.getQueue().isShuffle());
             dialog.dismiss(); showPlayerSettings();
         }));
-        content.addView(settingsRow("Ориентация", "Авто / портрет / альбомная", "Изменить", v -> { dialog.dismiss(); showOrientationDialog(); }));
-        content.addView(settingsRow("Блокировка", "Отключить жесты и скрыть chrome", controlsLocked ? "Вкл" : "Выкл", v -> { toggleControlsLock(); dialog.dismiss(); }));
-        content.addView(settingsRow("Таймер сна", "Остановить воспроизведение позже", "Открыть", v -> { dialog.dismiss(); showSleepTimer(); }));
-        content.addView(settingsRow("Очередь", "Текущий плейлист", controller.getQueue().size() + "", v -> { dialog.dismiss(); showQueue(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_458), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_459), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_460), v -> { dialog.dismiss(); showOrientationDialog(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_461), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_462), controlsLocked ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_451), v -> { toggleControlsLock(); dialog.dismiss(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_463), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_464), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_117), v -> { dialog.dismiss(); showSleepTimer(); }));
+        content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_465), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_466), controller.getQueue().size() + "", v -> { dialog.dismiss(); showQueue(); }));
         TelePremiumMediaItem item = controller.getCurrent();
         if (item != null && item.isVideo() && Build.VERSION.SDK_INT >= 26) {
-            content.addView(settingsRow("Картинка в картинке", "Продолжить поверх других приложений", "PiP", v -> { dialog.dismiss(); enterPip(); }));
+            content.addView(settingsRow(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_423), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_467), "PiP", v -> { dialog.dismiss(); enterPip(); }));
         }
-        TextView library = pill("Открыть медиатеку");
+        TextView library = pill(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_468));
         library.setGravity(Gravity.CENTER);
         library.setOnClickListener(v -> { dialog.dismiss(); startActivity(new Intent(this, TelePremiumMediaCenterActivity.class)); });
         LinearLayout.LayoutParams libraryParams = new LinearLayout.LayoutParams(-1, dp(52));
@@ -800,8 +802,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     }
 
     private void showScaleDialog() {
-        String[] labels = {"Вписать", "Заполнить с обрезкой", "Растянуть", "100%"};
-        new AlertDialog.Builder(this).setTitle("Масштаб видео").setSingleChoiceItems(labels, scaleMode, (d, which) -> {
+        String[] labels = {org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_441), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_439), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_440), "100%"};
+        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_422)).setSingleChoiceItems(labels, scaleMode, (d, which) -> {
             scaleMode = which;
             if (surface != null) surface.setScaleMode(scaleMode);
             if (fitButton != null) fitButton.setText(scaleModeIcon());
@@ -817,7 +819,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             labels[i] = formatSpeed(speeds[i]);
             if (Math.abs(speeds[i] - current) < Math.abs(speeds[checked] - current)) checked = i;
         }
-        new AlertDialog.Builder(this).setTitle("Скорость").setSingleChoiceItems(labels, checked, (d, which) -> {
+        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_444)).setSingleChoiceItems(labels, checked, (d, which) -> {
             controller.setPlaybackSpeed(speeds[which]);
             updateSpeedButton();
             d.dismiss();
@@ -826,18 +828,18 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
 
     private void showSeekStepDialog() {
         final int[] values = {5, 10, 15, 30};
-        String[] labels = {"5 секунд", "10 секунд", "15 секунд", "30 секунд"};
+        String[] labels = {org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_469), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_470), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_471), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_273)};
         int checked = 1;
         for (int i = 0; i < values.length; i++) if (values[i] == seekStepSeconds) checked = i;
-        new AlertDialog.Builder(this).setTitle("Шаг двойного тапа").setSingleChoiceItems(labels, checked, (d, which) -> {
+        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_445)).setSingleChoiceItems(labels, checked, (d, which) -> {
             seekStepSeconds = values[which];
             d.dismiss();
         }).show();
     }
 
     private void showOrientationDialog() {
-        String[] labels = {"Автоматически", "Портрет", "Альбомная"};
-        new AlertDialog.Builder(this).setTitle("Ориентация").setItems(labels, (d, which) -> {
+        String[] labels = {org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_472), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_473), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_474)};
+        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_458)).setItems(labels, (d, which) -> {
             if (which == 1) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             else if (which == 2) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             else setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
@@ -848,16 +850,16 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         controlsLocked = !controlsLocked;
         if (lockButton != null) lockButton.setVisibility(controlsLocked ? View.VISIBLE : View.GONE);
         if (controlsLocked) hideChrome(); else { showChrome(); scheduleChromeHide(); }
-        Toast.makeText(this, controlsLocked ? "Управление заблокировано" : "Управление разблокировано", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, controlsLocked ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_475) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_476), Toast.LENGTH_SHORT).show();
     }
 
     private void showSleepTimer() {
-        String[] labels = {"15 минут", "30 минут", "45 минут", "60 минут", "После текущего трека"};
-        new AlertDialog.Builder(this).setTitle("Таймер сна").setItems(labels, (d, which) -> {
+        String[] labels = {org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_477), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_478), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_479), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_480), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_481)};
+        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_463)).setItems(labels, (d, which) -> {
             if (which < 4) {
                 long delay = new long[]{15, 30, 45, 60}[which] * 60_000L;
                 handler.postDelayed(controller::pause, delay);
-                Toast.makeText(this, "Таймер сна: " + labels[which], Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_482) + labels[which], Toast.LENGTH_SHORT).show();
             } else {
                 long remaining = Math.max(0, controller.getDuration() - controller.getPosition());
                 if (remaining > 0) handler.postDelayed(controller::pause, remaining);
@@ -871,7 +873,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(16), dp(12), dp(16), dp(20));
         content.setBackgroundColor(mediaTheme.surfaceElevated);
-        TextView heading = text("Далее в очереди", 19, mediaTheme.textPrimary, true);
+        TextView heading = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_483), 19, mediaTheme.textPrimary, true);
         content.addView(heading, new LinearLayout.LayoutParams(-1, dp(48)));
 
         List<TelePremiumMediaItem> items = controller.getQueue().snapshot();
@@ -898,7 +900,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             content.addView(row, new LinearLayout.LayoutParams(-1, dp(62)));
         }
 
-        TextView mediaCenter = pill("＋  Открыть медиатеку");
+        TextView mediaCenter = pill(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_484));
         mediaCenter.setGravity(Gravity.CENTER);
         mediaCenter.setOnClickListener(v -> { startActivity(new Intent(this, TelePremiumMediaCenterActivity.class)); dialog.dismiss(); });
         content.addView(mediaCenter, new LinearLayout.LayoutParams(-1, dp(54)));
@@ -1129,64 +1131,9 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         return uri.getLastPathSegment();
     }
 
-    private static String stripAudioExtension(String title) {
-        if (TextUtils.isEmpty(title)) return "Музыка";
-        String lower = title.toLowerCase(Locale.ROOT);
-        String[] extensions = {".mp3", ".m4a", ".aac", ".ogg", ".opus", ".flac", ".wav", ".amr"};
-        for (String extension : extensions) {
-            if (lower.endsWith(extension)) return title.substring(0, title.length() - extension.length());
-        }
-        return title;
-    }
+    private static String stripAudioExtension(String title) { return TelePremiumPlayerMath.stripAudioExtension(title, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_485)); }
 
-    private static String formatTime(long ms) {
-        long total = Math.max(0, ms / 1000), h = total / 3600, m = (total % 3600) / 60, s = total % 60;
-        return h > 0 ? String.format(Locale.ROOT, "%d:%02d:%02d", h, m, s) : String.format(Locale.ROOT, "%d:%02d", m, s);
-    }
+    private static String formatTime(long ms) { return TelePremiumPlayerMath.formatTime(ms); }
 
-    private static String formatSpeed(float speed) {
-        return speed == Math.round(speed) ? String.format(Locale.ROOT, "%d×", Math.round(speed)) : String.format(Locale.ROOT, "%.2g×", speed);
-    }
-
-    private static final class AspectSurfaceView extends SurfaceView {
-        private int videoWidth, videoHeight;
-        private int scaleMode = SCALE_FIT;
-
-        AspectSurfaceView(Context context) { super(context); }
-
-        void setVideoSize(int width, int height) {
-            videoWidth = width;
-            videoHeight = height;
-            requestLayout();
-        }
-
-        void setScaleMode(int mode) {
-            scaleMode = mode;
-            requestLayout();
-        }
-
-        @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            int boxWidth = MeasureSpec.getSize(widthSpec);
-            int boxHeight = MeasureSpec.getSize(heightSpec);
-            if (videoWidth <= 0 || videoHeight <= 0 || boxWidth <= 0 || boxHeight <= 0 || scaleMode == SCALE_STRETCH) {
-                setMeasuredDimension(boxWidth, boxHeight);
-                return;
-            }
-            float vr = videoWidth / (float) videoHeight;
-            float br = boxWidth / (float) boxHeight;
-            int width = boxWidth, height = boxHeight;
-            if (scaleMode == SCALE_CROP) {
-                if (vr > br) width = Math.max(1, Math.round(boxHeight * vr));
-                else height = Math.max(1, Math.round(boxWidth / vr));
-            } else if (scaleMode == SCALE_ORIGINAL) {
-                float scale = Math.min(1f, Math.min(boxWidth / (float) videoWidth, boxHeight / (float) videoHeight));
-                width = Math.max(1, Math.round(videoWidth * scale));
-                height = Math.max(1, Math.round(videoHeight * scale));
-            } else {
-                if (vr > br) height = Math.max(1, Math.round(boxWidth / vr));
-                else width = Math.max(1, Math.round(boxHeight * vr));
-            }
-            setMeasuredDimension(width, height);
-        }
-    }
+    private static String formatSpeed(float speed) { return TelePremiumPlayerMath.formatSpeed(speed); }
 }

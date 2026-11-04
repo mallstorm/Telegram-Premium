@@ -24,7 +24,7 @@ public class TelePremiumAccountCenterActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle("Центр аккаунтов");
+        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_000));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -48,7 +48,7 @@ public class TelePremiumAccountCenterActivity extends BaseFragment {
 
         int active = UserConfig.getActivatedAccountsCount();
         TextView summary = new TextView(context);
-        summary.setText(active + " / " + UserConfig.MAX_ACCOUNT_COUNT + " аккаунтов");
+        summary.setText(active + " / " + UserConfig.MAX_ACCOUNT_COUNT + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_001));
         summary.setTextSize(20);
         summary.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         summary.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -65,11 +65,11 @@ public class TelePremiumAccountCenterActivity extends BaseFragment {
 
             final int accountId = account;
             TLRPC.User user = config.getCurrentUser();
-            String name = user == null ? "Аккаунт " + (account + 1) : UserObject.getUserName(user);
+            String name = user == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_002) + (account + 1) : UserObject.getUserName(user);
             String tier = user != null && user.premium ? "Premium" : "Standard";
             String route = network.getSummary(account);
             int ping = network.getPing(account);
-            String value = tier + " • " + route + (ping > 0 ? " • " + ping + " мс" : "");
+            String value = tier + " • " + route + (ping > 0 ? " • " + ping + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_003) : "");
 
             TextCell cell = new TextCell(context, getResourceProvider());
             cell.setTextAndValue(name, value, true);
@@ -101,7 +101,7 @@ public class TelePremiumAccountCenterActivity extends BaseFragment {
         if (freeSlot != null) {
             final int slot = freeSlot;
             TextCell add = new TextCell(context, getResourceProvider());
-            add.setTextAndValue("+ Добавить аккаунт", "Свободный слот " + (slot + 1), false);
+            add.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_004), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_005) + (slot + 1), false);
             add.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
             add.setOnClickListener(v -> presentFragment(new LoginActivity(slot)));
             content.addView(add, new LinearLayout.LayoutParams(
@@ -111,7 +111,7 @@ public class TelePremiumAccountCenterActivity extends BaseFragment {
         }
 
         TextView hint = new TextView(context);
-        hint.setText("Нажатие переключает аккаунт. Долгое нажатие открывает его сетевой профиль.");
+        hint.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_006));
         hint.setTextSize(13);
         hint.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         hint.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(16), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
