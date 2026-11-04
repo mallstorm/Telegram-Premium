@@ -1,0 +1,293 @@
+{
+  "name": "TelePremium V11 / Secure Vault V3.5 / Player V3.6 local source",
+  "assembly_date": "2026-11-04",
+  "base_original_snapshot": {
+    "name": "TelePremium V11 full source working tree",
+    "telepremium_repository": "Digger401/Telegram-Premium",
+    "telepremium_snapshot_revision": "98a5fe63f4449c63e4d58450b843b292ddbbc9e7",
+    "telegram_upstream": "DrKLO/Telegram",
+    "telegram_upstream_revision_expected": "fb2e545101f41303f1e2712de2e7611a9335f1c3",
+    "telegram_revision_verification": "expected SHA from source archive folder (not cryptographic Git verification)",
+    "archive_or_git_reference": "Telegram-fb2e545101f41303f1e2712de2e7611a9335f1c3",
+    "applied_patches": false,
+    "telegram_API_credentials_injected": false,
+    "gradle_dependencies_bundled": false
+  },
+  "base_after_overlays": {
+    "name": "TelePremium V11 full source working tree",
+    "telepremium_repository": "Digger401/Telegram-Premium",
+    "telepremium_snapshot_revision": "98a5fe63f4449c63e4d58450b843b292ddbbc9e7",
+    "telegram_upstream": "DrKLO/Telegram",
+    "telegram_upstream_revision_expected": "fb2e545101f41303f1e2712de2e7611a9335f1c3",
+    "telegram_revision_verification": "expected SHA from source archive folder (not cryptographic Git verification)",
+    "archive_or_git_reference": "Telegram-fb2e545101f41303f1e2712de2e7611a9335f1c3",
+    "applied_patches": true,
+    "telegram_API_credentials_injected": false,
+    "gradle_dependencies_bundled": false,
+    "applied_vault_patch_series": "V3.1-V3.5 Quiet Preview",
+    "applied_player_patch": "V3.6 Final"
+  },
+  "steps": [
+    {
+      "version": "V3.1",
+      "source": "TelePremium-V11-SECURE-VAULT-V3.1-FIX-SOURCES-2026-10-26.zip",
+      "files": [
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
+          "previous_sha256": "fb47c757e7ee25388c4f46ed3574a4faab6eefb84976a5b4de0471ef581ebee9",
+          "new_sha256": "549143b4c7b60e1e08c91b85b90c5c05fd4d8d93a4025f8343b866a143b01693",
+          "size": 51020
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudSecurityActivity.java",
+          "previous_sha256": "a507e94dc1176b6dcab90e96f5afe6425d6e9bf64161a52976976ced5207b6b2",
+          "new_sha256": "5c86570fb82937740d59c2e246ccc1af67d8067fa326b2be7ca4ecb467a9da2a",
+          "size": 31525
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumCloudMediaRepository.java",
+          "previous_sha256": "6be756704294b497df42e9de30c4e294cf1e8d976bacfd6bdd335187c1e6e50b",
+          "new_sha256": "646e050d7a64587e46b257fc8522caa216e1a1f5154462a4a332c17a599cda70",
+          "size": 2458
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaItem.java",
+          "previous_sha256": "948bca0e5010b050cb60f3b5ed07665ecd3ea1e2be4c253a855ecffecc01b5bc",
+          "new_sha256": "1d884107c77b1f4cdfde57bbbb5852fce84058bfdc32bcb3d8f88f0d7c4e401e",
+          "size": 7423
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumPlaybackController.java",
+          "previous_sha256": "0803cb4775ffbc33d27ff6b601b9775ce4474ce95f833c15b224b3749ec3e82f",
+          "new_sha256": "fe99b39c1ad42cc194e56d315fd73e5bfc7a5b36f20be12a38e06188845a22c1",
+          "size": 18487
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudNode.java",
+          "previous_sha256": "4f3c3b797510f508a3a89a2fa8b5b0d5afc1b4a8d6e2052344cab43f68622ad6",
+          "new_sha256": "fee62c2f01d01ea662df7a8e63688322750e427c0d9fd5c7c1359327be6b6633",
+          "size": 3879
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java",
+          "previous_sha256": "dec87b3d8c431a433fd9756aaf370ec8a5aef42ba231aa1cf9701499d2ca2a66",
+          "new_sha256": "dbf39c8c68b3d5fbddffba7aaad21230b16e75dfb7069d16bae9c18c3fce45d5",
+          "size": 13114
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelegramCloudMetadataStore.java",
+          "previous_sha256": "95ada9a61130374499eaa502b0feccb0edaaeec0e84a0cc89c1a7dd436527f3e",
+          "new_sha256": "dbabd06649a97976342feba717415be9506cfad8c206d2ba14d2808907d0aeeb",
+          "size": 5540
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudPayloadRepository.java",
+          "previous_sha256": "357d161a08a6fdfb0936f94a81b026a8f9875df9fe021a29ad10bba2ee92bbce",
+          "new_sha256": "d7faedbfda5c1291ba1e89bd1aa5f27aa15c56404bcc9def88476c1b53daea22",
+          "size": 15727
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudPeerManager.java",
+          "previous_sha256": "6d43747830a4e526765284e83fad8d897d84b082f3276afafe2930083ce1fa36",
+          "new_sha256": "730836b700167b9092a5bc596173500093e530bb6c6705612f5a53173e5da627",
+          "size": 6405
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudDownloadManager.java",
+          "previous_sha256": "9485499d4ec4b9db8e78ad24ec87490615a58529065a986cd9e8fa9a7371d848",
+          "new_sha256": "1a095ae81602063026557f5105e8323361051a5adcddfcea8d919a113bf6c665",
+          "size": 12237
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultBackupStore.java",
+          "previous_sha256": null,
+          "new_sha256": "8066a14bd040a9d0b43d3949d2dbb6f4380f4a367d02314e8d3b4cc35b5b6943",
+          "size": 2780
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultIndexStore.java",
+          "previous_sha256": null,
+          "new_sha256": "72c2449c02cf8308ef625513421866ef3a04e6c63bddb1f305f4f287480ee597",
+          "size": 17630
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultTransportStaging.java",
+          "previous_sha256": null,
+          "new_sha256": "5d52b5e609cb2dac4669b75b38e363b1dee64796b4ce0df43b2f3b47b8abe5fb",
+          "size": 3041
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultFileOps.java",
+          "previous_sha256": null,
+          "new_sha256": "bbb224224acbc852d6d2b2e34096832e427fcdd13b7fa26510e7ff3636b83e27",
+          "size": 4774
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultCrypto.java",
+          "previous_sha256": null,
+          "new_sha256": "606dc2111bab40fcb0148ac1e4d982688d7eefc4d7e0e39185b007d34ceb7f6d",
+          "size": 10557
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultKeyManager.java",
+          "previous_sha256": null,
+          "new_sha256": "14ec7715af178b437d71a65e651d2123f279bffdfae46d607e26c07a71f88e95",
+          "size": 10602
+        }
+      ]
+    },
+    {
+      "version": "V3.2",
+      "source": "TelePremium-V11-SECURE-VAULT-V3.2-SOURCE-FIX-2026-10-26.zip",
+      "files": [
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudAccessGate.java",
+          "previous_sha256": "fcafb1668967fffbb3d8ce1ae4c062061398cdc6609aab91dcb5f98d59e916bd",
+          "new_sha256": "d302f8e4a74b234df649391b53a9ef404ee497400f5722aeb649dc19b81c6a4d",
+          "size": 2344
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java",
+          "previous_sha256": "dbf39c8c68b3d5fbddffba7aaad21230b16e75dfb7069d16bae9c18c3fce45d5",
+          "new_sha256": "38960d04e48ae866b4cb08efdf5d554336cd73b76cb682d8ddf821d09fdfe94e",
+          "size": 15510
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultIndexStore.java",
+          "previous_sha256": "72c2449c02cf8308ef625513421866ef3a04e6c63bddb1f305f4f287480ee597",
+          "new_sha256": "696c7fead94d0d62c92f9b8df5b073ac99d5b4461157f6378424e15f329d9bbd",
+          "size": 20477
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
+          "previous_sha256": "549143b4c7b60e1e08c91b85b90c5c05fd4d8d93a4025f8343b866a143b01693",
+          "new_sha256": "2941edc0b42971fadd8e3b9996e8a217686d05a1c52dfbbad047bbe00566e480",
+          "size": 55361
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudUnlockActivity.java",
+          "previous_sha256": "10dabd74e0df8b7fcecbbef037c484888c3b1e272dfc8b5d31366b2848827ab6",
+          "new_sha256": "668e288c576819e4bb6eeea0fdeb2110d77e829748058ac33416f05eb1c23658",
+          "size": 9507
+        }
+      ]
+    },
+    {
+      "version": "V3.3",
+      "source": "TelePremium-V11-SECURE-VAULT-V3.3-UPLOAD-RECOVERY-SOURCES-2026-10-26.zip",
+      "files": [
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
+          "previous_sha256": "2941edc0b42971fadd8e3b9996e8a217686d05a1c52dfbbad047bbe00566e480",
+          "new_sha256": "1352b2e124f777d96720614df69df30e9437e056e86ba13ef11e77df8d48bd27",
+          "size": 60865
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudPayloadRepository.java",
+          "previous_sha256": "d7faedbfda5c1291ba1e89bd1aa5f27aa15c56404bcc9def88476c1b53daea22",
+          "new_sha256": "698e724bdd156c7bab1ccc751aa281ffbf34a230ab43aec6a5afbe1ea5236a55",
+          "size": 17593
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudTransferManager.java",
+          "previous_sha256": "3baa12502ca6f27a91dfa2b6996d15170ed0d6354f0fd79d9b0f924c1e4b8300",
+          "new_sha256": "ed61008fe0e8f0ee6f1f88663e35705a04f99bf7caee5dfe348e84955cdb859d",
+          "size": 11020
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java",
+          "previous_sha256": "38960d04e48ae866b4cb08efdf5d554336cd73b76cb682d8ddf821d09fdfe94e",
+          "new_sha256": "dbb4c3ad3f6565375b59462af36a472b6c8dba6b90ccde642df7d9718bd7e899",
+          "size": 16133
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultIndexStore.java",
+          "previous_sha256": "696c7fead94d0d62c92f9b8df5b073ac99d5b4461157f6378424e15f329d9bbd",
+          "new_sha256": "fdebee818befd3aed14a5dd1a38760e0e08ec335ad8ef361e3f26a88a5b53f28",
+          "size": 21536
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultPendingIndexStore.java",
+          "previous_sha256": null,
+          "new_sha256": "61a26c423b950a99f4a6ccc29f8dada15b810bb64faef23dc5a0e6772f88505f",
+          "size": 4826
+        }
+      ]
+    },
+    {
+      "version": "V3.4",
+      "source": "TelePremium-V11-SECURE-VAULT-V3.4-MEDIA-SYNC-NAV-SOURCE-FIX-2026-10-26.zip",
+      "files": [
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/res/xml/provider_paths.xml",
+          "previous_sha256": "7fe52ebaa25a77ac5ec7041ffb261beb6bb8bd66aba193c9d47030011d83b326",
+          "new_sha256": "3179108cd13e03f8a565696839a139df9c75fde22b716ed0034073a7c75def07",
+          "size": 401
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPlayerActivity.java",
+          "previous_sha256": "954fdec82efd6f66ec74b630f9bf8763b35d1842dad9653530482ac88106b8dc",
+          "new_sha256": "7feaa38bf1833a1e2cd4836d22d5bbaaaed1082e9fea449997bb1ba59272a40d",
+          "size": 54264
+        },
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
+          "previous_sha256": "1352b2e124f777d96720614df69df30e9437e056e86ba13ef11e77df8d48bd27",
+          "new_sha256": "ab7f5095db95ae62e8e1359498082d1cb3b1cb408ff125d8a44b8a288444f820",
+          "size": 63335
+        }
+      ]
+    },
+    {
+      "version": "V3.5-QuietPreview",
+      "source": "TelePremium-V11-VAULT-V3.5-QUIET-PREVIEW-SOURCES.zip",
+      "files": [
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
+          "previous_sha256": "ab7f5095db95ae62e8e1359498082d1cb3b1cb408ff125d8a44b8a288444f820",
+          "new_sha256": "a3ba29b5f533dcbc6dc5dc10d69a3f14f7d5c938e2c443e8ca687dc1636300f9",
+          "size": 63629
+        }
+      ]
+    },
+    {
+      "version": "V3.6-Player",
+      "source": "TelePremium-V11-MEDIA-PLAYER-V3.6-REDESIGN-SOURCES-FINAL.zip",
+      "files": [
+        {
+          "path": "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPlayerActivity.java",
+          "previous_sha256": "7feaa38bf1833a1e2cd4836d22d5bbaaaed1082e9fea449997bb1ba59272a40d",
+          "new_sha256": "168591f174d8c1a3bf3852c0c9a77463b9a2730101f9e4dbbf2d4c12cf7bbe0b",
+          "size": 62043
+        }
+      ]
+    },
+    {
+      "version": "VersionCode",
+      "source": "V3.5 UI Cleanup manifest (versionCode 54709)",
+      "files": [
+        {
+          "path": "upstream/Telegram/gradle.properties",
+          "new_sha256": "66f31201ed1f551c1e13d2538d307ffadf3afb0a159b497a94d164a27b9ae72d"
+        }
+      ]
+    }
+  ],
+  "python_files_syntax_checked": 21,
+  "upstream_included": true,
+  "apk_compiled": false,
+  "no_signing_keys_included": true,
+  "removed_google_services_configs": [
+    "upstream/Telegram/TMessagesProj_App/google-services.json",
+    "upstream/Telegram/TMessagesProj_AppStandalone/google-services.json",
+    "upstream/Telegram/TMessagesProj_AppHockeyApp/google-services.json",
+    "upstream/Telegram/TMessagesProj/google-services.json",
+    "upstream/Telegram/TMessagesProj_AppHuawei/google-services.json"
+  ],
+  "known_hash_divergence": {
+    "file": "upstream/Telegram/TMessagesProj/src/main/res/xml/provider_paths.xml",
+    "actual_base_sha256": "7fe52ebaa25a77ac5ec7041ffb261beb6bb8bd66aba193c9d47030011d83b326",
+    "v3_4_expected_old_sha256": "c0cdc890096c56be719148cc37f4229aa3df97658e71ae9320dd7c0aa2600417",
+    "explanation": "The original pinned Telegram V11 XML differs from V3.4 build-source expected prior XML; V3.4 replaces XML with verified manifest output."
+  }
+}

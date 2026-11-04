@@ -32,3 +32,9 @@ The account infrastructure is expanded to ten slots at compile time:
 - Native: `ConnectionsManager::getInstance()` receives independent instances 0..9.
 
 This avoids the unsafe binary-only approach where Java arrays and native tgnet disagree about the valid account range.
+
+## V11 offline pass — Vault V3.5, Player V3.6
+
+- Secure Vault V3.1–V3.5 and Player V3.6 from the autonomous build environment, applied as a SHA-checked overlay.
+- SDK 36 / CMake 3.31.6 build, arm64-v8a only.
+- PBKDF2 pattern hashing with transparent migration, logged Cloud/player failures, Vault crypto self-test in CI.
