@@ -101,10 +101,18 @@ jobs:
           java -cp "$RUNNER_TEMP/vault-test" VaultCryptoSelfTest
 
       - name: Inject Telegram API credentials
+        id: api
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
-        run: python3 scripts/configure_telegram_api.py
+        run: |
+          if [ -z "${TELEGRAM_API_ID}" ] && [ -z "${TELEGRAM_API_HASH}" ]; then
+            echo "::warning::TELEGRAM_API_ID / TELEGRAM_API_HASH secrets are not set: running a validation build only, the APK will not be published"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 scripts/configure_telegram_api.py
+          echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Optional private signing key
         env:
@@ -191,6 +199,12 @@ jobs:
           apksigner verify --print-certs "artifacts/$APK_NAME" | tee diagnostics/apk-signature.txt
           sha256sum "artifacts/$APK_NAME" | tee "artifacts/$APK_NAME.sha256"
           ls -lh artifacts
+          if [ "${{ steps.api.outputs.configured }}" != "true" ]; then
+            ls -lh artifacts > diagnostics/validation-build.txt
+            rm -rf artifacts
+            echo "::error::Validation build succeeded, but the APK has no Telegram API credentials and cannot log in. Add TELEGRAM_API_ID and TELEGRAM_API_HASH repository secrets and re-run."
+            exit 1
+          fi
 
       - name: Save build diagnostics
         if: always()
@@ -227,17 +241,18 @@ jobs:
           JAVA: ${{ steps.java.outcome }}
           APK: ${{ steps.apk.outcome }}
           VERIFY: ${{ steps.verify.outcome }}
+          API: ${{ steps.api.outputs.configured }}
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/build-output"
           rm -rf "$OUT"; mkdir -p "$OUT"
-          printf 'status=%s\nsource_ref=%s\nsource_sha=%s\nrun_id=%s\nrun_url=%s/%s/actions/runs/%s\npatches=%s\njava=%s\napk=%s\nverify=%s\n' \
+          printf 'status=%s\nsource_ref=%s\nsource_sha=%s\nrun_id=%s\nrun_url=%s/%s/actions/runs/%s\npatches=%s\njava=%s\napk=%s\nverify=%s\napi_configured=%s\n' \
             "$JOB_STATUS" "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" \
-            "$PATCHES" "$JAVA" "$APK" "$VERIFY" > "$OUT/STATUS.txt"
+            "$PATCHES" "$JAVA" "$APK" "$VERIFY" "$API" > "$OUT/STATUS.txt"
           for f in gradle-java.log gradle-build.log; do
             [ -f "diagnostics/$f" ] && { grep -nE 'error:|FAILURE|What went wrong|BUILD (SUCCESSFUL|FAILED)|CMake Error|ninja: build stopped' "diagnostics/$f" | head -n 300 > "$OUT/${f%.log}.errors.txt" || true; tail -n 400 "diagnostics/$f" > "$OUT/${f%.log}.tail.txt"; }
           done
-          cp diagnostics/apk-*.txt "$OUT/" 2>/dev/null || true
+          cp diagnostics/apk-*.txt diagnostics/validation-build.txt "$OUT/" 2>/dev/null || true
           if [ -f "artifacts/$APK_NAME" ]; then
             split -b 45m -d -a 2 "artifacts/$APK_NAME" "$OUT/$APK_NAME.part"
             cp "artifacts/$APK_NAME.sha256" "$OUT/"
