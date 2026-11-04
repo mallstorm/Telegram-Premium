@@ -136,6 +136,11 @@ public final class TelePremiumRadioBrowser {
             item.mediaType = TelePremiumMediaItem.TYPE_STREAM;
             String favicon = o.optString("favicon", "");
             item.artworkUri = favicon.startsWith("http") ? favicon : null;
+            if (item.artworkUri == null) {
+                // No logo in the catalog: use the station site's icon.
+                String host = hostOf(o.optString("homepage", ""));
+                if (host != null) item.artworkUri = TelePremiumArtworkLoader.siteIconUrl(host);
+            }
             String tags = o.optString("tags", "").replace(",", ", ");
             item.artist = TextUtils.isEmpty(tags) ? o.optString("country", null) : tags;
             int bitrate = o.optInt("bitrate", 0);
@@ -199,5 +204,15 @@ public final class TelePremiumRadioBrowser {
 
     private static String message(Exception e) {
         return TextUtils.isEmpty(e.getMessage()) ? e.getClass().getSimpleName() : e.getMessage();
+    }
+
+    private static String hostOf(String url) {
+        try {
+            if (url == null || !url.startsWith("http")) return null;
+            String host = android.net.Uri.parse(url).getHost();
+            return host == null || host.isEmpty() ? null : host;
+        } catch (Throwable e) {
+            return null;
+        }
     }
 }

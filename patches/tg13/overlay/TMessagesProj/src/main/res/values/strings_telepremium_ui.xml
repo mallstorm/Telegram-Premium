@@ -585,4 +585,7 @@
     <string name="TP_Q_ONLY_AUDIO" formatted="false">"The queue holds music now. Video plays in its own queue — start it from the Video tab."</string>
     <string name="TP_Q_ONLY_VIDEO" formatted="false">"The queue holds video now. Music plays in its own queue — start it from the Music tab."</string>
     <string name="TP_CLOUD_PARTS_FMT" formatted="false">"%1$d parts"</string>
+    <string name="TP_N_LIVE" formatted="false">"On air"</string>
+    <string name="TP_C_MEDIA_SUB" formatted="false">"Music, video, radio and IPTV"</string>
+    <string name="TP_C_CLOUD_SUB" formatted="false">"Your files in Telegram: folders, encryption, big files in parts"</string>
 </resources>

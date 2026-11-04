@@ -27,7 +27,7 @@
     {
       "path": "TMessagesProj/src/main/assets/telepremium/strings_ru.json",
       "base_sha256": null,
-      "sha256": "1689b6594f678f3794069b66c4e217f6338007ed14209e7e163b739575c5429f"
+      "sha256": "dcf3eb5e9c6f978392bdc811dce989e3c53fe5191965fba0ce1e0efc5d7a8532"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/AndroidUtilities.java",
@@ -302,7 +302,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumArtworkLoader.java",
       "base_sha256": null,
-      "sha256": "5c1bdf4a2fdcaf2a7f68a209dd160896b1b6aa91451af92db92193c8753142bb"
+      "sha256": "dc931700ac4b483636ad2ca38e4430e285110bfdafff1fdbf8462e03dfecce19"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumAudioEffects.java",
@@ -325,9 +325,14 @@
       "sha256": "86fe7d9aeb667e1a7b8d8da7b0732302b4f3c82d5f8840ad3e5a06a30b143863"
     },
     {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaNotificationViews.java",
+      "base_sha256": null,
+      "sha256": "2ab85ec3776f8072fc931843e2fe32a02faa9c5f5177497a17b9c615260d97f9"
+    },
+    {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaSessionService.java",
       "base_sha256": null,
-      "sha256": "ddde9c4748482662fee539c5eeeaae9826ebfa5c397e286b56ed736a9fad4870"
+      "sha256": "d0831e4ed60e69ff91620943885c23b138534929b977a00cb2ee350be21dea30"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaStoreRepository.java",
@@ -372,7 +377,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumRadioBrowser.java",
       "base_sha256": null,
-      "sha256": "0802060eec361fcd7bc4952e1bdd99cf1e8add394d97c38bc4136f25873bfcc5"
+      "sha256": "acf1f64ae413c887d6894ea58196f30e0f8e28204e5ef965360ee9a1279e8ce8"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/theme/TelePremiumMediaTheme.java",
@@ -582,7 +587,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCenterActivity.java",
       "base_sha256": null,
-      "sha256": "9a80c6b0ef304bdc2a78c761a398bef4013f26ca6b07c0bf18d6dc231cf2234f"
+      "sha256": "330b97d1c89f13d6b682f0bd623346bcfd45042d863a1b4ebb6fe1b2bb4e628b"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
@@ -790,9 +795,19 @@
       "sha256": "0f4092ea43a27fb6b6383a1d46b3cff8f0ef334618f7032b395439eabc62d546"
     },
     {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_chat.xml",
+      "base_sha256": null,
+      "sha256": "32b65e3caf1f4e4d5c598d8a960fbdfeb637c6f45d9e5f7709875ebe5fd96f86"
+    },
+    {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_chevron_right.xml",
       "base_sha256": null,
       "sha256": "6270bd08242888e7ece66c41937982f7d333559e7f348a7824ac6edbf0a7f736"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_close.xml",
+      "base_sha256": null,
+      "sha256": "38b82aaa5468c3a82d34226733a55ec8c396d658f2f5b5e09ed643e2b1199c65"
     },
     {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_cloud.xml",
@@ -818,6 +833,11 @@
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_expand_less.xml",
       "base_sha256": null,
       "sha256": "154b23497a6e2d8f116bdbcb9c0a92486ad0d8309ad0f11c30cbc3bbcfae8b37"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_folder.xml",
+      "base_sha256": null,
+      "sha256": "5a0d051ed193f005a33f395a3d488ba8736c1968ce9e9a1649069f9f081c83ae"
     },
     {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_forward.xml",
@@ -855,9 +875,19 @@
       "sha256": "9a0f51a2c2e212fc92fab8d0e7b0c4481cc616882ecdf3d6d79322d5a69fb5a3"
     },
     {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_palette.xml",
+      "base_sha256": null,
+      "sha256": "e7335b28055fa421b22029a0ab3779c212e5587a905aaa25901b69a4e06529c2"
+    },
+    {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_pause.xml",
       "base_sha256": null,
       "sha256": "f848a30eb18c51e00da6fb1054fb31286c6c78c9eba6cdc4de8ec768c3b3aee9"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_people.xml",
+      "base_sha256": null,
+      "sha256": "d883848f2c1355cf9b6b70fe21df994c298949f5e0b6234eb33708dbc49fa4db"
     },
     {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_pip.xml",
@@ -910,6 +940,11 @@
       "sha256": "8fb44ca25307c30561888fd68c8eef979e7e3519791f16221e72608485661920"
     },
     {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_shield.xml",
+      "base_sha256": null,
+      "sha256": "1e033821f81d2501c15e40f3e719fc53cb18f9b171f330f1522b3ff4e7cb3582"
+    },
+    {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_shuffle.xml",
       "base_sha256": null,
       "sha256": "afaab26b1558c37c279235e636584ce15700c1d4e796b41ce1b1807116a0e010"
@@ -935,9 +970,24 @@
       "sha256": "728fcdd788a9c1ab4e0d3541e4ab503d25631b3be977ac29167ccc5c13845dff"
     },
     {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_storage.xml",
+      "base_sha256": null,
+      "sha256": "cf593640cb2fdbf363a48578e8998e1458ec9c715cd954a21f212d5e905a7cbd"
+    },
+    {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_subtitles.xml",
       "base_sha256": null,
       "sha256": "774d70461852f413d6f94c9f6ed2fa80d24a90fbe13124dabcf39875362d8a71"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_text_size.xml",
+      "base_sha256": null,
+      "sha256": "1eedb436f39997e184ec8c447c182a761d4bd0672e6dd760afa347529b738b0b"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_translate.xml",
+      "base_sha256": null,
+      "sha256": "626d8d6b37634f96b29abb66ec3a8481e3b5e86c26ad8efcd4ec45748e6f5851"
     },
     {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_tune.xml",
@@ -948,6 +998,11 @@
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_tv.xml",
       "base_sha256": null,
       "sha256": "386815aafeade19c81818a5850d77f9a9991ba37792e742e9c245206ff643f1f"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_update.xml",
+      "base_sha256": null,
+      "sha256": "4d47a4d98157b954f00a2a7711a1a2fdcff83f2d947448571b0dd3133d9e13b1"
     },
     {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_video.xml",
@@ -1010,6 +1065,16 @@
       "sha256": "3d08ad2e8da2bf7d106285c0ba7c558df0eeedc4fca8d0ddee2115cb0bb4623c"
     },
     {
+      "path": "TMessagesProj/src/main/res/layout/tp_media_notification_big.xml",
+      "base_sha256": null,
+      "sha256": "af6e2a88ffbff790a81950a024ef3035de2c7853876f3156fef0d27f4b0776ce"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/layout/tp_media_notification_small.xml",
+      "base_sha256": null,
+      "sha256": "b510a41e3a0e5dcad2e99d14dd2231a1546ab37b1fad0cb52fb41d47c3933651"
+    },
+    {
       "path": "TMessagesProj/src/main/res/values/strings_telepremium.xml",
       "base_sha256": null,
       "sha256": "81b290854106073477a63048c6aba83756218ec09ac48a7010f2fb6e0539db34"
@@ -1017,7 +1082,7 @@
     {
       "path": "TMessagesProj/src/main/res/values/strings_telepremium_ui.xml",
       "base_sha256": null,
-      "sha256": "9af400ff8800655ca7e543a398ebaf46d4fa2316870bb9d0bd0af0abc3aefbb2"
+      "sha256": "ad8bd46256b7c37565f1cb3c07f928adf432d9563150064e491705164cbc2930"
     },
     {
       "path": "TMessagesProj/src/main/res/xml/provider_paths.xml",

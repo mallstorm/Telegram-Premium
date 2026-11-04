@@ -1,5 +1,7 @@
 {
  "TP_CLOUD_PARTS_FMT": "частей: %1$d",
+ "TP_C_CLOUD_SUB": "Ваши файлы в Telegram: папки, шифрование, большие файлы частями",
+ "TP_C_MEDIA_SUB": "Музыка, видео, радио и IPTV",
  "TP_DurationMinutes": "%1$d мин.",
  "TP_DurationSeconds": "%1$d сек.",
  "TP_FX_BALANCE": "Баланс",
@@ -573,6 +575,7 @@
  "TP_NET_RADIO_LOADING": "загрузка станций…",
  "TP_NET_RADIO_SEARCH": "Поиск станций по всему миру",
  "TP_NET_STATIONS_FMT": "станций: %1$d",
+ "TP_N_LIVE": "В эфире",
  "TP_P_END_OF_QUEUE": "Конец очереди",
  "TP_P_LOCKSCREEN": "Плеер на экране блокировки",
  "TP_P_LOCKSCREEN_INFO": "Перемотка и переключение без разблокировки телефона",

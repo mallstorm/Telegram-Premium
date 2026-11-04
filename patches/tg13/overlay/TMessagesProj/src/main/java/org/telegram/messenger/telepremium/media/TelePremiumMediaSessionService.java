@@ -36,6 +36,8 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
     public static final String ACTION_NEXT = "telepremium.media.NEXT";
     public static final String ACTION_PREVIOUS = "telepremium.media.PREVIOUS";
     public static final String ACTION_STOP = "telepremium.media.STOP";
+    public static final String ACTION_SEEK = "telepremium.media.SEEK";
+    private static final String EXTRA_SEGMENT = "segment";
 
     private TelePremiumPlaybackController controller;
     private MediaSession session;
@@ -45,6 +47,8 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
     private long publishedDuration = -1;
     private String artworkFor;
     private android.graphics.Bitmap artwork;
+    private TelePremiumMediaNotificationViews cardViews;
+    private long lastCardUpdate;
 
     private final AudioManager.OnAudioFocusChangeListener focusListener = change -> {
         if (controller == null) return;
@@ -103,6 +107,14 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
             if (ACTION_TOGGLE.equals(action)) controller.toggle();
             else if (ACTION_NEXT.equals(action)) controller.next();
             else if (ACTION_PREVIOUS.equals(action)) controller.previous();
+            else if (ACTION_SEEK.equals(action)) {
+                long duration = controller.getDuration();
+                int segment = intent.getIntExtra(EXTRA_SEGMENT, -1);
+                if (duration > 0 && segment >= 0) {
+                    float fraction = (segment + 0.5f) / TelePremiumMediaNotificationViews.SEEK_SEGMENTS;
+                    controller.seekTo((long) (duration * Math.min(1f, fraction)));
+                }
+            }
             else if (ACTION_STOP.equals(action)) {
                 shutdownPlayback();
                 return START_NOT_STICKY;
@@ -141,6 +153,19 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         // The lock-screen / shade seek bar appears only once the session knows the duration.
         if (duration > 0 && duration != publishedDuration) updateSession();
         else updatePlaybackState(position);
+        // The custom shade card draws its own seek bar: refresh it once a second while playing.
+        if (useCustomCard() && controller != null && controller.isPlaying() && !shuttingDown
+                && android.os.SystemClock.elapsedRealtime() - lastCardUpdate >= 1000) {
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null) {
+                try { nm.notify(NOTIFICATION_ID, buildNotification()); } catch (Throwable e) { org.telegram.messenger.FileLog.e(e); }
+            }
+        }
+    }
+
+    /** Android 13+ draws its own media controls (artwork, seek bar) from the session. */
+    private static boolean useCustomCard() {
+        return Build.VERSION.SDK_INT >= 24 && Build.VERSION.SDK_INT < 33;
     }
 
     @Override public void onError(String message) { updateSessionAndNotification(); }
@@ -272,6 +297,31 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         if (artwork != null && item != null && item.id.equals(artworkFor)) builder.setLargeIcon(artwork);
         if (Build.VERSION.SDK_INT >= 21 && session != null) {
             builder.setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1, 2));
+        }
+        if (useCustomCard() && item != null) {
+            try {
+                if (cardViews == null) cardViews = new TelePremiumMediaNotificationViews(this);
+                boolean playing = controller.isPlaying();
+                android.graphics.Bitmap logo = artwork != null && item.id.equals(artworkFor) ? artwork : null;
+                TelePremiumMediaNotificationViews.Actions actions = new TelePremiumMediaNotificationViews.Actions() {
+                    @Override public PendingIntent toggle() { return servicePending(ACTION_TOGGLE, 2); }
+                    @Override public PendingIntent previous() { return servicePending(ACTION_PREVIOUS, 1); }
+                    @Override public PendingIntent next() { return servicePending(ACTION_NEXT, 3); }
+                    @Override public PendingIntent close() { return close; }
+                    @Override public PendingIntent seek(int segment) {
+                        Intent intent = new Intent(TelePremiumMediaSessionService.this, TelePremiumMediaSessionService.class)
+                                .setAction(ACTION_SEEK).putExtra(EXTRA_SEGMENT, segment);
+                        return PendingIntent.getService(TelePremiumMediaSessionService.this, 200 + segment, intent, pendingFlags());
+                    }
+                };
+                long duration = item.live ? 0 : controller.getDuration();
+                builder.setCustomContentView(cardViews.small(item, logo, playing, actions));
+                builder.setCustomBigContentView(cardViews.big(item, logo, playing, controller.getPosition(), duration,
+                        controller.getBufferedPosition(), actions));
+                lastCardUpdate = android.os.SystemClock.elapsedRealtime();
+            } catch (Throwable e) {
+                org.telegram.messenger.FileLog.e(e);
+            }
         }
         return builder.build();
     }

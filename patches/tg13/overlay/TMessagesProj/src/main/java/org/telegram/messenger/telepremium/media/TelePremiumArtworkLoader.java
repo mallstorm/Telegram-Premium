@@ -62,6 +62,11 @@ public final class TelePremiumArtworkLoader {
         });
     }
 
+    /** Site icon service used when a station logo is missing or cannot be decoded (SVG, broken link). */
+    public static String siteIconUrl(String host) {
+        return "https://www.google.com/s2/favicons?sz=256&domain=" + host;
+    }
+
     /** Station / channel logos (radio favicon, IPTV tvg-logo). Small, cached, never blocks the UI. */
     private static void loadRemote(String url, int sizePx, Callback callback) {
         final String key = "remote:" + url + ":" + sizePx;
@@ -71,39 +76,66 @@ public final class TelePremiumArtworkLoader {
             return;
         }
         EXECUTOR.execute(() -> {
-            Bitmap bitmap = null;
-            java.net.HttpURLConnection c = null;
-            try {
-                c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
-                c.setConnectTimeout(8000);
-                c.setReadTimeout(10000);
-                c.setInstanceFollowRedirects(true);
-                c.setRequestProperty("User-Agent", "TelePremium/MediaCenter");
-                if (c.getResponseCode() / 100 == 2 && c.getContentLength() < 3 * 1024 * 1024) {
-                    try (java.io.InputStream in = c.getInputStream(); java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
-                        byte[] buf = new byte[16 * 1024];
-                        int n;
-                        while ((n = in.read(buf)) > 0 && out.size() < 3 * 1024 * 1024) out.write(buf, 0, n);
-                        byte[] data = out.toByteArray();
-                        BitmapFactory.Options bounds = new BitmapFactory.Options();
-                        bounds.inJustDecodeBounds = true;
-                        BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
-                        BitmapFactory.Options opts = new BitmapFactory.Options();
-                        int sample = 1;
-                        while (bounds.outWidth / (sample * 2) >= sizePx && bounds.outHeight / (sample * 2) >= sizePx) sample *= 2;
-                        opts.inSampleSize = sample;
-                        bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, opts);
-                    }
+            Bitmap bitmap = fetchBitmap(url, sizePx);
+            if (bitmap == null) {
+                // SVG / dead favicon: fall back to the site's icon.
+                try {
+                    String host = Uri.parse(url).getHost();
+                    if (host != null && !url.startsWith("https://www.google.com/s2/")) bitmap = fetchBitmap(siteIconUrl(host), sizePx);
+                } catch (Throwable ignore) {
                 }
-            } catch (Throwable e) {
-                // Broken logos are common in public catalogs; the UI keeps its fallback icon.
-            } finally {
-                if (c != null) c.disconnect();
             }
+            // 16 px favicons and the generic globe for unknown sites are not logos: keep the fallback tile.
+            if (bitmap != null && Math.max(bitmap.getWidth(), bitmap.getHeight()) < 32) bitmap = null;
             if (bitmap != null) CACHE.put(key, bitmap);
             Bitmap result = bitmap;
             MAIN.post(() -> callback.onLoaded(result));
         });
+    }
+
+    private static Bitmap fetchBitmap(String url, int sizePx) {
+        java.net.HttpURLConnection c = null;
+        try {
+            String current = url;
+            // HttpURLConnection never follows http <-> https redirects by itself; logos often need one.
+            for (int hop = 0; hop < 5; hop++) {
+                c = (java.net.HttpURLConnection) new java.net.URL(current).openConnection();
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(10000);
+                c.setInstanceFollowRedirects(false);
+                c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) TelePremium/MediaCenter");
+                int code = c.getResponseCode();
+                if (code >= 300 && code < 400) {
+                    String location = c.getHeaderField("Location");
+                    c.disconnect();
+                    c = null;
+                    if (location == null) return null;
+                    current = new java.net.URL(new java.net.URL(current), location).toString();
+                    continue;
+                }
+                if (code / 100 != 2 || c.getContentLength() > 3 * 1024 * 1024) return null;
+                try (java.io.InputStream in = c.getInputStream(); java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                    byte[] buf = new byte[16 * 1024];
+                    int n;
+                    while ((n = in.read(buf)) > 0 && out.size() < 3 * 1024 * 1024) out.write(buf, 0, n);
+                    byte[] data = out.toByteArray();
+                    BitmapFactory.Options bounds = new BitmapFactory.Options();
+                    bounds.inJustDecodeBounds = true;
+                    BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+                    BitmapFactory.Options opts = new BitmapFactory.Options();
+                    int sample = 1;
+                    while (bounds.outWidth / (sample * 2) >= sizePx && bounds.outHeight / (sample * 2) >= sizePx) sample *= 2;
+                    opts.inSampleSize = sample;
+                    return BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+                }
+            }
+        } catch (Throwable e) {
+            // Broken logos are common in public catalogs; the UI keeps its fallback icon.
+        } finally {
+            if (c != null) c.disconnect();
+        }
+        return null;
     }
 
     private static Bitmap loadVideo(Context context, Uri uri, int sizePx) {
