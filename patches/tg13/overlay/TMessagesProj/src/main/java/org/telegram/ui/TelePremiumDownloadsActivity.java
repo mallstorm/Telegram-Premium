@@ -20,7 +20,7 @@ public class TelePremiumDownloadsActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_296));
+        actionBar.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_296", org.telegram.messenger.R.string.TP_L10N_296));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {

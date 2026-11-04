@@ -25,7 +25,7 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_052));
+        actionBar.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_052", org.telegram.messenger.R.string.TP_L10N_052));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -47,11 +47,11 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
                 ScrollView.LayoutParams.WRAP_CONTENT
         ));
 
-        TextCell cloud = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_069), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_297));
+        TextCell cloud = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_069", org.telegram.messenger.R.string.TP_L10N_069), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_297", org.telegram.messenger.R.string.TP_L10N_297));
         cloud.setOnClickListener(v -> TelePremiumCloudAccessGate.openCloud(this, -1));
 
         TextView section = new TextView(context);
-        section.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_298));
+        section.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_298", org.telegram.messenger.R.string.TP_L10N_298));
         section.setTextSize(14);
         section.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         section.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
@@ -65,24 +65,24 @@ public class TelePremiumFileCenterActivity extends BaseFragment {
             }
             final int accountId = account;
             TLRPC.User user = config.getCurrentUser();
-            String name = user == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_002) + (account + 1) : UserObject.getUserName(user);
+            String name = user == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_002", org.telegram.messenger.R.string.TP_L10N_002) + (account + 1) : UserObject.getUserName(user);
 
-            TextCell cell = addCell(content, context, name, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_299));
+            TextCell cell = addCell(content, context, name, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_299", org.telegram.messenger.R.string.TP_L10N_299));
             cell.setOnClickListener(v -> TelePremiumCloudAccessGate.openCloud(this, accountId));
         }
 
         TextView tools = new TextView(context);
-        tools.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_300));
+        tools.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_300", org.telegram.messenger.R.string.TP_L10N_300));
         tools.setTextSize(14);
         tools.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         tools.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
         tools.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(20), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
         content.addView(tools);
 
-        TextCell storage = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_058), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_301));
+        TextCell storage = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_058", org.telegram.messenger.R.string.TP_L10N_058), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_301", org.telegram.messenger.R.string.TP_L10N_301));
         storage.setOnClickListener(v -> presentFragment(new CacheControlActivity()));
 
-        TextCell downloadSettings = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_302), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_303));
+        TextCell downloadSettings = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_302", org.telegram.messenger.R.string.TP_L10N_302), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_303", org.telegram.messenger.R.string.TP_L10N_303));
         downloadSettings.setOnClickListener(v -> presentFragment(new DataSettingsActivity()));
 
         fragmentView = scrollView;

@@ -44,7 +44,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
         boolean biometric = TelePremiumCloudSecurityStore.isBiometricEnabled(context) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P;
 
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_054));
+        actionBar.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_054", org.telegram.messenger.R.string.TP_L10N_054));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
@@ -56,7 +56,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
         root.setBackgroundColor(theme.background);
 
         TextView title = new TextView(context);
-        title.setText(category == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_282) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_283) + TelePremiumCloudSecurityStore.categoryLabel(category));
+        title.setText(category == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_282", org.telegram.messenger.R.string.TP_L10N_282) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_283", org.telegram.messenger.R.string.TP_L10N_283) + TelePremiumCloudSecurityStore.categoryLabel(category));
         title.setTextSize(22);
         title.setTypeface(AndroidUtilities.bold());
         title.setTextColor(theme.textPrimary);
@@ -64,7 +64,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
         root.addView(title, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(46)));
 
         status = new TextView(context);
-        status.setText(hasPattern ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_284) : biometric ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_285) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_286));
+        status.setText(hasPattern ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_284", org.telegram.messenger.R.string.TP_L10N_284) : biometric ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_285", org.telegram.messenger.R.string.TP_L10N_285) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_286", org.telegram.messenger.R.string.TP_L10N_286));
         status.setTextSize(14);
         status.setTextColor(theme.textSecondary);
         status.setGravity(Gravity.CENTER);
@@ -81,7 +81,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
 
         if (biometric) {
             TextView biometricButton = new TextView(context);
-            biometricButton.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_287));
+            biometricButton.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_287", org.telegram.messenger.R.string.TP_L10N_287));
             biometricButton.setTextSize(15);
             biometricButton.setTextColor(theme.accent);
             biometricButton.setGravity(Gravity.CENTER);
@@ -102,9 +102,9 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
     private static String formatLockout(long ms) {
         long seconds = Math.max(1, (ms + 999) / 1000);
         if (seconds < 120) {
-            return org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_DurationSeconds, (int) seconds);
+            return org.telegram.messenger.telepremium.TPStrings.format("TP_DurationSeconds", org.telegram.messenger.R.string.TP_DurationSeconds, (int) seconds);
         }
-        return org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_DurationMinutes, (int) ((seconds + 59) / 60));
+        return org.telegram.messenger.telepremium.TPStrings.format("TP_DurationMinutes", org.telegram.messenger.R.string.TP_DurationMinutes, (int) ((seconds + 59) / 60));
     }
 
     private void verifyPattern(String pattern) {
@@ -112,12 +112,12 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
         if (context == null || completed || patternView == null || verifying) return;
         long lockout = TelePremiumCloudSecurityStore.remainingLockoutMs(context);
         if (lockout > 0) {
-            status.setText(org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_PatternTooManyAttempts, formatLockout(lockout)));
+            status.setText(org.telegram.messenger.telepremium.TPStrings.format("TP_PatternTooManyAttempts", org.telegram.messenger.R.string.TP_PatternTooManyAttempts, formatLockout(lockout)));
             patternView.showError();
             return;
         }
         verifying = true;
-        status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_PatternChecking));
+        status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_PatternChecking", org.telegram.messenger.R.string.TP_PatternChecking));
         TelePremiumCloudSecurityStore.verifyPatternAsync(context, pattern, ok -> {
             verifying = false;
             if (completed || patternView == null || getParentActivity() == null) return;
@@ -127,8 +127,8 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
             }
             long after = TelePremiumCloudSecurityStore.remainingLockoutMs(getParentActivity());
             status.setText(after > 0
-                    ? org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_PatternLockedFor, formatLockout(after))
-                    : org.telegram.messenger.LocaleController.formatString(org.telegram.messenger.R.string.TP_PatternWrongLeft, TelePremiumCloudSecurityStore.attemptsBeforeLockout(getParentActivity())));
+                    ? org.telegram.messenger.telepremium.TPStrings.format("TP_PatternLockedFor", org.telegram.messenger.R.string.TP_PatternLockedFor, formatLockout(after))
+                    : org.telegram.messenger.telepremium.TPStrings.format("TP_PatternWrongLeft", org.telegram.messenger.R.string.TP_PatternWrongLeft, TelePremiumCloudSecurityStore.attemptsBeforeLockout(getParentActivity())));
             patternView.showError();
         });
     }
@@ -142,12 +142,12 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
             biometricCancellation = new CancellationSignal();
             Executor executor = context.getMainExecutor();
             BiometricPrompt.Builder builder = new BiometricPrompt.Builder(context)
-                    .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_288))
-                    .setSubtitle(category == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_289) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_290) + TelePremiumCloudSecurityStore.categoryLabel(category));
+                    .setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_288", org.telegram.messenger.R.string.TP_L10N_288))
+                    .setSubtitle(category == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_289", org.telegram.messenger.R.string.TP_L10N_289) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_290", org.telegram.messenger.R.string.TP_L10N_290) + TelePremiumCloudSecurityStore.categoryLabel(category));
             if (TelePremiumCloudSecurityStore.hasPattern(context)) {
-                builder.setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_261), executor, (DialogInterface dialog, int which) -> status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_284)));
+                builder.setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_261", org.telegram.messenger.R.string.TP_L10N_261), executor, (DialogInterface dialog, int which) -> status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_284", org.telegram.messenger.R.string.TP_L10N_284)));
             } else {
-                builder.setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), executor, (DialogInterface dialog, int which) -> status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_291)));
+                builder.setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135), executor, (DialogInterface dialog, int which) -> status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_291", org.telegram.messenger.R.string.TP_L10N_291)));
             }
             BiometricPrompt prompt = builder.build();
             prompt.authenticate(biometricCancellation, executor, new BiometricPrompt.AuthenticationCallback() {
@@ -157,20 +157,20 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
                 }
                 @Override public void onAuthenticationFailed() {
                     super.onAuthenticationFailed();
-                    status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_292));
+                    status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_292", org.telegram.messenger.R.string.TP_L10N_292));
                 }
                 @Override public void onAuthenticationError(int errorCode, CharSequence errString) {
                     super.onAuthenticationError(errorCode, errString);
                     if (errorCode != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED
                             && errorCode != BiometricPrompt.BIOMETRIC_ERROR_CANCELED) {
-                        status.setText(errString == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_267) : errString);
+                        status.setText(errString == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_267", org.telegram.messenger.R.string.TP_L10N_267) : errString);
                     }
                 }
             });
         } catch (Throwable e) {
             status.setText(TelePremiumCloudSecurityStore.hasPattern(context)
-                    ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_293)
-                    : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_294));
+                    ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_293", org.telegram.messenger.R.string.TP_L10N_293)
+                    : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_294", org.telegram.messenger.R.string.TP_L10N_294));
         }
     }
 
@@ -184,7 +184,7 @@ public class TelePremiumCloudUnlockActivity extends BaseFragment {
             // The previous host fragment may already have been destroyed.
             if (!presentFragment(new TelePremiumCloudActivity(account), true)) {
                 completed = false;
-                status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_295));
+                status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_295", org.telegram.messenger.R.string.TP_L10N_295));
             }
         } else {
             finishFragment();

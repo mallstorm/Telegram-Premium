@@ -17,17 +17,17 @@ public final class TelePremiumUpdateUi {
     public static void offer(Activity activity, TelePremiumUpdateChecker.Release release) {
         String size = release.size > 0 ? AndroidUtilities.formatFileSize(release.size) : "";
         new AlertDialog.Builder(activity)
-                .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_528))
-                .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_529) + release.versionName + " (" + release.versionCode + ")" + (size.isEmpty() ? "" : ", " + size)
-                        + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_530))
-                .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_531), (d, w) -> download(activity, release))
-                .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_532), null)
+                .setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_528", org.telegram.messenger.R.string.TP_L10N_528))
+                .setMessage(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_529", org.telegram.messenger.R.string.TP_L10N_529) + release.versionName + " (" + release.versionCode + ")" + (size.isEmpty() ? "" : ", " + size)
+                        + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_530", org.telegram.messenger.R.string.TP_L10N_530))
+                .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_531", org.telegram.messenger.R.string.TP_L10N_531), (d, w) -> download(activity, release))
+                .setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_532", org.telegram.messenger.R.string.TP_L10N_532), null)
                 .show();
     }
 
     public static void download(Activity activity, TelePremiumUpdateChecker.Release release) {
         if (!TelePremiumUpdateChecker.canRequestInstall(activity)) {
-            Toast.makeText(activity, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_533), Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_533", org.telegram.messenger.R.string.TP_L10N_533), Toast.LENGTH_LONG).show();
             try {
                 activity.startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + activity.getPackageName())));
             } catch (Exception ignored) {
@@ -38,12 +38,12 @@ public final class TelePremiumUpdateUi {
         AlertDialog progress = new AlertDialog(activity, AlertDialog.ALERT_TYPE_SPINNER);
         progress.setCanCancel(false);
         progress.show();
-        Toast.makeText(activity, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_534), Toast.LENGTH_SHORT).show();
+        Toast.makeText(activity, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_534", org.telegram.messenger.R.string.TP_L10N_534), Toast.LENGTH_SHORT).show();
         TelePremiumUpdateChecker.download(release, null, (apk, error) -> {
             try { progress.dismiss(); } catch (Exception ignored) { }
             if (activity.isFinishing()) return;
             if (error != null) {
-                new AlertDialog.Builder(activity).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_535)).setMessage(error).setPositiveButton("OK", null).show();
+                new AlertDialog.Builder(activity).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_535", org.telegram.messenger.R.string.TP_L10N_535)).setMessage(error).setPositiveButton("OK", null).show();
                 return;
             }
             TelePremiumUpdateChecker.install(activity, apk);

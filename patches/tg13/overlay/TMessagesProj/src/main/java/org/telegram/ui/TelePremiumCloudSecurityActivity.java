@@ -45,7 +45,7 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
         this.context = context;
         theme = TelePremiumThemeController.getCurrent(context);
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_054));
+        actionBar.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_054", org.telegram.messenger.R.string.TP_L10N_054));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
@@ -75,8 +75,8 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
         boolean enabled = TelePremiumCloudSecurityStore.isProtectionEnabled(context);
         boolean whole = TelePremiumCloudSecurityStore.isWholeCloudLocked(context);
 
-        addSection(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_177));
-        addSwitch(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_178), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_179), enabled, true, (button, checked) -> {
+        addSection(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_177", org.telegram.messenger.R.string.TP_L10N_177));
+        addSwitch(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_178", org.telegram.messenger.R.string.TP_L10N_178), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_179", org.telegram.messenger.R.string.TP_L10N_179), enabled, true, (button, checked) -> {
             if (checked && !TelePremiumCloudSecurityStore.hasUnlockMethod(context)) {
                 button.setChecked(false);
                 chooseUnlockMethod(() -> {
@@ -89,18 +89,18 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             render();
         });
 
-        addAction(hasPattern ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_180) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_181),
-                hasPattern ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_182) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_183),
+        addAction(hasPattern ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_180", org.telegram.messenger.R.string.TP_L10N_180) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_181", org.telegram.messenger.R.string.TP_L10N_181),
+                hasPattern ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_182", org.telegram.messenger.R.string.TP_L10N_182) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_183", org.telegram.messenger.R.string.TP_L10N_183),
                 () -> presentFragment(new TelePremiumPatternSetupActivity(this::refreshAfterPattern)));
         if (hasPattern) {
             String subtitle = TelePremiumCloudSecurityStore.hasBiometricCredential(context)
-                    ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_184)
-                    : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_185);
-            addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_186), subtitle, this::confirmRemovePattern);
+                    ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_184", org.telegram.messenger.R.string.TP_L10N_184)
+                    : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_185", org.telegram.messenger.R.string.TP_L10N_185);
+            addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_186", org.telegram.messenger.R.string.TP_L10N_186), subtitle, this::confirmRemovePattern);
         }
 
         boolean biometricSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P;
-        addSwitch(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_187), biometricSupported ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_188) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_189),
+        addSwitch(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_187", org.telegram.messenger.R.string.TP_L10N_187), biometricSupported ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_188", org.telegram.messenger.R.string.TP_L10N_188) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_189", org.telegram.messenger.R.string.TP_L10N_189),
                 TelePremiumCloudSecurityStore.hasBiometricCredential(context), biometricSupported,
                 (button, checked) -> {
                     if (checked) {
@@ -115,14 +115,14 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
                     }
                 });
 
-        addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_190), autoLockLabel(), this::showAutoLockDialog);
-        addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_191), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_192), () -> {
+        addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_190", org.telegram.messenger.R.string.TP_L10N_190), autoLockLabel(), this::showAutoLockDialog);
+        addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_191", org.telegram.messenger.R.string.TP_L10N_191), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_192", org.telegram.messenger.R.string.TP_L10N_192), () -> {
             TelePremiumCloudSecuritySession.lockNow();
-            toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_193));
+            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_193", org.telegram.messenger.R.string.TP_L10N_193));
         });
 
-        addSection(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_194));
-        addSwitch(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_195), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_196), whole, true,
+        addSection(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_194", org.telegram.messenger.R.string.TP_L10N_194));
+        addSwitch(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_195", org.telegram.messenger.R.string.TP_L10N_195), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_196", org.telegram.messenger.R.string.TP_L10N_196), whole, true,
                 (button, checked) -> applyProtectedToggle(button, checked, () -> {
                     TelePremiumCloudSecurityStore.setWholeCloudLocked(context, checked);
                     render();
@@ -130,27 +130,27 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
 
         TextView info = new TextView(context);
         info.setText(whole
-                ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_197)
-                : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_198));
+                ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_197", org.telegram.messenger.R.string.TP_L10N_197)
+                : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_198", org.telegram.messenger.R.string.TP_L10N_198));
         info.setTextSize(13);
         info.setTextColor(theme.textSecondary);
         info.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(9), AndroidUtilities.dp(21), AndroidUtilities.dp(13));
         content.addView(info, new LinearLayout.LayoutParams(-1, -2));
 
-        addCategory(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_097), TelePremiumCloudSecurityStore.CATEGORY_IMAGES, !whole);
-        addCategory(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_098), TelePremiumCloudSecurityStore.CATEGORY_VIDEO, !whole);
-        addCategory(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_099), TelePremiumCloudSecurityStore.CATEGORY_DOCUMENTS, !whole);
-        addCategory(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_100), TelePremiumCloudSecurityStore.CATEGORY_AUDIO, !whole);
-        addCategory(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_101), TelePremiumCloudSecurityStore.CATEGORY_ARCHIVES, !whole);
+        addCategory(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_097", org.telegram.messenger.R.string.TP_L10N_097), TelePremiumCloudSecurityStore.CATEGORY_IMAGES, !whole);
+        addCategory(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_098", org.telegram.messenger.R.string.TP_L10N_098), TelePremiumCloudSecurityStore.CATEGORY_VIDEO, !whole);
+        addCategory(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_099", org.telegram.messenger.R.string.TP_L10N_099), TelePremiumCloudSecurityStore.CATEGORY_DOCUMENTS, !whole);
+        addCategory(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_100", org.telegram.messenger.R.string.TP_L10N_100), TelePremiumCloudSecurityStore.CATEGORY_AUDIO, !whole);
+        addCategory(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_101", org.telegram.messenger.R.string.TP_L10N_101), TelePremiumCloudSecurityStore.CATEGORY_ARCHIVES, !whole);
         addCategory("APK", TelePremiumCloudSecurityStore.CATEGORY_APK, !whole);
-        addCategory(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_199), TelePremiumCloudSecurityStore.CATEGORY_FAVORITES, !whole);
-        addCategory(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_103), TelePremiumCloudSecurityStore.CATEGORY_TRASH, !whole);
+        addCategory(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_199", org.telegram.messenger.R.string.TP_L10N_199), TelePremiumCloudSecurityStore.CATEGORY_FAVORITES, !whole);
+        addCategory(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_103", org.telegram.messenger.R.string.TP_L10N_103), TelePremiumCloudSecurityStore.CATEGORY_TRASH, !whole);
 
         renderVaultControls();
 
-        addSection(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_200));
+        addSection(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_200", org.telegram.messenger.R.string.TP_L10N_200));
         TextView note = new TextView(context);
-        note.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_201));
+        note.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_201", org.telegram.messenger.R.string.TP_L10N_201));
         note.setTextSize(13);
         note.setTextColor(theme.textSecondary);
         note.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(8), AndroidUtilities.dp(21), AndroidUtilities.dp(18));
@@ -161,29 +161,29 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
         boolean available=Build.VERSION.SDK_INT>=Build.VERSION_CODES.O;
         boolean hasKey=TelePremiumVaultKeyManager.hasMasterKey(context);
         boolean active=TelePremiumVaultKeyManager.isEnabled(context);
-        addSection(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_202));
+        addSection(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_202", org.telegram.messenger.R.string.TP_L10N_202));
         if(!available){
-            addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_203), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_204),()->{});
+            addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_203", org.telegram.messenger.R.string.TP_L10N_203), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_204", org.telegram.messenger.R.string.TP_L10N_204),()->{});
             return;
         }
         if(!hasKey){
-            addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_205), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_206), this::showVaultSetup);
-            addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_207), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_208), this::showVaultRecovery);
+            addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_205", org.telegram.messenger.R.string.TP_L10N_205), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_206", org.telegram.messenger.R.string.TP_L10N_206), this::showVaultSetup);
+            addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_207", org.telegram.messenger.R.string.TP_L10N_207), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_208", org.telegram.messenger.R.string.TP_L10N_208), this::showVaultRecovery);
         } else {
-            addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_209), TelePremiumVaultKeyManager.isRecoveryConfirmed(context)
-                    ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_210)
-                    : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_211), this::showVaultRecoveryCode);
-            addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_212), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_213), this::showVaultPassphraseCheck);
+            addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_209", org.telegram.messenger.R.string.TP_L10N_209), TelePremiumVaultKeyManager.isRecoveryConfirmed(context)
+                    ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_210", org.telegram.messenger.R.string.TP_L10N_210)
+                    : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_211", org.telegram.messenger.R.string.TP_L10N_211), this::showVaultRecoveryCode);
+            addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_212", org.telegram.messenger.R.string.TP_L10N_212), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_213", org.telegram.messenger.R.string.TP_L10N_213), this::showVaultPassphraseCheck);
             if(!active){
-                addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_214), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_215), this::confirmVaultActivation);
+                addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_214", org.telegram.messenger.R.string.TP_L10N_214), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_215", org.telegram.messenger.R.string.TP_L10N_215), this::confirmVaultActivation);
             } else {
-                addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_216), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_217),()->toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_218)));
-                addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_219), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_220), this::confirmVaultJournalRecovery);
-                addAction(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_221), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_222), this::confirmVaultDeactivation);
+                addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_216", org.telegram.messenger.R.string.TP_L10N_216), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_217", org.telegram.messenger.R.string.TP_L10N_217),()->toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_218", org.telegram.messenger.R.string.TP_L10N_218)));
+                addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_219", org.telegram.messenger.R.string.TP_L10N_219), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_220", org.telegram.messenger.R.string.TP_L10N_220), this::confirmVaultJournalRecovery);
+                addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_221", org.telegram.messenger.R.string.TP_L10N_221), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_222", org.telegram.messenger.R.string.TP_L10N_222), this::confirmVaultDeactivation);
             }
         }
         TextView warning=new TextView(context);
-        warning.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_223));
+        warning.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_223", org.telegram.messenger.R.string.TP_L10N_223));
         warning.setTextSize(12);warning.setTextColor(theme.textSecondary);
         warning.setPadding(AndroidUtilities.dp(21),AndroidUtilities.dp(12),AndroidUtilities.dp(21),AndroidUtilities.dp(18));
         content.addView(warning,new LinearLayout.LayoutParams(-1,-2));
@@ -191,29 +191,29 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
 
     private void showVaultSetup() {
         if(!TelePremiumCloudSecurityStore.isProtectionEnabled(context)||!TelePremiumCloudSecuritySession.isUnlocked(context)){
-            toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_224));return;
+            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_224", org.telegram.messenger.R.string.TP_L10N_224));return;
         }
         LinearLayout fields=new LinearLayout(context);fields.setOrientation(LinearLayout.VERTICAL);
         fields.setPadding(AndroidUtilities.dp(20),0,AndroidUtilities.dp(20),0);
-        EditText pass=new EditText(context);pass.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_225));
+        EditText pass=new EditText(context);pass.setHint(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_225", org.telegram.messenger.R.string.TP_L10N_225));
         pass.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        EditText confirm=new EditText(context);confirm.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_226));
+        EditText confirm=new EditText(context);confirm.setHint(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_226", org.telegram.messenger.R.string.TP_L10N_226));
         confirm.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
         fields.addView(pass);fields.addView(confirm);
-        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_227))
-                .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_228))
-                .setView(fields).setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_158),(dialog,which)->{
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_227", org.telegram.messenger.R.string.TP_L10N_227))
+                .setMessage(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_228", org.telegram.messenger.R.string.TP_L10N_228))
+                .setView(fields).setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_158", org.telegram.messenger.R.string.TP_L10N_158),(dialog,which)->{
                     String p1=pass.getText().toString();String p2=confirm.getText().toString();
-                    if(!p1.equals(p2)){toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_229));return;}
+                    if(!p1.equals(p2)){toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_229", org.telegram.messenger.R.string.TP_L10N_229));return;}
                     char[] chars=p1.toCharArray();
                     pass.setText("");confirm.setText("");
                     Utilities.globalQueue.postRunnable(()->{
                         try {TelePremiumVaultKeyManager.initialize(context,chars);
                             AndroidUtilities.runOnUIThread(()->{render();showVaultRecoveryCode();});
-                        }catch(Exception e){AndroidUtilities.runOnUIThread(()->toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_230)+e.getMessage()));}
+                        }catch(Exception e){AndroidUtilities.runOnUIThread(()->toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_230", org.telegram.messenger.R.string.TP_L10N_230)+e.getMessage()));}
                         finally {Arrays.fill(chars,'\0');}
                     });
-                }).setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null).show();
+                }).setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135),null).show();
     }
 
     private void showVaultRecoveryCode() {
@@ -222,12 +222,12 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             TextView view=new TextView(context);view.setText(code);view.setTextIsSelectable(true);
             view.setPadding(AndroidUtilities.dp(20),AndroidUtilities.dp(12),AndroidUtilities.dp(20),AndroidUtilities.dp(12));
             view.setTextSize(13);
-            new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_231))
-                    .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_232))
+            new AlertDialog.Builder(context).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_231", org.telegram.messenger.R.string.TP_L10N_231))
+                    .setMessage(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_232", org.telegram.messenger.R.string.TP_L10N_232))
                     .setView(view)
-                    .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_233),(d,w)->{TelePremiumVaultKeyManager.setRecoveryConfirmed(context,true);render();})
-                    .setNeutralButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_234),(d,w)->shareRecoveryCode(code))
-                    .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_235),null).show();
+                    .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_233", org.telegram.messenger.R.string.TP_L10N_233),(d,w)->{TelePremiumVaultKeyManager.setRecoveryConfirmed(context,true);render();})
+                    .setNeutralButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_234", org.telegram.messenger.R.string.TP_L10N_234),(d,w)->shareRecoveryCode(code))
+                    .setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_235", org.telegram.messenger.R.string.TP_L10N_235),null).show();
         }catch(Exception e){toastStatus(e.getMessage());}
     }
 
@@ -247,82 +247,82 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             send.setType("text/plain");
             send.putExtra(android.content.Intent.EXTRA_SUBJECT,"TelePremium Vault recovery code");
             send.putExtra(android.content.Intent.EXTRA_TEXT,code);
-            context.startActivity(android.content.Intent.createChooser(send,org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_236)));
-            toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_237));
+            context.startActivity(android.content.Intent.createChooser(send,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_236", org.telegram.messenger.R.string.TP_L10N_236)));
+            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_237", org.telegram.messenger.R.string.TP_L10N_237));
         }catch(Exception e){toastStatus(e.getMessage());}
     }
 
     private void showVaultPassphraseCheck() {
-        EditText password=new EditText(context);password.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_238));
+        EditText password=new EditText(context);password.setHint(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_238", org.telegram.messenger.R.string.TP_L10N_238));
         password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
         LinearLayout box=new LinearLayout(context);box.setPadding(AndroidUtilities.dp(20),0,AndroidUtilities.dp(20),0);box.addView(password,new LinearLayout.LayoutParams(-1,-2));
-        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_239)).setView(box)
-                .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_240),(d,w)->{
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_239", org.telegram.messenger.R.string.TP_L10N_239)).setView(box)
+                .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_240", org.telegram.messenger.R.string.TP_L10N_240),(d,w)->{
                     char[] chars=password.getText().toString().toCharArray();password.setText("");
                     Utilities.globalQueue.postRunnable(()->{
                         try{boolean ok=TelePremiumVaultKeyManager.verifyRecoveryPassphrase(context,chars);
-                            AndroidUtilities.runOnUIThread(()->toastStatus(ok?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_241):org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_242)));
-                        }catch(Exception e){AndroidUtilities.runOnUIThread(()->toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_243)+e.getMessage()));}
+                            AndroidUtilities.runOnUIThread(()->toastStatus(ok?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_241", org.telegram.messenger.R.string.TP_L10N_241):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_242", org.telegram.messenger.R.string.TP_L10N_242)));
+                        }catch(Exception e){AndroidUtilities.runOnUIThread(()->toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_243", org.telegram.messenger.R.string.TP_L10N_243)+e.getMessage()));}
                         finally{Arrays.fill(chars,'\0');}
                     });
-                }).setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null).show();
+                }).setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135),null).show();
     }
 
     private void showVaultRecovery() {
         if(!TelePremiumCloudSecurityStore.isProtectionEnabled(context)||!TelePremiumCloudSecuritySession.isUnlocked(context)){
-            toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_224));return;
+            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_224", org.telegram.messenger.R.string.TP_L10N_224));return;
         }
         LinearLayout fields=new LinearLayout(context);fields.setOrientation(LinearLayout.VERTICAL);
         fields.setPadding(AndroidUtilities.dp(20),0,AndroidUtilities.dp(20),0);
         EditText code=new EditText(context);code.setHint("TPVAULT-RECOVERY-1:...");code.setMinLines(2);
-        EditText password=new EditText(context);password.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_238));
+        EditText password=new EditText(context);password.setHint(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_238", org.telegram.messenger.R.string.TP_L10N_238));
         password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
         fields.addView(code);fields.addView(password);
-        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_207)).setView(fields)
-                .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_118),(dialog,which)->{
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_207", org.telegram.messenger.R.string.TP_L10N_207)).setView(fields)
+                .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_118", org.telegram.messenger.R.string.TP_L10N_118),(dialog,which)->{
                     String raw=code.getText().toString().trim();String[] parts=raw.split(":",3);
-                    if(parts.length!=3||!"TPVAULT-RECOVERY-1".equals(parts[0])){toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_244));return;}
+                    if(parts.length!=3||!"TPVAULT-RECOVERY-1".equals(parts[0])){toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_244", org.telegram.messenger.R.string.TP_L10N_244));return;}
                     char[] chars=password.getText().toString().toCharArray();password.setText("");code.setText("");
                     Utilities.globalQueue.postRunnable(()->{
                         try{TelePremiumVaultKeyManager.recoverOnThisDevice(context,chars,parts[1],parts[2]);
-                            AndroidUtilities.runOnUIThread(()->{render();toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_245));});
-                        }catch(Exception e){AndroidUtilities.runOnUIThread(()->toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_246)));}
+                            AndroidUtilities.runOnUIThread(()->{render();toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_245", org.telegram.messenger.R.string.TP_L10N_245));});
+                        }catch(Exception e){AndroidUtilities.runOnUIThread(()->toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_246", org.telegram.messenger.R.string.TP_L10N_246)));}
                         finally{Arrays.fill(chars,'\0');}
                     });
-                }).setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null).show();
+                }).setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135),null).show();
     }
 
     private void confirmVaultActivation() {
         if(!TelePremiumVaultKeyManager.isRecoveryConfirmed(context)){
-            toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_247));
+            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_247", org.telegram.messenger.R.string.TP_L10N_247));
             showVaultRecoveryCode();
             return;
         }
         new AlertDialog.Builder(context)
-            .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_248))
-            .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_249))
-            .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_250),(d,w)->{
-                try{TelePremiumVaultKeyManager.activateNewVault(context);render();toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_251));}
+            .setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_248", org.telegram.messenger.R.string.TP_L10N_248))
+            .setMessage(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_249", org.telegram.messenger.R.string.TP_L10N_249))
+            .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_250", org.telegram.messenger.R.string.TP_L10N_250),(d,w)->{
+                try{TelePremiumVaultKeyManager.activateNewVault(context);render();toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_251", org.telegram.messenger.R.string.TP_L10N_251));}
                 catch(Exception e){toastStatus(e.getMessage());}
-            }).setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null).show();
+            }).setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135),null).show();
     }
 
     private void confirmVaultJournalRecovery() {
         int account=UserConfig.selectedAccount;
-        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_252))
-            .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_253))
-            .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_118),(d,w)->new TelePremiumVaultIndexStore(account)
-                    .restoreLatestLocalIndex(error->toastStatus(error==null?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_254):org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_255)+error)))
-            .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null).show();
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_252", org.telegram.messenger.R.string.TP_L10N_252))
+            .setMessage(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_253", org.telegram.messenger.R.string.TP_L10N_253))
+            .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_118", org.telegram.messenger.R.string.TP_L10N_118),(d,w)->new TelePremiumVaultIndexStore(account)
+                    .restoreLatestLocalIndex(error->toastStatus(error==null?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_254", org.telegram.messenger.R.string.TP_L10N_254):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_255", org.telegram.messenger.R.string.TP_L10N_255)+error)))
+            .setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135),null).show();
     }
 
     private void confirmVaultDeactivation() {
-        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_256))
-            .setMessage(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_257))
-            .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_258),(d,w)->{
-                try{TelePremiumVaultKeyManager.deactivateVault(context);render();toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_259));}
+        new AlertDialog.Builder(context).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_256", org.telegram.messenger.R.string.TP_L10N_256))
+            .setMessage(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_257", org.telegram.messenger.R.string.TP_L10N_257))
+            .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_258", org.telegram.messenger.R.string.TP_L10N_258),(d,w)->{
+                try{TelePremiumVaultKeyManager.deactivateVault(context);render();toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_259", org.telegram.messenger.R.string.TP_L10N_259));}
                 catch(Exception e){toastStatus(e.getMessage());}
-            }).setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135),null).show();
+            }).setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135),null).show();
     }
 
     private void applyProtectedToggle(CompoundButton button, boolean checked, Runnable apply) {
@@ -343,8 +343,8 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
     private void chooseUnlockMethod(Runnable afterReady) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             new AlertDialog.Builder(context)
-                    .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_260))
-                    .setItems(new CharSequence[]{org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_261), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_262)}, (dialog, which) -> {
+                    .setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_260", org.telegram.messenger.R.string.TP_L10N_260))
+                    .setItems(new CharSequence[]{org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_261", org.telegram.messenger.R.string.TP_L10N_261), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_262", org.telegram.messenger.R.string.TP_L10N_262)}, (dialog, which) -> {
                         if (which == 0) {
                             presentFragment(new TelePremiumPatternSetupActivity(() -> {
                                 if (afterReady != null) afterReady.run();
@@ -366,7 +366,7 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
 
     private void promptBiometricEnrollment(Runnable onSuccess) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P || getParentActivity() == null) {
-            toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_263));
+            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_263", org.telegram.messenger.R.string.TP_L10N_263));
             render();
             return;
         }
@@ -376,9 +376,9 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             Context activity = getParentActivity();
             Executor executor = activity.getMainExecutor();
             BiometricPrompt prompt = new BiometricPrompt.Builder(activity)
-                    .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_264))
-                    .setSubtitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_265))
-                    .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), executor, (DialogInterface dialog, int which) -> render())
+                    .setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_264", org.telegram.messenger.R.string.TP_L10N_264))
+                    .setSubtitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_265", org.telegram.messenger.R.string.TP_L10N_265))
+                    .setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135), executor, (DialogInterface dialog, int which) -> render())
                     .build();
             prompt.authenticate(biometricCancellation, executor, new BiometricPrompt.AuthenticationCallback() {
                 @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
@@ -388,26 +388,26 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
 
                 @Override public void onAuthenticationFailed() {
                     super.onAuthenticationFailed();
-                    toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_266));
+                    toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_266", org.telegram.messenger.R.string.TP_L10N_266));
                 }
 
                 @Override public void onAuthenticationError(int errorCode, CharSequence errString) {
                     super.onAuthenticationError(errorCode, errString);
                     if (errorCode != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED
                             && errorCode != BiometricPrompt.BIOMETRIC_ERROR_CANCELED) {
-                        toastStatus(errString == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_267) : errString.toString());
+                        toastStatus(errString == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_267", org.telegram.messenger.R.string.TP_L10N_267) : errString.toString());
                     }
                     render();
                 }
             });
         } catch (Throwable e) {
-            toastStatus(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_268));
+            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_268", org.telegram.messenger.R.string.TP_L10N_268));
             render();
         }
     }
 
     private void addCategory(String title, String category, boolean rowEnabled) {
-        addSwitch(title, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_269), TelePremiumCloudSecurityStore.isCategoryLocked(context, category), rowEnabled,
+        addSwitch(title, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_269", org.telegram.messenger.R.string.TP_L10N_269), TelePremiumCloudSecurityStore.isCategoryLocked(context, category), rowEnabled,
                 (button, checked) -> applyProtectedToggle(button, checked, () -> {
                     TelePremiumCloudSecurityStore.setCategoryLocked(context, category, checked);
                     render();
@@ -526,16 +526,16 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
 
     private String autoLockLabel() {
         int seconds = TelePremiumCloudSecurityStore.getAutoLockSeconds(context);
-        if (seconds < 60) return seconds + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_270);
-        if (seconds == 60) return org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_271);
-        return (seconds / 60) + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_272);
+        if (seconds < 60) return seconds + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_270", org.telegram.messenger.R.string.TP_L10N_270);
+        if (seconds == 60) return org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_271", org.telegram.messenger.R.string.TP_L10N_271);
+        return (seconds / 60) + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_272", org.telegram.messenger.R.string.TP_L10N_272);
     }
 
     private void showAutoLockDialog() {
-        CharSequence[] names = {org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_273), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_274), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_275)};
+        CharSequence[] names = {org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_273", org.telegram.messenger.R.string.TP_L10N_273), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_274", org.telegram.messenger.R.string.TP_L10N_274), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_275", org.telegram.messenger.R.string.TP_L10N_275)};
         int[] values = {30, 60, 300};
         new AlertDialog.Builder(context)
-                .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_190))
+                .setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_190", org.telegram.messenger.R.string.TP_L10N_190))
                 .setItems(names, (dialog, which) -> {
                     TelePremiumCloudSecurityStore.setAutoLockSeconds(context, values[which]);
                     render();
@@ -545,16 +545,16 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
 
     private void confirmRemovePattern() {
         String message = TelePremiumCloudSecurityStore.hasBiometricCredential(context)
-                ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_276)
-                : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_277);
+                ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_276", org.telegram.messenger.R.string.TP_L10N_276)
+                : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_277", org.telegram.messenger.R.string.TP_L10N_277);
         new AlertDialog.Builder(context)
-                .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_278))
+                .setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_278", org.telegram.messenger.R.string.TP_L10N_278))
                 .setMessage(message)
-                .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_133), (dialog, which) -> {
+                .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_133", org.telegram.messenger.R.string.TP_L10N_133), (dialog, which) -> {
                     TelePremiumCloudSecurityStore.clearPattern(context);
                     render();
                 })
-                .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), null)
+                .setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135), null)
                 .show();
     }
 

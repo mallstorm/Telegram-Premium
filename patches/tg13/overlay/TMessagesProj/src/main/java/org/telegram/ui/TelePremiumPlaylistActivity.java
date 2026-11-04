@@ -45,7 +45,7 @@ public final class TelePremiumPlaylistActivity extends Activity {
         back.setGravity(Gravity.CENTER);
         back.setOnClickListener(v -> finish());
         header.addView(back, new LinearLayout.LayoutParams(dp(46), dp(52)));
-        TextView title = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_332), 22, mediaTheme.textPrimary, true);
+        TextView title = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_332", org.telegram.messenger.R.string.TP_L10N_332), 22, mediaTheme.textPrimary, true);
         header.addView(title, new LinearLayout.LayoutParams(0, dp(52), 1f));
         root.addView(header, new LinearLayout.LayoutParams(-1, dp(56)));
 
@@ -63,7 +63,7 @@ public final class TelePremiumPlaylistActivity extends Activity {
         list.removeAllViews();
         List<TelePremiumPlaylistRepository.Playlist> playlists = repository.getAll();
         if (playlists.isEmpty()) {
-            TextView empty = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_486), 15, mediaTheme.textSecondary, false);
+            TextView empty = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_486", org.telegram.messenger.R.string.TP_L10N_486), 15, mediaTheme.textSecondary, false);
             empty.setGravity(Gravity.CENTER);
             list.addView(empty, new LinearLayout.LayoutParams(-1, dp(180)));
             return;
@@ -75,7 +75,7 @@ public final class TelePremiumPlaylistActivity extends Activity {
             row.setPadding(dp(12), dp(7), dp(7), dp(7));
             row.setBackground(roundBg(mediaTheme.cardBackground, mediaTheme.cardStroke, 15));
 
-            TextView info = text(playlist.name + "\n" + playlist.items.size() + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_324), 15, mediaTheme.textPrimary, true);
+            TextView info = text(playlist.name + "\n" + playlist.items.size() + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_324", org.telegram.messenger.R.string.TP_L10N_324), 15, mediaTheme.textPrimary, true);
             row.addView(info, new LinearLayout.LayoutParams(0, dp(60), 1f));
 
             TextView play = text("▶", 22, mediaTheme.accent, false);
@@ -91,16 +91,16 @@ public final class TelePremiumPlaylistActivity extends Activity {
             TextView delete = text("⌫", 21, mediaTheme.textSecondary, false);
             delete.setGravity(Gravity.CENTER);
             delete.setOnClickListener(v -> new AlertDialog.Builder(this)
-                    .setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_487))
+                    .setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_487", org.telegram.messenger.R.string.TP_L10N_487))
                     .setMessage(playlist.name)
-                    .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_133), (d, w) -> { repository.delete(playlist.id); render(); })
-                    .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), null)
+                    .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_133", org.telegram.messenger.R.string.TP_L10N_133), (d, w) -> { repository.delete(playlist.id); render(); })
+                    .setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135), null)
                     .show());
             row.addView(delete, new LinearLayout.LayoutParams(dp(48), dp(54)));
 
             info.setOnClickListener(v -> {
                 TelePremiumPlaybackController.getInstance().getQueue().replace(new ArrayList<>(playlist.items), 0);
-                Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_488) + playlist.name, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_488", org.telegram.messenger.R.string.TP_L10N_488) + playlist.name, Toast.LENGTH_SHORT).show();
             });
 
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, dp(76));

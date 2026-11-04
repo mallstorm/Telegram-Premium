@@ -35,7 +35,7 @@ public class TelePremiumCenterActivity extends BaseFragment {
         scrollView.addView(content, new ScrollView.LayoutParams(-1, -2));
 
         TextView hero = new TextView(context);
-        hero.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_046));
+        hero.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_046", org.telegram.messenger.R.string.TP_L10N_046));
         hero.setTextSize(22);
         hero.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         hero.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -43,21 +43,21 @@ public class TelePremiumCenterActivity extends BaseFragment {
         hero.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         content.addView(hero, new LinearLayout.LayoutParams(-1, -2));
 
-        addSection(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_047));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_048), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_049), R.drawable.msg2_devices, v -> presentFragment(new TelePremiumAccountCenterActivity()));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_050), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_051), R.drawable.msg2_data, v -> presentFragment(new TelePremiumNetworkCenterActivity()));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_052), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_053), R.drawable.msg2_folder, v -> presentFragment(new TelePremiumFileCenterActivity()));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_054), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_055), R.drawable.msg2_permissions, v -> presentFragment(new TelePremiumCloudSecurityActivity()));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_056), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_057), R.drawable.msg2_language, v -> presentFragment(new LanguageSelectActivity()));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_058), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_059), R.drawable.msg2_data, v -> presentFragment(new CacheControlActivity()));
+        addSection(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_047", org.telegram.messenger.R.string.TP_L10N_047));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_048", org.telegram.messenger.R.string.TP_L10N_048), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_049", org.telegram.messenger.R.string.TP_L10N_049), R.drawable.msg2_devices, v -> presentFragment(new TelePremiumAccountCenterActivity()));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_050", org.telegram.messenger.R.string.TP_L10N_050), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_051", org.telegram.messenger.R.string.TP_L10N_051), R.drawable.msg2_data, v -> presentFragment(new TelePremiumNetworkCenterActivity()));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_052", org.telegram.messenger.R.string.TP_L10N_052), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_053", org.telegram.messenger.R.string.TP_L10N_053), R.drawable.msg2_folder, v -> presentFragment(new TelePremiumFileCenterActivity()));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_054", org.telegram.messenger.R.string.TP_L10N_054), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_055", org.telegram.messenger.R.string.TP_L10N_055), R.drawable.msg2_permissions, v -> presentFragment(new TelePremiumCloudSecurityActivity()));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_056", org.telegram.messenger.R.string.TP_L10N_056), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_057", org.telegram.messenger.R.string.TP_L10N_057), R.drawable.msg2_language, v -> presentFragment(new LanguageSelectActivity()));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_058", org.telegram.messenger.R.string.TP_L10N_058), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_059", org.telegram.messenger.R.string.TP_L10N_059), R.drawable.msg2_data, v -> presentFragment(new CacheControlActivity()));
 
-        addSection(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_007));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_060), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_061), R.drawable.msg2_discussion, v -> presentFragment(new TelePremiumAppearanceActivity()));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_062), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_063), R.drawable.msg2_discussion, v -> presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC)));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_064), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_065) + TelePremiumUiScale.getScalePercent(context) + "%", R.drawable.msg2_discussion, v -> presentFragment(new TelePremiumAppearanceActivity()));
+        addSection(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_007", org.telegram.messenger.R.string.TP_L10N_007));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_060", org.telegram.messenger.R.string.TP_L10N_060), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_061", org.telegram.messenger.R.string.TP_L10N_061), R.drawable.msg2_discussion, v -> presentFragment(new TelePremiumAppearanceActivity()));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_062", org.telegram.messenger.R.string.TP_L10N_062), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_063", org.telegram.messenger.R.string.TP_L10N_063), R.drawable.msg2_discussion, v -> presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC)));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_064", org.telegram.messenger.R.string.TP_L10N_064), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_065", org.telegram.messenger.R.string.TP_L10N_065) + TelePremiumUiScale.getScalePercent(context) + "%", R.drawable.msg2_discussion, v -> presentFragment(new TelePremiumAppearanceActivity()));
 
-        addSection(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_066));
-        addRow(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_067), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_068), R.drawable.msg2_data, v -> presentFragment(new TelePremiumServiceActivity()));
+        addSection(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_066", org.telegram.messenger.R.string.TP_L10N_066));
+        addRow(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_067", org.telegram.messenger.R.string.TP_L10N_067), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_068", org.telegram.messenger.R.string.TP_L10N_068), R.drawable.msg2_data, v -> presentFragment(new TelePremiumServiceActivity()));
 
         fragmentView = scrollView;
         return fragmentView;

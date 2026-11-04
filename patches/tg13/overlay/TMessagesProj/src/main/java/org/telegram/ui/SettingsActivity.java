@@ -728,11 +728,11 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
         // TelePremium entry points (Telegram 13 has no side drawer any more).
         items.add(UItem.asShadow(null));
-        items.add(UItem.asHeader(getString(R.string.TP_SettingsSection)));
-        items.add(SettingCell.Factory.of(TP_ITEM_CENTER, 0xFFB659FF, 0xFF617CFF, R.drawable.settings_premium, getString(R.string.TP_SettingsCenter), getString(R.string.TP_SettingsCenterInfo)));
-        items.add(SettingCell.Factory.of(TP_ITEM_CLOUD, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_data, getString(R.string.TP_SettingsCloud), getString(R.string.TP_SettingsCloudInfo)));
-        items.add(SettingCell.Factory.of(TP_ITEM_MEDIA, IconBackgroundColors.RED.top, IconBackgroundColors.RED.bottom, R.drawable.settings_sounds, getString(R.string.TP_SettingsMedia), getString(R.string.TP_SettingsMediaInfo)));
-        items.add(SettingCell.Factory.of(TP_ITEM_APPEARANCE, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.settings_chat, getString(R.string.TP_SettingsAppearance), getString(R.string.TP_SettingsAppearanceInfo)));
+        items.add(UItem.asHeader(org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsSection", org.telegram.messenger.R.string.TP_SettingsSection)));
+        items.add(SettingCell.Factory.of(TP_ITEM_CENTER, 0xFFB659FF, 0xFF617CFF, R.drawable.settings_premium, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCenter", org.telegram.messenger.R.string.TP_SettingsCenter), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCenterInfo", org.telegram.messenger.R.string.TP_SettingsCenterInfo)));
+        items.add(SettingCell.Factory.of(TP_ITEM_CLOUD, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_data, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCloud", org.telegram.messenger.R.string.TP_SettingsCloud), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCloudInfo", org.telegram.messenger.R.string.TP_SettingsCloudInfo)));
+        items.add(SettingCell.Factory.of(TP_ITEM_MEDIA, IconBackgroundColors.RED.top, IconBackgroundColors.RED.bottom, R.drawable.settings_sounds, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsMedia", org.telegram.messenger.R.string.TP_SettingsMedia), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsMediaInfo", org.telegram.messenger.R.string.TP_SettingsMediaInfo)));
+        items.add(SettingCell.Factory.of(TP_ITEM_APPEARANCE, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.settings_chat, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsAppearance", org.telegram.messenger.R.string.TP_SettingsAppearance), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsAppearanceInfo", org.telegram.messenger.R.string.TP_SettingsAppearanceInfo)));
 
         items.add(UItem.asShadow(null));
         if (!walletAbove && getMessagesController().config.walletAvailable.get()) {

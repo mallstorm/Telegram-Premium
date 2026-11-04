@@ -36,7 +36,7 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
     public View createView(Context context) {
         TelePremiumThemePreset theme = TelePremiumThemeController.getCurrent(context);
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_261));
+        actionBar.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_261", org.telegram.messenger.R.string.TP_L10N_261));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
@@ -48,7 +48,7 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
         root.setBackgroundColor(theme.background);
 
         title = new TextView(context);
-        title.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_399));
+        title.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_399", org.telegram.messenger.R.string.TP_L10N_399));
         title.setTextSize(21);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setTextColor(theme.textPrimary);
@@ -56,7 +56,7 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
         root.addView(title, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(42)));
 
         subtitle = new TextView(context);
-        subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_400));
+        subtitle.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_400", org.telegram.messenger.R.string.TP_L10N_400));
         subtitle.setTextSize(14);
         subtitle.setTextColor(theme.textSecondary);
         subtitle.setGravity(Gravity.CENTER);
@@ -77,7 +77,7 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
         root.addView(patternView, pp);
 
         TextView hint = new TextView(context);
-        hint.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_401));
+        hint.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_401", org.telegram.messenger.R.string.TP_L10N_401));
         hint.setTextSize(12);
         hint.setTextColor(theme.textSecondary);
         hint.setGravity(Gravity.CENTER);
@@ -89,34 +89,34 @@ public class TelePremiumPatternSetupActivity extends BaseFragment {
 
     private void onPattern(String pattern) {
         if (pattern == null || pattern.length() < 4) {
-            subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_402));
+            subtitle.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_402", org.telegram.messenger.R.string.TP_L10N_402));
             patternView.showError();
             return;
         }
         if (firstPattern == null) {
             firstPattern = pattern;
-            title.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_403));
-            subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_404));
+            title.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_403", org.telegram.messenger.R.string.TP_L10N_403));
+            subtitle.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_404", org.telegram.messenger.R.string.TP_L10N_404));
             patternView.clearPattern();
             return;
         }
         if (!firstPattern.equals(pattern)) {
             firstPattern = null;
-            title.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_405));
-            subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_406));
+            title.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_405", org.telegram.messenger.R.string.TP_L10N_405));
+            subtitle.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_406", org.telegram.messenger.R.string.TP_L10N_406));
             patternView.showError();
             return;
         }
         Context context = getParentActivity();
         if (context == null) return;
-        subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_PatternChecking));
+        subtitle.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_PatternChecking", org.telegram.messenger.R.string.TP_PatternChecking));
         TelePremiumCloudSecurityStore.setPatternAsync(context, pattern, ok -> {
             Context current = getParentActivity();
             if (current == null) return;
             if (!ok) {
                 firstPattern = null;
-                title.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_407));
-                subtitle.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_408));
+                title.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_407", org.telegram.messenger.R.string.TP_L10N_407));
+                subtitle.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_408", org.telegram.messenger.R.string.TP_L10N_408));
                 patternView.showError();
                 return;
             }

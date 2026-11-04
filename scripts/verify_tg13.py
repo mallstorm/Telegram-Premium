@@ -52,6 +52,21 @@ for name in ("TelePremiumVaultCrypto", "TelePremiumVaultKeyManager", "TelePremiu
     need((vault / f"{name}.java").exists(), f"missing Vault class {name}")
 need("PBKDF2WithHmacSHA256" in (JAVA / "messenger/telepremium/cloud/TelePremiumCloudSecurityStore.java").read_text(encoding="utf-8"), "pattern PBKDF2 missing")
 
+# TelePremium strings: English in res/values, Russian in assets (Telegram 13 strips locale resources).
+import xml.etree.ElementTree as ET
+en_keys = set()
+for f in (TG / "TMessagesProj/src/main/res/values").glob("strings_telepremium*.xml"):
+    en_keys |= {s.get("name") for s in ET.parse(f).getroot().findall("string")}
+ru_path = TG / "TMessagesProj/src/main/assets/telepremium/strings_ru.json"
+ru_keys = set(json.loads(ru_path.read_text(encoding="utf-8"))) if ru_path.exists() else set()
+need(en_keys and en_keys == ru_keys, f"TelePremium en/ru string keys differ: {sorted(en_keys ^ ru_keys)[:5]}")
+used = set()
+for f in JAVA.rglob("*.java"):
+    src = f.read_text(encoding="utf-8")
+    used |= set(re.findall(r'TPStrings\.(?:get|format)\("(TP_\w+)", org\.telegram\.messenger\.R\.string\.(TP_\w+)', src))
+need(all(a == b for a, b in used), "TPStrings key does not match its resource id")
+need({a for a, _ in used} <= en_keys, f"TPStrings keys without resources: {sorted({a for a, _ in used} - en_keys)[:5]}")
+
 if errors:
     for error in errors:
         print(f"::error::{error}")

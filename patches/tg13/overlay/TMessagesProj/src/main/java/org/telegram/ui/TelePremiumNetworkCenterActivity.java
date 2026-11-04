@@ -25,7 +25,7 @@ public class TelePremiumNetworkCenterActivity extends BaseFragment {
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_050));
+        actionBar.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_050", org.telegram.messenger.R.string.TP_L10N_050));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -63,7 +63,7 @@ public class TelePremiumNetworkCenterActivity extends BaseFragment {
         }
 
         TextView hero = new TextView(context);
-        hero.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_348) + connected + " / " + active + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_349));
+        hero.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_348", org.telegram.messenger.R.string.TP_L10N_348) + connected + " / " + active + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_349", org.telegram.messenger.R.string.TP_L10N_349));
         hero.setTextSize(20);
         hero.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         hero.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -72,7 +72,7 @@ public class TelePremiumNetworkCenterActivity extends BaseFragment {
         content.addView(hero);
 
         TextView header = new TextView(context);
-        header.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_350));
+        header.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_350", org.telegram.messenger.R.string.TP_L10N_350));
         header.setTextSize(14);
         header.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         header.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
@@ -87,10 +87,10 @@ public class TelePremiumNetworkCenterActivity extends BaseFragment {
 
             final int accountId = account;
             TLRPC.User user = config.getCurrentUser();
-            String name = user == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_002) + (account + 1) : UserObject.getUserName(user);
+            String name = user == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_002", org.telegram.messenger.R.string.TP_L10N_002) + (account + 1) : UserObject.getUserName(user);
             int ping = controller.getPing(account);
             String route = controller.getSummary(account);
-            String value = route + (ping > 0 ? " • " + ping + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_003) : "");
+            String value = route + (ping > 0 ? " • " + ping + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_003", org.telegram.messenger.R.string.TP_L10N_003) : "");
 
             TextCell cell = new TextCell(context, getResourceProvider());
             cell.setTextAndValue(name, value, true);
@@ -103,7 +103,7 @@ public class TelePremiumNetworkCenterActivity extends BaseFragment {
         }
 
         TextView hint = new TextView(context);
-        hint.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_351));
+        hint.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_351", org.telegram.messenger.R.string.TP_L10N_351));
         hint.setTextSize(13);
         hint.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         hint.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(16), AndroidUtilities.dp(21), AndroidUtilities.dp(8));

@@ -22,7 +22,7 @@ public class TelePremiumCloudSpecialActivity extends BaseFragment {
     public TelePremiumCloudSpecialActivity(int account,int mode){this.account=account;this.mode=mode;}
     @Override public View createView(Context context){
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle(mode==TRASH?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_103):org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_102));
+        actionBar.setTitle(mode==TRASH?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_103", org.telegram.messenger.R.string.TP_L10N_103):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_102", org.telegram.messenger.R.string.TP_L10N_102));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick(){@Override public void onItemClick(int id){if(id==-1)finishFragment();}});
         ScrollView s=new ScrollView(context);content=new LinearLayout(context);content.setOrientation(LinearLayout.VERTICAL);s.addView(content);fragmentView=s;
         TelePremiumCloudManager cloud=TelePremiumCloudManager.getInstance(account);
@@ -30,8 +30,8 @@ public class TelePremiumCloudSpecialActivity extends BaseFragment {
     }
     private void render(Context context,TelePremiumCloudManager cloud){
         content.removeAllViews(); List<CloudNode> nodes=mode==TRASH?cloud.trashItems():cloud.favorites();
-        if(nodes.isEmpty()){TextView e=new TextView(context);e.setText(mode==TRASH?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_279):org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_280));e.setPadding(AndroidUtilities.dp(21),AndroidUtilities.dp(28),0,0);content.addView(e);return;}
-        for(CloudNode n:nodes){TextCell c=new TextCell(context,getResourceProvider());c.setTextAndValue((n.type==CloudNode.TYPE_FOLDER?"📁 ":"📄 ")+n.name,mode==TRASH?org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_281):org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_102),true);c.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        if(nodes.isEmpty()){TextView e=new TextView(context);e.setText(mode==TRASH?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_279", org.telegram.messenger.R.string.TP_L10N_279):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_280", org.telegram.messenger.R.string.TP_L10N_280));e.setPadding(AndroidUtilities.dp(21),AndroidUtilities.dp(28),0,0);content.addView(e);return;}
+        for(CloudNode n:nodes){TextCell c=new TextCell(context,getResourceProvider());c.setTextAndValue((n.type==CloudNode.TYPE_FOLDER?"📁 ":"📄 ")+n.name,mode==TRASH?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_281", org.telegram.messenger.R.string.TP_L10N_281):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_102", org.telegram.messenger.R.string.TP_L10N_102),true);c.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
             c.setOnClickListener(v->{if(mode==TRASH)cloud.restore(n,error->render(context,cloud));});content.addView(c,new LinearLayout.LayoutParams(-1,AndroidUtilities.dp(58)));}
     }
 }

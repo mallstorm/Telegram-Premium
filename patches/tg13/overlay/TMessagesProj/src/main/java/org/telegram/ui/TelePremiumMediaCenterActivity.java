@@ -119,30 +119,30 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         LinearLayout titleBox = new LinearLayout(this);
         titleBox.setOrientation(LinearLayout.VERTICAL);
         TextView title = text("TelePremium", 23, mediaTheme.textPrimary, true);
-        TextView subtitle = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_304), 12, mediaTheme.textSecondary, false);
+        TextView subtitle = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_304", org.telegram.messenger.R.string.TP_L10N_304), 12, mediaTheme.textSecondary, false);
         titleBox.addView(title, new LinearLayout.LayoutParams(-1, dp(29)));
         titleBox.addView(subtitle, new LinearLayout.LayoutParams(-1, dp(19)));
         header.addView(titleBox, new LinearLayout.LayoutParams(0, dp(50), 1f));
 
         TextView save = button("☷+", 20, false);
         save.setTextColor(mediaTheme.accent);
-        save.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_305));
+        save.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_305", org.telegram.messenger.R.string.TP_L10N_305));
         save.setOnClickListener(v -> saveQueueAsPlaylist());
         header.addView(save, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         TextView now = button("▶", 20, false);
         now.setTextColor(mediaTheme.accent);
-        now.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_306));
+        now.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_306", org.telegram.messenger.R.string.TP_L10N_306));
         now.setOnClickListener(v -> { if (controller.getCurrent() != null) TelePremiumPlayerActivity.openCurrent(this); });
         header.addView(now, new LinearLayout.LayoutParams(dp(46), dp(48)));
         root.addView(header, new LinearLayout.LayoutParams(-1, dp(58)));
 
         LinearLayout sources = new LinearLayout(this);
         sources.setGravity(Gravity.CENTER);
-        sourceDevice = sourceButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_307));
-        sourceCloud = sourceButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_308));
-        sourceNetwork = sourceButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_309));
-        sourcePlaylists = sourceButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_310));
+        sourceDevice = sourceButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_307", org.telegram.messenger.R.string.TP_L10N_307));
+        sourceCloud = sourceButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_308", org.telegram.messenger.R.string.TP_L10N_308));
+        sourceNetwork = sourceButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_309", org.telegram.messenger.R.string.TP_L10N_309));
+        sourcePlaylists = sourceButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_310", org.telegram.messenger.R.string.TP_L10N_310));
         sourceDevice.setOnClickListener(v -> loadDevice());
         sourceCloud.setOnClickListener(v -> loadCloud());
         sourceNetwork.setOnClickListener(v -> showNetworkInput());
@@ -154,7 +154,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         root.addView(sources, new LinearLayout.LayoutParams(-1, dp(63)));
 
         search = new EditText(this);
-        search.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_311));
+        search.setHint(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_311", org.telegram.messenger.R.string.TP_L10N_311));
         search.setHintTextColor(mediaTheme.withAlpha(mediaTheme.textSecondary, 0xb8));
         search.setTextColor(mediaTheme.textPrimary);
         search.setSingleLine(true);
@@ -170,10 +170,10 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
 
         LinearLayout filters = new LinearLayout(this);
         filters.setPadding(0, dp(7), 0, dp(3));
-        filterAll = chip(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_312));
-        filterMusic = chip(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_313));
-        filterVideo = chip(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_314));
-        filterQueue = chip(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_315));
+        filterAll = chip(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_312", org.telegram.messenger.R.string.TP_L10N_312));
+        filterMusic = chip(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_313", org.telegram.messenger.R.string.TP_L10N_313));
+        filterVideo = chip(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_314", org.telegram.messenger.R.string.TP_L10N_314));
+        filterQueue = chip(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_315", org.telegram.messenger.R.string.TP_L10N_315));
         filterAll.setOnClickListener(v -> { filterType = -1; applyFilter(); });
         filterMusic.setOnClickListener(v -> { filterType = TelePremiumMediaItem.TYPE_AUDIO; applyFilter(); });
         filterVideo.setOnClickListener(v -> { filterType = TelePremiumMediaItem.TYPE_VIDEO; applyFilter(); });
@@ -184,7 +184,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         filters.addView(filterQueue, wrap(dp(104)));
         root.addView(filters, new LinearLayout.LayoutParams(-1, dp(46)));
 
-        status = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_316), 12, mediaTheme.textSecondary, false);
+        status = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_316", org.telegram.messenger.R.string.TP_L10N_316), 12, mediaTheme.textSecondary, false);
         status.setPadding(dp(4), 0, 0, 0);
         root.addView(status, new LinearLayout.LayoutParams(-1, dp(27)));
 
@@ -216,7 +216,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         LinearLayout labels = new LinearLayout(this);
         labels.setOrientation(LinearLayout.VERTICAL);
         labels.setPadding(dp(10), 0, dp(4), 0);
-        miniTitle = text(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_317), 14, mediaTheme.textPrimary, true);
+        miniTitle = text(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_317", org.telegram.messenger.R.string.TP_L10N_317), 14, mediaTheme.textPrimary, true);
         miniTitle.setSingleLine(true);
         miniTitle.setEllipsize(TextUtils.TruncateAt.END);
         miniSource = text("TelePremium Media", 11, mediaTheme.textSecondary, false);
@@ -242,11 +242,11 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     private void loadDevice() {
         currentSource = TelePremiumMediaItem.SOURCE_DEVICE;
         updateSourceSelection();
-        status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_318));
+        status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_318", org.telegram.messenger.R.string.TP_L10N_318));
         deviceRepo.loadAll((items, error) -> {
             sourceItems.clear();
             if (items != null) sourceItems.addAll(items);
-            status.setText(error == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_319) + sourceItems.size() + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_320) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_321) + error);
+            status.setText(error == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_319", org.telegram.messenger.R.string.TP_L10N_319) + sourceItems.size() + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_320", org.telegram.messenger.R.string.TP_L10N_320) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_321", org.telegram.messenger.R.string.TP_L10N_321) + error);
             applyFilter();
         });
     }
@@ -254,11 +254,11 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     private void loadCloud() {
         currentSource = TelePremiumMediaItem.SOURCE_CLOUD;
         updateSourceSelection();
-        status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_322));
+        status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_322", org.telegram.messenger.R.string.TP_L10N_322));
         cloudRepo.load(UserConfig.selectedAccount, (items, error) -> {
             sourceItems.clear();
             if (items != null) sourceItems.addAll(items);
-            status.setText(error == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_323) + sourceItems.size() + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_324) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_325) + error);
+            status.setText(error == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_323", org.telegram.messenger.R.string.TP_L10N_323) + sourceItems.size() + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_324", org.telegram.messenger.R.string.TP_L10N_324) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_325", org.telegram.messenger.R.string.TP_L10N_325) + error);
             applyFilter();
         });
     }
@@ -269,17 +269,17 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         EditText input = new EditText(this);
         input.setHint("https://…  MP3 / MP4 / M3U8 / MPD / M3U / PLS / XSPF");
         input.setSingleLine(true);
-        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_326)).setView(input)
-                .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_117), (d, w) -> resolveNetwork(input.getText().toString()))
-                .setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), null).show();
+        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_326", org.telegram.messenger.R.string.TP_L10N_326)).setView(input)
+                .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_117", org.telegram.messenger.R.string.TP_L10N_117), (d, w) -> resolveNetwork(input.getText().toString()))
+                .setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135), null).show();
     }
 
     private void resolveNetwork(String url) {
-        status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_327));
+        status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_327", org.telegram.messenger.R.string.TP_L10N_327));
         TelePremiumNetworkPlaylistParser.resolveAsync(url, (items, error) -> {
             sourceItems.clear();
             if (items != null) sourceItems.addAll(items);
-            status.setText(error == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_328) + sourceItems.size() + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_329) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_330) + error);
+            status.setText(error == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_328", org.telegram.messenger.R.string.TP_L10N_328) + sourceItems.size() + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_329", org.telegram.messenger.R.string.TP_L10N_329) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_330", org.telegram.messenger.R.string.TP_L10N_330) + error);
             applyFilter();
         });
     }
@@ -288,38 +288,38 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         currentSource = SOURCE_PLAYLIST;
         updateSourceSelection();
         List<TelePremiumPlaylistRepository.Playlist> all = playlists.getAll();
-        if (all.isEmpty()) { Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_331), Toast.LENGTH_SHORT).show(); return; }
+        if (all.isEmpty()) { Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_331", org.telegram.messenger.R.string.TP_L10N_331), Toast.LENGTH_SHORT).show(); return; }
         String[] names = new String[all.size()];
         for (int i = 0; i < all.size(); i++) names[i] = all.get(i).name + " · " + all.get(i).items.size();
-        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_332)).setItems(names, (d, which) -> {
+        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_332", org.telegram.messenger.R.string.TP_L10N_332)).setItems(names, (d, which) -> {
             sourceItems.clear();
             sourceItems.addAll(all.get(which).items);
-            status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_333) + all.get(which).name + " · " + sourceItems.size() + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_320));
+            status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_333", org.telegram.messenger.R.string.TP_L10N_333) + all.get(which).name + " · " + sourceItems.size() + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_320", org.telegram.messenger.R.string.TP_L10N_320));
             applyFilter();
-        }).setNeutralButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_334), (d, w) -> startActivity(new Intent(this, TelePremiumPlaylistActivity.class))).show();
+        }).setNeutralButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_334", org.telegram.messenger.R.string.TP_L10N_334), (d, w) -> startActivity(new Intent(this, TelePremiumPlaylistActivity.class))).show();
     }
 
     private void saveQueueAsPlaylist() {
         List<TelePremiumMediaItem> queue = controller.getQueue().snapshot();
-        if (queue.isEmpty()) { Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_335), Toast.LENGTH_SHORT).show(); return; }
+        if (queue.isEmpty()) { Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_335", org.telegram.messenger.R.string.TP_L10N_335), Toast.LENGTH_SHORT).show(); return; }
         EditText name = new EditText(this);
-        name.setHint(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_336));
-        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_337)).setView(name)
-                .setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_137), (d, w) -> {
+        name.setHint(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_336", org.telegram.messenger.R.string.TP_L10N_336));
+        new AlertDialog.Builder(this).setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_337", org.telegram.messenger.R.string.TP_L10N_337)).setView(name)
+                .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_137", org.telegram.messenger.R.string.TP_L10N_137), (d, w) -> {
                     String title = name.getText().toString().trim();
-                    playlists.save(null, TextUtils.isEmpty(title) ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_338) : title, queue);
-                    Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_339), Toast.LENGTH_SHORT).show();
-                }).setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), null).show();
+                    playlists.save(null, TextUtils.isEmpty(title) ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_338", org.telegram.messenger.R.string.TP_L10N_338) : title, queue);
+                    Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_339", org.telegram.messenger.R.string.TP_L10N_339), Toast.LENGTH_SHORT).show();
+                }).setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135), null).show();
     }
 
     private void showQueuePicker() {
         List<TelePremiumMediaItem> queue = controller.getQueue().snapshot();
-        if (queue.isEmpty()) { Toast.makeText(this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_335), Toast.LENGTH_SHORT).show(); return; }
+        if (queue.isEmpty()) { Toast.makeText(this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_335", org.telegram.messenger.R.string.TP_L10N_335), Toast.LENGTH_SHORT).show(); return; }
         currentSource = SOURCE_QUEUE;
         updateSourceSelection();
         sourceItems.clear();
         sourceItems.addAll(queue);
-        status.setText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_340) + queue.size());
+        status.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_340", org.telegram.messenger.R.string.TP_L10N_340) + queue.size());
         applyFilter();
     }
 
@@ -348,7 +348,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
 
     @Override public void onMediaChanged(TelePremiumMediaItem item) {
         if (miniTitle == null || miniSource == null) return;
-        miniTitle.setText(item == null ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_317) : item.title);
+        miniTitle.setText(item == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_317", org.telegram.messenger.R.string.TP_L10N_317) : item.title);
         miniSource.setText(item == null ? "TelePremium Media" : item.sourceLabel());
     }
 
@@ -439,11 +439,11 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
 
             TextView add = button("＋", 21, false);
             add.setTextColor(mediaTheme.accent);
-            add.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_341));
+            add.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_341", org.telegram.messenger.R.string.TP_L10N_341));
             row.addView(add, new LinearLayout.LayoutParams(dp(38), dp(52)));
             TextView more = button("⋮", 22, false);
             more.setTextColor(mediaTheme.textSecondary);
-            more.setContentDescription(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_342));
+            more.setContentDescription(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_342", org.telegram.messenger.R.string.TP_L10N_342));
             row.addView(more, new LinearLayout.LayoutParams(dp(30), dp(52)));
             return new MediaHolder(row, thumbnail, icon, durationBadge, title, sub, source, add, more);
         }
@@ -470,7 +470,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
             if (!TextUtils.isEmpty(item.artist)) {
                 secondary = item.artist + (TextUtils.isEmpty(item.album) ? "" : " · " + item.album);
             } else {
-                secondary = item.isVideo() ? mimeLabel(item) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_343);
+                secondary = item.isVideo() ? mimeLabel(item) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_343", org.telegram.messenger.R.string.TP_L10N_343);
             }
             h.sub.setText(secondary);
             h.source.setText((item.duration > 0 ? formatDuration(item.duration) + " · " : "") + mimeLabel(item) + " · " + item.sourceLabel());
@@ -480,7 +480,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
             });
             h.add.setOnClickListener(v -> {
                 controller.getQueue().append(item);
-                Toast.makeText(TelePremiumMediaCenterActivity.this, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_344), Toast.LENGTH_SHORT).show();
+                Toast.makeText(TelePremiumMediaCenterActivity.this, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_344", org.telegram.messenger.R.string.TP_L10N_344), Toast.LENGTH_SHORT).show();
             });
             h.more.setOnClickListener(v -> showItemMenu(item));
         }
@@ -507,13 +507,13 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
 
     private void showItemMenu(TelePremiumMediaItem item) {
         new AlertDialog.Builder(this).setTitle(item.title).setItems(new CharSequence[]{
-                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_345), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_346), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_341)
+                org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_345", org.telegram.messenger.R.string.TP_L10N_345), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_346", org.telegram.messenger.R.string.TP_L10N_346), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_341", org.telegram.messenger.R.string.TP_L10N_341)
         }, (d, which) -> {
             if (which == 0) controller.play(item);
             else if (which == 1) controller.getQueue().insertNext(item);
             else controller.getQueue().append(item);
             if (which == 0) TelePremiumPlayerActivity.openCurrent(this);
-            else Toast.makeText(this, which == 1 ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_347) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_344), Toast.LENGTH_SHORT).show();
+            else Toast.makeText(this, which == 1 ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_347", org.telegram.messenger.R.string.TP_L10N_347) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_344", org.telegram.messenger.R.string.TP_L10N_344), Toast.LENGTH_SHORT).show();
         }).show();
     }
 
@@ -522,7 +522,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
             int slash = item.mimeType.indexOf('/');
             if (slash >= 0 && slash + 1 < item.mimeType.length()) return item.mimeType.substring(slash + 1).toUpperCase(Locale.ROOT);
         }
-        return item.isVideo() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_098) : org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_100);
+        return item.isVideo() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_098", org.telegram.messenger.R.string.TP_L10N_098) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_100", org.telegram.messenger.R.string.TP_L10N_100);
     }
 
     private TextView sourceButton(String label) {

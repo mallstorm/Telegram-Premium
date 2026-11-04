@@ -49,7 +49,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
 
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_352));
+        actionBar.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_352", org.telegram.messenger.R.string.TP_L10N_352));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -71,29 +71,29 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                 ScrollView.LayoutParams.WRAP_CONTENT
         ));
 
-        modeCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_353), "");
+        modeCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_353", org.telegram.messenger.R.string.TP_L10N_353), "");
         modeCell.setOnClickListener(v -> chooseMode());
 
-        nameCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_354), "");
-        nameCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_354), profile.displayName, false, value -> {
+        nameCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_354", org.telegram.messenger.R.string.TP_L10N_354), "");
+        nameCell.setOnClickListener(v -> editText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_354", org.telegram.messenger.R.string.TP_L10N_354), profile.displayName, false, value -> {
             profile.displayName = value;
             refresh();
         }));
 
-        locationCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_355), "");
-        locationCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_356), profile.locationName, false, value -> {
+        locationCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_355", org.telegram.messenger.R.string.TP_L10N_355), "");
+        locationCell.setOnClickListener(v -> editText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_356", org.telegram.messenger.R.string.TP_L10N_356), profile.locationName, false, value -> {
             profile.locationName = value;
             refresh();
         }));
 
-        addressCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_357), "");
+        addressCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_357", org.telegram.messenger.R.string.TP_L10N_357), "");
         addressCell.setOnClickListener(v -> editText("Host / IP", profile.address, false, value -> {
             profile.address = value;
             refresh();
         }));
 
-        portCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_358), "");
-        portCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_358), String.valueOf(profile.port), false, value -> {
+        portCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_358", org.telegram.messenger.R.string.TP_L10N_358), "");
+        portCell.setOnClickListener(v -> editText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_358", org.telegram.messenger.R.string.TP_L10N_358), String.valueOf(profile.port), false, value -> {
             try {
                 profile.port = Math.max(1, Math.min(65535, Integer.parseInt(value.trim())));
             } catch (Throwable ignore) {
@@ -101,14 +101,14 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
             refresh();
         }));
 
-        usernameCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_359), "");
-        usernameCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_360), profile.username, false, value -> {
+        usernameCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_359", org.telegram.messenger.R.string.TP_L10N_359), "");
+        usernameCell.setOnClickListener(v -> editText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_360", org.telegram.messenger.R.string.TP_L10N_360), profile.username, false, value -> {
             profile.username = value;
             refresh();
         }));
 
-        passwordCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_361), "");
-        passwordCell.setOnClickListener(v -> editText(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_362), profile.password, true, value -> {
+        passwordCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_361", org.telegram.messenger.R.string.TP_L10N_361), "");
+        passwordCell.setOnClickListener(v -> editText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_362", org.telegram.messenger.R.string.TP_L10N_362), profile.password, true, value -> {
             profile.password = value;
             refresh();
         }));
@@ -119,19 +119,19 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
             refresh();
         }));
 
-        ipCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_363), "");
+        ipCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_363", org.telegram.messenger.R.string.TP_L10N_363), "");
         ipCell.setOnClickListener(v -> chooseIpStrategy());
 
-        testCell = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_365));
+        testCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_364", org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_365", org.telegram.messenger.R.string.TP_L10N_365));
         testCell.setOnClickListener(v -> testConnection());
 
-        TextCell save = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_366), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_367));
+        TextCell save = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_366", org.telegram.messenger.R.string.TP_L10N_366), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_367", org.telegram.messenger.R.string.TP_L10N_367));
         save.setOnClickListener(v -> {
             controller.saveAndApply(account, profile);
             finishFragment();
         });
 
-        TextCell reset = addCell(content, context, org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_368), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_369));
+        TextCell reset = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_368", org.telegram.messenger.R.string.TP_L10N_368), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_369", org.telegram.messenger.R.string.TP_L10N_369));
         reset.setOnClickListener(v -> {
             controller.resetToGlobal(account);
             finishFragment();
@@ -157,15 +157,15 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
         if (modeCell == null) {
             return;
         }
-        modeCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_353), AccountNetworkProfile.modeLabel(profile.mode), true);
-        nameCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_354), empty(profile.displayName), true);
-        locationCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_355), empty(profile.locationName), true);
-        addressCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_357), empty(profile.address), true);
-        portCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_358), String.valueOf(profile.port), true);
-        usernameCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_359), empty(profile.username), true);
-        passwordCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_361), profile.password == null || profile.password.isEmpty() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_370) : "••••••", true);
-        secretCell.setTextAndValue("MTProto secret", profile.secret == null || profile.secret.isEmpty() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_370) : "••••••", true);
-        ipCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_363), ipLabel(profile.ipStrategy), true);
+        modeCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_353", org.telegram.messenger.R.string.TP_L10N_353), AccountNetworkProfile.modeLabel(profile.mode), true);
+        nameCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_354", org.telegram.messenger.R.string.TP_L10N_354), empty(profile.displayName), true);
+        locationCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_355", org.telegram.messenger.R.string.TP_L10N_355), empty(profile.locationName), true);
+        addressCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_357", org.telegram.messenger.R.string.TP_L10N_357), empty(profile.address), true);
+        portCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_358", org.telegram.messenger.R.string.TP_L10N_358), String.valueOf(profile.port), true);
+        usernameCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_359", org.telegram.messenger.R.string.TP_L10N_359), empty(profile.username), true);
+        passwordCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_361", org.telegram.messenger.R.string.TP_L10N_361), profile.password == null || profile.password.isEmpty() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_370", org.telegram.messenger.R.string.TP_L10N_370) : "••••••", true);
+        secretCell.setTextAndValue("MTProto secret", profile.secret == null || profile.secret.isEmpty() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_370", org.telegram.messenger.R.string.TP_L10N_370) : "••••••", true);
+        ipCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_363", org.telegram.messenger.R.string.TP_L10N_363), ipLabel(profile.ipStrategy), true);
     }
 
     private void chooseMode() {
@@ -173,14 +173,14 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
             return;
         }
         CharSequence[] items = new CharSequence[]{
-                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_371),
-                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_372),
-                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_373),
+                org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_371", org.telegram.messenger.R.string.TP_L10N_371),
+                org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_372", org.telegram.messenger.R.string.TP_L10N_372),
+                org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_373", org.telegram.messenger.R.string.TP_L10N_373),
                 "MTProto proxy",
                 "SOCKS5 proxy"
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
-        builder.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_353));
+        builder.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_353", org.telegram.messenger.R.string.TP_L10N_353));
         builder.setItems(items, (dialog, which) -> {
             profile.mode = which;
             refresh();
@@ -198,7 +198,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                 "IPv4 + IPv6"
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
-        builder.setTitle(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_363));
+        builder.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_363", org.telegram.messenger.R.string.TP_L10N_363));
         builder.setItems(items, (dialog, which) -> {
             if (which == 0) {
                 profile.ipStrategy = ConnectionsManager.USE_IPV4_ONLY;
@@ -228,26 +228,26 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
         builder.setTitle(title);
         builder.setView(input);
-        builder.setPositiveButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_137), (dialog, which) -> receiver.onValue(input.getText().toString()));
-        builder.setNegativeButton(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_135), null);
+        builder.setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_137", org.telegram.messenger.R.string.TP_L10N_137), (dialog, which) -> receiver.onValue(input.getText().toString()));
+        builder.setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135), null);
         showDialog(builder.create());
     }
 
     private void testConnection() {
-        testCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_374), true);
+        testCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_364", org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_374", org.telegram.messenger.R.string.TP_L10N_374), true);
         controller.checkProfile(account, profile, time -> AndroidUtilities.runOnUIThread(() -> {
             if (time < 0) {
-                testCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_375), true);
+                testCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_364", org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_375", org.telegram.messenger.R.string.TP_L10N_375), true);
             } else if (time == 0) {
-                testCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_376), true);
+                testCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_364", org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_376", org.telegram.messenger.R.string.TP_L10N_376), true);
             } else {
-                testCell.setTextAndValue(org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_364), time + org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_003), true);
+                testCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_364", org.telegram.messenger.R.string.TP_L10N_364), time + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_003", org.telegram.messenger.R.string.TP_L10N_003), true);
             }
         }));
     }
 
     private static String empty(String value) {
-        return value == null || value.isEmpty() ? org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.TP_L10N_377) : value;
+        return value == null || value.isEmpty() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_377", org.telegram.messenger.R.string.TP_L10N_377) : value;
     }
 
     private static String ipLabel(byte strategy) {
