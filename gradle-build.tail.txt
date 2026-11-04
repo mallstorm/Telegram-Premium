@@ -1,0 +1,400 @@
+C/C++:                      ^
+C/C++: 2 warnings generated.
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/VideoSourceAndroid.cpp:5:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/VideoSourceAndroid.h:8:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/../../video/VideoSource.h:12:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/../../Buffers.h:19:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/threading.h:110:8: warning: private field 'maxPriority' is not used [-Wunused-private-field]
+C/C++:                 bool maxPriority=false;
+C/C++:                      ^
+C/C++: 1 warning generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:87:19: warning: moving a temporary object prevents copy elision [-Wpessimizing-move]
+C/C++:                 Request request=std::move(queue.GetBlocking());
+C/C++:                                 ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:87:19: note: remove std::move call here
+C/C++:                 Request request=std::move(queue.GetBlocking());
+C/C++:                                 ^~~~~~~~~~                   ~
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:5:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.h:8:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/../../video/VideoRenderer.h:9:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/../../Buffers.h:19:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/threading.h:110:8: warning: private field 'maxPriority' is not used [-Wunused-private-field]
+C/C++:                 bool maxPriority=false;
+C/C++:                      ^
+C/C++: 2 warnings generated.
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tg_voip_jni.cpp:17:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.h:20:15: warning: 'Start' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+C/C++:         virtual void Start();
+C/C++:                      ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/MediaStreamItf.h:24:15: note: overridden virtual function is here
+C/C++:         virtual void Start()=0;
+C/C++:                      ^
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tg_voip_jni.cpp:17:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.h:21:15: warning: 'Stop' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+C/C++:         virtual void Stop();
+C/C++:                      ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/MediaStreamItf.h:25:15: note: overridden virtual function is here
+C/C++:         virtual void Stop()=0;
+C/C++:                      ^
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tg_voip_jni.cpp:22:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/../c_utils.h:9:9: warning: 'LOGI' macro redefined [-Wmacro-redefined]
+C/C++: #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+C/C++:         ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/logging.h:30:9: note: previous definition is here
+C/C++: #define LOGI(...) {__android_log_print(ANDROID_LOG_INFO, TAG, _LOG_WRAP(__VA_ARGS__)); tgvoip_log_file_printf('I', __VA_ARGS__);}
+C/C++:         ^
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tg_voip_jni.cpp:22:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/../c_utils.h:10:9: warning: 'LOGD' macro redefined [-Wmacro-redefined]
+C/C++: #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+C/C++:         ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/logging.h:29:9: note: previous definition is here
+C/C++: #define LOGD(...) {__android_log_print(ANDROID_LOG_DEBUG, TAG, _LOG_WRAP(__VA_ARGS__)); tgvoip_log_file_printf('D', __VA_ARGS__);}
+C/C++:         ^
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tg_voip_jni.cpp:22:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/../c_utils.h:11:9: warning: 'LOGE' macro redefined [-Wmacro-redefined]
+C/C++: #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+C/C++:         ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/logging.h:32:9: note: previous definition is here
+C/C++: #define LOGE(...) {__android_log_print(ANDROID_LOG_ERROR, TAG, _LOG_WRAP(__VA_ARGS__)); tgvoip_log_file_printf('E', __VA_ARGS__);}
+C/C++:         ^
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tg_voip_jni.cpp:22:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/../c_utils.h:12:9: warning: 'LOGV' macro redefined [-Wmacro-redefined]
+C/C++: #define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
+C/C++:         ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/logging.h:28:9: note: previous definition is here
+C/C++: #define LOGV(...) {__android_log_print(ANDROID_LOG_VERBOSE, TAG, _LOG_WRAP(__VA_ARGS__)); tgvoip_log_file_printf('V', __VA_ARGS__);}
+C/C++:         ^
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tg_voip_jni.cpp:12:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/VoIPServerConfig.h:13:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/../../threading.h:110:8: warning: private field 'maxPriority' is not used [-Wunused-private-field]
+C/C++:                 bool maxPriority=false;
+C/C++:                      ^
+C/C++: 7 warnings generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/NetworkManager.cpp:182:22: warning: 'set_async_resolver_factory' is deprecated: bugs.webrtc.org/12598 [-Wdeprecated-declarations]
+C/C++:     iceTransportInit.set_async_resolver_factory(_asyncResolverFactory.get());
+C/C++:                      ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/api/ice_transport_interface.h:70:3: note: 'set_async_resolver_factory' has been explicitly marked deprecated here
+C/C++:   ABSL_DEPRECATED("bugs.webrtc.org/12598")
+C/C++:   ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/absl/base/attributes.h:674:49: note: expanded from macro 'ABSL_DEPRECATED'
+C/C++: #define ABSL_DEPRECATED(message) __attribute__((deprecated(message)))
+C/C++:                                                 ^
+C/C++: 1 warning generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/VideoCaptureInterfaceImpl.cpp:171:1: warning: field '_platformContext' will be initialized after field '_impl' [-Wreorder]
+C/C++: _platformContext(platformContext),
+C/C++: ^
+C/C++: 1 warning generated.
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/legacy/InstanceImplLegacy.cpp:1:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/legacy/InstanceImplLegacy.h:6:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/VoIPController.h:24:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/video/VideoSource.h:12:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/Buffers.h:19:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/threading.h:110:8: warning: private field 'maxPriority' is not used [-Wunused-private-field]
+C/C++:                 bool maxPriority=false;
+C/C++:                      ^
+C/C++: 1 warning generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:380:22: warning: 'set_async_resolver_factory' is deprecated: bugs.webrtc.org/12598 [-Wdeprecated-declarations]
+C/C++:     iceTransportInit.set_async_resolver_factory(_asyncResolverFactory.get());
+C/C++:                      ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/api/ice_transport_interface.h:70:3: note: 'set_async_resolver_factory' has been explicitly marked deprecated here
+C/C++:   ABSL_DEPRECATED("bugs.webrtc.org/12598")
+C/C++:   ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/absl/base/attributes.h:674:49: note: expanded from macro 'ABSL_DEPRECATED'
+C/C++: #define ABSL_DEPRECATED(message) __attribute__((deprecated(message)))
+C/C++:                                                 ^
+C/C++: 1 warning generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/group/AudioStreamingPart.cpp:17:10: warning: unused function 'stringToUInt32' [-Wunused-function]
+C/C++: uint32_t stringToUInt32(std::string const &string) {
+C/C++:          ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/group/AudioStreamingPart.cpp:33:26: warning: unused function 'splitString' [-Wunused-function]
+C/C++: std::vector<std::string> splitString(const std::string &s, char delim) {
+C/C++:                          ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/group/AudioStreamingPart.cpp:57:35: warning: unused function 'parseChannelUpdates' [-Wunused-function]
+C/C++: static std::vector<ChannelUpdate> parseChannelUpdates(std::string const &data, int &offset) {
+C/C++:                                   ^
+C/C++: 3 warnings generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/group/GroupInstanceCustomImpl.cpp:476:10: warning: private field '_countFrames' is not used [-Wunused-private-field]
+C/C++:     bool _countFrames;
+C/C++:          ^
+C/C++: 1 warning generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/common_video/h265/legacy_bit_buffer.cc:36:9: warning: unused function 'HighestByte' [-Wunused-function]
+C/C++: uint8_t HighestByte(uint64_t val) {
+C/C++:         ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/common_video/h265/legacy_bit_buffer.cc:43:9: warning: unused function 'WritePartialByte' [-Wunused-function]
+C/C++: uint8_t WritePartialByte(uint8_t source,
+C/C++:         ^
+C/C++: 2 warnings generated.
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/sdk/android/src/jni/pc/peer_connection.cc:45:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/sdk/android/generated_peerconnection_jni/PeerConnection_jni.h:1920:17: warning: unused function 'Java_RTCConfiguration_getDisableIpv6' [-Wunused-function]
+C/C++: static jboolean Java_RTCConfiguration_getDisableIpv6(JNIEnv* env, const
+C/C++:                 ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/sdk/android/src/jni/pc/peer_connection.cc:843:13: warning: unused function 'JNI_PeerConnection_NewGetStatsSender' [-Wunused-function]
+C/C++: static void JNI_PeerConnection_NewGetStatsSender(
+C/C++:             ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/webrtc/sdk/android/src/jni/pc/peer_connection.cc:856:13: warning: unused function 'JNI_PeerConnection_NewGetStatsReceiver' [-Wunused-function]
+C/C++: static void JNI_PeerConnection_NewGetStatsReceiver(
+C/C++:             ^
+C/C++: 3 warnings generated.
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/image.cpp:12:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/FileLog.h:12:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/Defines.h:142:16: warning: 'ConnectiosManagerDelegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: typedef struct ConnectiosManagerDelegate {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/Defines.h:160:16: warning: 'HandshakeDelegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: typedef struct HandshakeDelegate {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/image.cpp:920:95: warning: adding 'int' to a string does not append to the string [-Wstring-plus-int]
+C/C++:         env->ThrowNew(jclass_RuntimeException, "AndroidBitmap_getInfo failed with a reason: " + reason);
+C/C++:                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/image.cpp:920:95: note: use array indexing to silence this warning
+C/C++:         env->ThrowNew(jclass_RuntimeException, "AndroidBitmap_getInfo failed with a reason: " + reason);
+C/C++:                                                                                               ^
+C/C++:                                                &                                              [       ]
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/image.cpp:930:98: warning: adding 'int' to a string does not append to the string [-Wstring-plus-int]
+C/C++:         env->ThrowNew(jclass_RuntimeException, "AndroidBitmap_lockPixels failed with a reason: " + reason);
+C/C++:                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/image.cpp:930:98: note: use array indexing to silence this warning
+C/C++:         env->ThrowNew(jclass_RuntimeException, "AndroidBitmap_lockPixels failed with a reason: " + reason);
+C/C++:                                                                                                  ^
+C/C++:                                                &                                                 [       ]
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/image.cpp:1012:100: warning: adding 'int' to a string does not append to the string [-Wstring-plus-int]
+C/C++:         env->ThrowNew(jclass_RuntimeException, "AndroidBitmap_unlockPixels failed with a reason: " + reason);
+C/C++:                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/image.cpp:1012:100: note: use array indexing to silence this warning
+C/C++:         env->ThrowNew(jclass_RuntimeException, "AndroidBitmap_unlockPixels failed with a reason: " + reason);
+C/C++:                                                                                                    ^
+C/C++:                                                &                                                   [       ]
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/image.cpp:1121:38: warning: 'gatherPositions' has C-linkage specified, but returns incomplete type 'std::vector<std::pair<float, float> >' which could be incompatible with C [-Wreturn-type-c-linkage]
+C/C++: std::vector<std::pair<float, float>> gatherPositions(std::vector<std::pair<float, float>> list, int phase) {
+C/C++:                                      ^
+C/C++: 6 warnings generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/org_telegram_messenger_voip_Instance.cpp:312:88: warning: adding 'jint' (aka 'int') to a string does not append to the string [-Wstring-plus-int]
+C/C++:             throwNewJavaIllegalArgumentException(env, "Unknown data saving constant: " + dataSaving);
+C/C++:                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/org_telegram_messenger_voip_Instance.cpp:312:88: note: use array indexing to silence this warning
+C/C++:             throwNewJavaIllegalArgumentException(env, "Unknown data saving constant: " + dataSaving);
+C/C++:                                                                                        ^
+C/C++:                                                       &                                [           ]
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/org_telegram_messenger_voip_Instance.cpp:20:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/tgcalls/legacy/InstanceImplLegacy.h:6:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/VoIPController.h:24:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/video/VideoSource.h:12:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/os/android/../../Buffers.h:19:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/voip/libtgvoip/threading.h:110:8: warning: private field 'maxPriority' is not used [-Wunused-private-field]
+C/C++:                 bool maxPriority=false;
+C/C++:                      ^
+C/C++: 2 warnings generated.
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:11:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/FileLog.h:12:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/Defines.h:142:16: warning: 'ConnectiosManagerDelegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: typedef struct ConnectiosManagerDelegate {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/Defines.h:160:16: warning: 'HandshakeDelegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: typedef struct HandshakeDelegate {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:47:1: warning: typedef requires a name [-Wmissing-declarations]
+C/C++: typedef struct VideoInfo {
+C/C++: ^~~~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:148:10: warning: format string is not a string literal (potentially insecure) [-Wformat-security]
+C/C++:     LOGE(line);
+C/C++:          ^~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/c_utils.h:11:67: note: expanded from macro 'LOGE'
+C/C++: #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+C/C++:                                                                   ^~~~~~~~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:148:10: note: treat the string as an argument to avoid this
+C/C++:     LOGE(line);
+C/C++:          ^
+C/C++:          "%s", 
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/c_utils.h:11:67: note: expanded from macro 'LOGE'
+C/C++: #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+C/C++:                                                                   ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:157:37: warning: format specifies type 'int' but the argument has type 'const enum AVPixelFormat *' [-Wformat]
+C/C++:         LOGE("available format %d", p);
+C/C++:                                ~~   ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/c_utils.h:11:67: note: expanded from macro 'LOGE'
+C/C++: #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+C/C++:                                                                   ^~~~~~~~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:520:5: warning: 'av_init_packet' is deprecated [-Wdeprecated-declarations]
+C/C++:     av_init_packet(&info->pkt);
+C/C++:     ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/packet.h:487:1: note: 'av_init_packet' has been explicitly marked deprecated here
+C/C++: attribute_deprecated
+C/C++: ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavutil/attributes.h:100:49: note: expanded from macro 'attribute_deprecated'
+C/C++: #    define attribute_deprecated __attribute__((deprecated))
+C/C++:                                                 ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:555:43: warning: 'codec' is deprecated [-Wdeprecated-declarations]
+C/C++:                 int ticks = video_stream->codec->ticks_per_frame;
+C/C++:                                           ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavformat/avformat.h:887:5: note: 'codec' has been explicitly marked deprecated here
+C/C++:     attribute_deprecated
+C/C++:     ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavutil/attributes.h:100:49: note: expanded from macro 'attribute_deprecated'
+C/C++: #    define attribute_deprecated __attribute__((deprecated))
+C/C++:                                                 ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:570:13: warning: comparison between NULL and non-pointer ('jlong' (aka 'long') and NULL) [-Wnull-arithmetic]
+C/C++:     if (ptr == NULL) {
+C/C++:         ~~~ ^  ~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:595:13: warning: comparison between NULL and non-pointer ('jlong' (aka 'long') and NULL) [-Wnull-arithmetic]
+C/C++:     if (ptr == NULL) {
+C/C++:         ~~~ ^  ~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:603:13: warning: comparison between NULL and non-pointer ('jlong' (aka 'long') and NULL) [-Wnull-arithmetic]
+C/C++:     if (ptr == NULL) {
+C/C++:         ~~~ ^  ~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:617:13: warning: comparison between NULL and non-pointer ('jlong' (aka 'long') and NULL) [-Wnull-arithmetic]
+C/C++:     if (ptr == NULL) {
+C/C++:         ~~~ ^  ~~~~
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:18:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavformat/avformat.h:312:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/avcodec.h:44:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/bsf.h:30:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/packet.h:346:16: warning: 'convergence_duration' is deprecated [-Wdeprecated-declarations]
+C/C++: typedef struct AVPacket {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:639:36: note: in implicit copy assignment operator for 'AVPacket' first required here
+C/C++:                     info->orig_pkt = info->pkt;
+C/C++:                                    ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/packet.h:397:5: note: 'convergence_duration' has been explicitly marked deprecated here
+C/C++:     attribute_deprecated
+C/C++:     ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavutil/attributes.h:100:49: note: expanded from macro 'attribute_deprecated'
+C/C++: #    define attribute_deprecated __attribute__((deprecated))
+C/C++:                                                 ^
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:18:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavformat/avformat.h:312:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/avcodec.h:44:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/bsf.h:30:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/packet.h:346:16: warning: 'convergence_duration' is deprecated [-Wdeprecated-declarations]
+C/C++: typedef struct AVPacket {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/packet.h:397:5: note: 'convergence_duration' has been explicitly marked deprecated here
+C/C++:     attribute_deprecated
+C/C++:     ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavutil/attributes.h:100:49: note: expanded from macro 'attribute_deprecated'
+C/C++: #    define attribute_deprecated __attribute__((deprecated))
+C/C++:                                                 ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:760:13: warning: comparison between NULL and non-pointer ('jlong' (aka 'long') and NULL) [-Wnull-arithmetic]
+C/C++:     if (ptr == NULL || bitmap == nullptr || data == nullptr) {
+C/C++:         ~~~ ^  ~~~~
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:860:13: warning: comparison between NULL and non-pointer ('jlong' (aka 'long') and NULL) [-Wnull-arithmetic]
+C/C++:     if (ptr == NULL || bitmap == nullptr) {
+C/C++:         ~~~ ^  ~~~~
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:21:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/get_bits.h:70:28: warning: function 'show_bits' has internal linkage but is not defined [-Wundefined-internal]
+C/C++: static inline unsigned int show_bits(GetBitContext *s, int n);
+C/C++:                            ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/get_bits.h:666:16: note: used here
+C/C++:         return show_bits(s, n);
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/gifvideo.cpp:151:27: warning: unused function 'get_format' [-Wunused-function]
+C/C++: static enum AVPixelFormat get_format(AVCodecContext *ctx,
+C/C++:                           ^
+C/C++: 17 warnings generated.
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/lottie.cpp:12:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/FileLog.h:12:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/Defines.h:142:16: warning: 'ConnectiosManagerDelegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: typedef struct ConnectiosManagerDelegate {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/Defines.h:160:16: warning: 'HandshakeDelegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: typedef struct HandshakeDelegate {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/lottie.cpp:19:1: warning: typedef requires a name [-Wmissing-declarations]
+C/C++: typedef struct LottieInfo {
+C/C++: ^~~~~~~
+C/C++: 3 warnings generated.
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/TgNetWrapper.cpp:2:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/ApiScheme.h:14:
+C/C++: In file included from /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/TLObject.h:13:
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/Defines.h:142:16: warning: 'ConnectiosManagerDelegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: typedef struct ConnectiosManagerDelegate {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/tgnet/Defines.h:160:16: warning: 'HandshakeDelegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: typedef struct HandshakeDelegate {
+C/C++:                ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/TgNetWrapper.cpp:307:7: warning: 'Delegate' has virtual functions but non-virtual destructor [-Wnon-virtual-dtor]
+C/C++: class Delegate : public ConnectiosManagerDelegate {
+C/C++:       ^
+C/C++: 3 warnings generated.
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/exoplayer/ffmpeg_jni.cc:22:9: warning: '__STDC_CONSTANT_MACROS' macro redefined [-Wmacro-redefined]
+C/C++: #define __STDC_CONSTANT_MACROS
+C/C++:         ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/.cxx/RelWithDebInfo/4q24155u/arm64-v8a/<command line>:62:9: note: previous definition is here
+C/C++: #define __STDC_CONSTANT_MACROS 1
+C/C++:         ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/exoplayer/ffmpeg_jni.cc:151:3: warning: 'av_init_packet' is deprecated [-Wdeprecated-declarations]
+C/C++:   av_init_packet(&packet);
+C/C++:   ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavcodec/packet.h:487:1: note: 'av_init_packet' has been explicitly marked deprecated here
+C/C++: attribute_deprecated
+C/C++: ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/ffmpeg/include/libavutil/attributes.h:100:49: note: expanded from macro 'attribute_deprecated'
+C/C++: #    define attribute_deprecated __attribute__((deprecated))
+C/C++:                                                 ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/exoplayer/ffmpeg_jni.cc:290:9: warning: unused variable 'dataSize' [-Wunused-variable]
+C/C++:     int dataSize = av_samples_get_buffer_size(NULL, channelCount, sampleCount,
+C/C++:         ^
+C/C++: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/jni/exoplayer/ffmpeg_jni.cc:313:9: warning: unused variable 'inSampleSize' [-Wunused-variable]
+C/C++:     int inSampleSize = av_get_bytes_per_sample(sampleFormat);
+C/C++:         ^
+C/C++: 4 warnings generated.
+
+> Task :TMessagesProj:preReleaseBuild
+> Task :TMessagesProj:mergeReleaseJniLibFolders
+> Task :TMessagesProj:prepareReleaseArtProfile
+> Task :TMessagesProj_App:mergeAfatReleaseArtProfile
+> Task :TMessagesProj:mergeReleaseNativeLibs
+> Task :TMessagesProj:copyReleaseJniLibsProjectOnly
+> Task :TMessagesProj:generateReleaseBuildConfig UP-TO-DATE
+> Task :TMessagesProj:generateReleaseResValues UP-TO-DATE
+> Task :TMessagesProj:generateReleaseResources UP-TO-DATE
+> Task :TMessagesProj:processReleaseGoogleServices UP-TO-DATE
+> Task :TMessagesProj:packageReleaseResources UP-TO-DATE
+> Task :TMessagesProj:parseReleaseLocalResources UP-TO-DATE
+> Task :TMessagesProj:generateReleaseRFile UP-TO-DATE
+> Task :TMessagesProj:javaPreCompileRelease UP-TO-DATE
+> Task :TMessagesProj:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :TMessagesProj:mergeReleaseGeneratedProguardFiles
+> Task :TMessagesProj:exportReleaseConsumerProguardFiles
+> Task :TMessagesProj:bundleLibCompileToJarRelease
+> Task :TMessagesProj:extractProguardFiles
+> Task :TMessagesProj:processReleaseManifest UP-TO-DATE
+> Task :TMessagesProj:generateReleaseLibraryProguardRules
+> Task :TMessagesProj:processReleaseJavaRes NO-SOURCE
+> Task :TMessagesProj:mergeReleaseJavaResource
+> Task :TMessagesProj_App:expandAfatReleaseL8ArtProfileWildcards
+> Task :TMessagesProj_App:mergeAfatReleaseNativeLibs
+> Task :TMessagesProj_App:stripAfatReleaseDebugSymbols
+> Task :TMessagesProj_App:extractAfatReleaseNativeDebugMetadata
+> Task :TMessagesProj_App:mergeAfatReleaseNativeDebugMetadata
+> Task :TMessagesProj:compileReleaseLibraryResources UP-TO-DATE
+> Task :TMessagesProj:writeReleaseAarMetadata UP-TO-DATE
+> Task :TMessagesProj_App:checkAfatReleaseAarMetadata UP-TO-DATE
+> Task :TMessagesProj_App:mapAfatReleaseSourceSetPaths UP-TO-DATE
+> Task :TMessagesProj_App:mergeAfatReleaseResources UP-TO-DATE
+> Task :TMessagesProj:extractDeepLinksRelease UP-TO-DATE
+> Task :TMessagesProj_App:processAfatReleaseMainManifest UP-TO-DATE
+> Task :TMessagesProj_App:processAfatReleaseManifest UP-TO-DATE
+> Task :TMessagesProj_App:processAfatReleaseManifestForPackage UP-TO-DATE
+> Task :TMessagesProj_App:processAfatReleaseResources UP-TO-DATE
+> Task :TMessagesProj_App:compileAfatReleaseJavaWithJavac
+> Task :TMessagesProj_App:mergeAfatReleaseGeneratedProguardFiles
+> Task :TMessagesProj:minifyReleaseWithR8
+> Task :TMessagesProj_App:mergeAfatReleaseJavaResource
+> Task :TMessagesProj:mergeReleaseShaders
+> Task :TMessagesProj:compileReleaseShaders NO-SOURCE
+> Task :TMessagesProj:generateReleaseAssets UP-TO-DATE
+> Task :TMessagesProj:packageReleaseAssets
+> Task :TMessagesProj_App:mergeAfatReleaseAssets
+> Task :TMessagesProj_App:compressAfatReleaseAssets
+> Task :TMessagesProj_App:optimizeAfatReleaseResources
+> Task :TMessagesProj:bundleLibRuntimeToJarRelease
+> Task :TMessagesProj_App:expandAfatReleaseArtProfileWildcards
+> Task :TMessagesProj_App:minifyAfatReleaseWithR8
+> Task :TMessagesProj_App:l8DexDesugarLibAfatRelease
+> Task :TMessagesProj_App:compileAfatReleaseArtProfile
+> Task :TMessagesProj_App:packageAfatRelease
+> Task :TMessagesProj_App:createAfatReleaseApkListingFileRedirect
+> Task :TMessagesProj_App:assembleAfatRelease
+
+BUILD SUCCESSFUL in 22m 35s
+73 actionable tasks: 48 executed, 25 up-to-date

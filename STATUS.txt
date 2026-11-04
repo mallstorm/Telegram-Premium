@@ -1,0 +1,10 @@
+status=success
+source_ref=feature/v11-vault35-player36
+source_sha=cca3158e7145fe91071915a0537e71072eeaac65
+run_id=41867228188
+run_url=https://github.com/mallstorm/Telegram-Premium/actions/runs/41867228188
+patches=success
+java=success
+apk=success
+verify=success
+api_configured=true

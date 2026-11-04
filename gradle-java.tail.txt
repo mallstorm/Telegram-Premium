@@ -1,0 +1,136 @@
+Downloading https://services.gradle.org/distributions/gradle-8.6-bin.zip
+...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+Unzipping /home/runner/.gradle/wrapper/dists/gradle-8.6-bin/5g9n7tbuq5npcs75fmo1r3gtl4/gradle-8.6-bin.zip to /home/runner/.gradle/wrapper/dists/gradle-8.6-bin/5g9n7tbuq5npcs75fmo1r3gtl4
+Set executable permissions for: /home/runner/.gradle/wrapper/dists/gradle-8.6-bin/5g9n7tbuq5npcs75fmo1r3gtl4/gradle-8.6/bin/gradle
+
+Welcome to Gradle 8.6!
+
+Here are the highlights of this release:
+ - Configurable encryption key for configuration cache
+ - Build init improvements
+ - Build authoring improvements
+
+For more details see https://docs.gradle.org/8.6/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+
+> Configure project :TMessagesProj
+WARNING: The option setting 'android.defaults.buildfeatures.buildconfig=true' is deprecated.
+The current default is 'false'.
+It will be removed in version 9.0 of the Android Gradle plugin.
+You can resolve this warning in Android Studio via `Refactor` > `Migrate BuildConfig to Gradle Build Files`
+WARNING: DSL element 'dexOptions' is obsolete and should be removed.
+It will be removed in version 8.0 of the Android Gradle plugin.
+Using it has no effect, and the AndroidGradle plugin optimizes dexing automatically.
+
+> Configure project :TMessagesProj_App
+WARNING: DSL element 'dexOptions' is obsolete and should be removed.
+It will be removed in version 8.0 of the Android Gradle plugin.
+Using it has no effect, and the AndroidGradle plugin optimizes dexing automatically.
+WARNING: BuildType 'debug' is both debuggable and has 'isMinifyEnabled' set to true.
+Debuggable builds are no longer name minified and all code optimizations and obfuscation will be disabled.
+
+> Configure project :TMessagesProj_AppHockeyApp
+WARNING: DSL element 'dexOptions' is obsolete and should be removed.
+It will be removed in version 8.0 of the Android Gradle plugin.
+Using it has no effect, and the AndroidGradle plugin optimizes dexing automatically.
+
+> Configure project :TMessagesProj_AppHuawei
+WARNING: DSL element 'dexOptions' is obsolete and should be removed.
+It will be removed in version 8.0 of the Android Gradle plugin.
+Using it has no effect, and the AndroidGradle plugin optimizes dexing automatically.
+--W- Build Environment: AGConnect plugin version is: 1.9.1.301, Gradle version is: 8.6, Android Plugin version is: 8.4.2
+--I- Using the AGConnect-Config file: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_AppHuawei/agconnect-services.json
+--W- The variant: afatDebug, Use the json file: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_AppHuawei/agconnect-services.json
+--I- Using the AGConnect-Config file: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_AppHuawei/agconnect-services.json
+--W- The variant: afatRelease, Use the json file: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_AppHuawei/agconnect-services.json
+
+> Configure project :TMessagesProj_AppStandalone
+WARNING: DSL element 'dexOptions' is obsolete and should be removed.
+It will be removed in version 8.0 of the Android Gradle plugin.
+Using it has no effect, and the AndroidGradle plugin optimizes dexing automatically.
+
+> Task :TMessagesProj_App:preBuild UP-TO-DATE
+> Task :TMessagesProj_App:preAfatReleaseBuild UP-TO-DATE
+> Task :TMessagesProj:checkVisibility
+> Task :TMessagesProj:preBuild
+> Task :TMessagesProj:preReleaseBuild
+> Task :TMessagesProj:generateReleaseResValues
+> Task :TMessagesProj_App:generateAfatReleaseResValues
+> Task :TMessagesProj_App:processAfatReleaseGoogleServices
+> Task :TMessagesProj_App:generateAfatReleaseResources
+> Task :TMessagesProj_App:createAfatReleaseCompatibleScreenManifests
+> Task :TMessagesProj_App:extractDeepLinksAfatRelease
+> Task :TMessagesProj:generateReleaseResources
+> Task :TMessagesProj:processReleaseGoogleServices
+> Task :TMessagesProj:packageReleaseResources
+> Task :TMessagesProj:compileReleaseLibraryResources
+> Task :TMessagesProj:parseReleaseLocalResources
+> Task :TMessagesProj_App:mapAfatReleaseSourceSetPaths
+> Task :TMessagesProj:generateReleaseRFile
+> Task :TMessagesProj:writeReleaseAarMetadata
+> Task :TMessagesProj:extractDeepLinksRelease
+
+> Task :TMessagesProj:processReleaseManifest
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/src/main/AndroidManifest.xml:83:5-102 Warning:
+	uses-permission#android.permission.WRITE_EXTERNAL_STORAGE was tagged at AndroidManifest.xml:83 to replace another declaration but no other declaration present
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/src/main/AndroidManifest.xml:97:5-716:19 Warning:
+	application@android:supportsRtl was tagged at AndroidManifest.xml:97 to replace other declarations but no other declaration present
+
+> Task :TMessagesProj:generateReleaseBuildConfig
+> Task :TMessagesProj:javaPreCompileRelease
+
+> Task :TMessagesProj_App:mergeAfatReleaseResources
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:3481:4: Multiple substitutions specified in non-positional format of string resource string/Gift2InfoOutConverted_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:3482:4: Multiple substitutions specified in non-positional format of string resource string/Gift2InfoOutConverted_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4789:4: Multiple substitutions specified in non-positional format of string resource string/NotificationTopicExceptionsDesctription_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4790:4: Multiple substitutions specified in non-positional format of string resource string/NotificationTopicExceptionsDesctription_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:7652:4: Multiple substitutions specified in non-positional format of string resource string/UnconfirmedAuthMultipleFrom_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:7653:4: Multiple substitutions specified in non-positional format of string resource string/UnconfirmedAuthMultipleFrom_other. Did you mean to add the formatted="false" attribute?
+
+> Task :TMessagesProj_App:checkAfatReleaseAarMetadata
+
+> Task :TMessagesProj_App:processAfatReleaseMainManifest
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/config/release/AndroidManifest_SDK23.xml Warning:
+	uses-permission#android.permission.WRITE_EXTERNAL_STORAGE was tagged at AndroidManifest_SDK23.xml:0 to replace another declaration but no other declaration present
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/config/release/AndroidManifest_SDK23.xml:56:9-64:20 Warning:
+	receiver#com.google.android.gms.measurement.AppMeasurementReceiver@android:enabled was tagged at AndroidManifest_SDK23.xml:56 to replace other declarations but no other declaration present
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/config/release/AndroidManifest_SDK23.xml:66:9-70:40 Warning:
+	service#com.google.android.gms.measurement.AppMeasurementService@android:enabled was tagged at AndroidManifest_SDK23.xml:66 to replace other declarations but no other declaration present
+
+> Task :TMessagesProj_App:processAfatReleaseManifest
+> Task :TMessagesProj_App:processAfatReleaseManifestForPackage
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertNamesText_few without required default value.
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertNamesText_two without required default value.
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertTitle_few without required default value.
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertTitle_many without required default value.
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertTitle_two without required default value.
+warn: removing resource com.telepremium.messenger:string/EmailPasswordConfirmText3 without required default value.
+warn: removing resource com.telepremium.messenger:string/Languages_few without required default value.
+warn: removing resource com.telepremium.messenger:string/Languages_many without required default value.
+warn: removing resource com.telepremium.messenger:string/Languages_two without required default value.
+warn: removing resource com.telepremium.messenger:string/Languages_zero without required default value.
+warn: removing resource com.telepremium.messenger:string/NoContactsYet without required default value.
+warn: removing resource com.telepremium.messenger:string/NoContactsYetLine1 without required default value.
+warn: removing resource com.telepremium.messenger:string/NoContactsYetLine2 without required default value.
+warn: removing resource com.telepremium.messenger:string/NoContactsYetLine3 without required default value.
+warn: removing resource com.telepremium.messenger:string/PleaseEnterFirstPassword without required default value.
+warn: removing resource com.telepremium.messenger:string/PleaseEnterPassword without required default value.
+warn: removing resource com.telepremium.messenger:string/ResetAccountButton without required default value.
+warn: removing resource com.telepremium.messenger:string/ResetMyAccountText without required default value.
+warn: removing resource com.telepremium.messenger:string/WidgetPasscodeEnable2 without required default value.
+warn: removing resource com.telepremium.messenger:string/YourEmailCode without required default value.
+warn: removing resource com.telepremium.messenger:string/YourEmailCodeInfo without required default value.
+warn: removing resource com.telepremium.messenger:string/YourPasswordSuccessText without required default value.
+warn: removing resource com.telepremium.messenger:string/formatterMonthName without required default value.
+warn: removing resource com.telepremium.messenger:string/formatterMonthYear2 without required default value.
+
+> Task :TMessagesProj_App:processAfatReleaseResources
+> Task :TMessagesProj:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+BUILD SUCCESSFUL in 2m 47s
+26 actionable tasks: 26 executed
