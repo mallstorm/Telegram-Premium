@@ -139,6 +139,17 @@ public final class TelePremiumNetworkPlaylistParser {
             try {
                 String url = input == null ? "" : input.trim();
                 if (!isLocal(url) && !url.startsWith("http://") && !url.startsWith("https://")) throw new IllegalArgumentException("Поддерживаются HTTP/HTTPS адреса и файлы плейлистов");
+                // A link to a single stream (not a playlist): play it as one channel, never download it as text.
+                String directMime = isLocal(url) ? null : probeMediaType(url);
+                if (directMime != null) {
+                    TelePremiumMediaItem item = networkItem(url, titleFromUrl(url), directMime, true);
+                    item.live = true;
+                    if (directMime.startsWith("video/")) item.mediaType = TelePremiumMediaItem.TYPE_VIDEO;
+                    result.add(item);
+                    ArrayList<TelePremiumMediaItem> copy = result;
+                    AndroidUtilities.runOnUIThread(() -> callback.onLoaded(copy, null));
+                    return;
+                }
                 String body = downloadText(url, 16_000_000);
                 if (looksLikeHlsManifest(body)) result.add(networkItem(url, titleFromUrl(url), "application/x-mpegURL", true));
                 else parseM3u(url, body, result, true);
@@ -189,6 +200,35 @@ public final class TelePremiumNetworkPlaylistParser {
 
     private static String downloadText(String url) throws Exception {
         return downloadText(url, 2_000_000);
+    }
+
+    /** Returns the MIME type when the URL is an audio/video stream rather than a text playlist. */
+    private static String probeMediaType(String url) {
+        String lower = pathLower(url);
+        if (lower.endsWith(".m3u") || lower.endsWith(".m3u8") || lower.endsWith(".txt") || lower.endsWith(".pls") || lower.endsWith(".xspf")) return null;
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(url).openConnection();
+            c.setConnectTimeout(10000);
+            c.setReadTimeout(10000);
+            c.setInstanceFollowRedirects(true);
+            c.setRequestProperty("User-Agent", "TelePremium/MediaCenter");
+            c.setRequestProperty("Icy-MetaData", "0");
+            String type = c.getContentType();
+            if (type == null) return null;
+            type = type.toLowerCase(Locale.ROOT);
+            int semi = type.indexOf(';');
+            if (semi > 0) type = type.substring(0, semi).trim();
+            if (type.contains("mpegurl") || type.startsWith("text/") || type.contains("json") || type.contains("xml")) return null;
+            if (type.startsWith("audio/") || type.startsWith("video/")) return type;
+            // octet-stream is ambiguous (IPTV panels serve M3U that way): only a .ts path is a stream.
+            if (type.contains("mp2t") || (type.contains("octet-stream") && lower.endsWith(".ts"))) return "video/mp2t";
+            return null;
+        } catch (Throwable e) {
+            return null;
+        } finally {
+            if (c != null) c.disconnect();
+        }
     }
 
     static boolean isLocal(String url) {

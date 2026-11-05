@@ -1,115 +1,78 @@
 package org.telegram.ui;
 
 import android.content.Context;
-import android.graphics.Typeface;
 import android.view.View;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
 
-import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
+import org.telegram.messenger.telepremium.TPStrings;
+import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.telepremium.AccountNetworkController;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Cells.TextCell;
 
 public class TelePremiumNetworkCenterActivity extends BaseFragment {
+    private TelePremiumSettingsUi ui;
 
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_050", org.telegram.messenger.R.string.TP_L10N_050));
+        actionBar.setTitle(t("TP_L10N_050", R.string.TP_L10N_050));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
-            @Override
-            public void onItemClick(int id) {
-                if (id == -1) {
-                    finishFragment();
-                }
-            }
+            @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
-
-        ScrollView scrollView = new ScrollView(context);
-        scrollView.setFillViewport(true);
-        scrollView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
-
-        LinearLayout content = new LinearLayout(context);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(24));
-        scrollView.addView(content, new ScrollView.LayoutParams(
-                ScrollView.LayoutParams.MATCH_PARENT,
-                ScrollView.LayoutParams.WRAP_CONTENT
-        ));
-
-        AccountNetworkController controller = AccountNetworkController.getInstance();
-
-        int connected = 0;
-        int active = 0;
-        for (int account = 0; account < UserConfig.MAX_ACCOUNT_COUNT; account++) {
-            if (!UserConfig.getInstance(account).isClientActivated()) {
-                continue;
-            }
-            active++;
-            int state = controller.getConnectionState(account);
-            if (state == ConnectionsManager.ConnectionStateConnected || state == ConnectionsManager.ConnectionStateUpdating) {
-                connected++;
-            }
-        }
-
-        TextView hero = new TextView(context);
-        hero.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_348", org.telegram.messenger.R.string.TP_L10N_348) + connected + " / " + active + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_349", org.telegram.messenger.R.string.TP_L10N_349));
-        hero.setTextSize(20);
-        hero.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        hero.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-        hero.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(18), AndroidUtilities.dp(21), AndroidUtilities.dp(18));
-        hero.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-        content.addView(hero);
-
-        TextView header = new TextView(context);
-        header.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_350", org.telegram.messenger.R.string.TP_L10N_350));
-        header.setTextSize(14);
-        header.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        header.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
-        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(20), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
-        content.addView(header);
-
-        for (int account = 0; account < UserConfig.MAX_ACCOUNT_COUNT; account++) {
-            UserConfig config = UserConfig.getInstance(account);
-            if (!config.isClientActivated()) {
-                continue;
-            }
-
-            final int accountId = account;
-            TLRPC.User user = config.getCurrentUser();
-            String name = user == null ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_002", org.telegram.messenger.R.string.TP_L10N_002) + (account + 1) : UserObject.getUserName(user);
-            int ping = controller.getPing(account);
-            String route = controller.getSummary(account);
-            String value = route + (ping > 0 ? " • " + ping + org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_003", org.telegram.messenger.R.string.TP_L10N_003) : "");
-
-            TextCell cell = new TextCell(context, getResourceProvider());
-            cell.setTextAndValue(name, value, true);
-            cell.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-            cell.setOnClickListener(v -> presentFragment(new TelePremiumNetworkProfileActivity(accountId)));
-            content.addView(cell, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    AndroidUtilities.dp(58)
-            ));
-        }
-
-        TextView hint = new TextView(context);
-        hint.setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_351", org.telegram.messenger.R.string.TP_L10N_351));
-        hint.setTextSize(13);
-        hint.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
-        hint.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(16), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
-        content.addView(hint);
-
-        fragmentView = scrollView;
+        ui = new TelePremiumSettingsUi(this, context);
+        fragmentView = ui.createScreen();
+        render();
         return fragmentView;
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (ui != null && ui.content != null) render();
+    }
+
+    private void render() {
+        ui.clear();
+        Context context = getParentActivity();
+        if (context == null) return;
+        AccountNetworkController controller = AccountNetworkController.getInstance();
+        int connected = 0, active = 0;
+        for (int account = 0; account < UserConfig.MAX_ACCOUNT_COUNT; account++) {
+            if (!UserConfig.getInstance(account).isClientActivated()) continue;
+            active++;
+            int state = controller.getConnectionState(account);
+            if (state == ConnectionsManager.ConnectionStateConnected || state == ConnectionsManager.ConnectionStateUpdating) connected++;
+        }
+        ui.hero(t("TP_L10N_050", R.string.TP_L10N_050), t("TP_L10N_051", R.string.TP_L10N_051),
+                t("TP_L10N_348", R.string.TP_L10N_348) + connected + " / " + active + t("TP_L10N_349", R.string.TP_L10N_349), R.drawable.tp_ic_public);
+
+        ui.section(t("TP_L10N_350", R.string.TP_L10N_350));
+        for (int account = 0; account < UserConfig.MAX_ACCOUNT_COUNT; account++) {
+            UserConfig config = UserConfig.getInstance(account);
+            if (!config.isClientActivated()) continue;
+            final int accountId = account;
+            TLRPC.User user = config.getCurrentUser();
+            String name = user == null ? t("TP_L10N_002", R.string.TP_L10N_002) + (account + 1) : UserObject.getUserName(user);
+            int ping = controller.getPing(account);
+            int state = controller.getConnectionState(account);
+            boolean online = state == ConnectionsManager.ConnectionStateConnected || state == ConnectionsManager.ConnectionStateUpdating;
+            String subtitle = controller.getSummary(account) + (ping > 0 ? " · " + ping + t("TP_L10N_003", R.string.TP_L10N_003) : "");
+            ui.row(name, subtitle, R.drawable.tp_ic_wifi,
+                    online ? TelePremiumSettingsUi.GREEN : TelePremiumSettingsUi.ORANGE,
+                    online ? "●" : "…", v -> presentFragment(new TelePremiumNetworkProfileActivity(accountId)));
+        }
+        ui.section(t("TP_L10N_066", R.string.TP_L10N_066));
+        ui.row(t("TP_C_PROXY", R.string.TP_C_PROXY), t("TP_C_PROXY_SUB", R.string.TP_C_PROXY_SUB), R.drawable.tp_ic_shield, TelePremiumSettingsUi.INDIGO, null,
+                v -> presentFragment(new ProxyListActivity()));
+        ui.row(t("TP_C_DATA", R.string.TP_C_DATA), t("TP_C_DATA_SUB", R.string.TP_C_DATA_SUB), R.drawable.tp_ic_storage, TelePremiumSettingsUi.TEAL, null,
+                v -> presentFragment(new DataSettingsActivity()));
+        ui.note(t("TP_L10N_351", R.string.TP_L10N_351));
+    }
+
+    private static String t(String key, int res) { return TPStrings.get(key, res); }
 }

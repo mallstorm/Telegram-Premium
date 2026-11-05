@@ -21,6 +21,9 @@ public final class TelePremiumThemeRegistry {
     public static final String PINK_SAND = "pink_sand";
     public static final String GRAPHITE_ICE = "graphite_ice";
     public static final String SUNSET_PEACH = "sunset_peach";
+    public static final String MIDNIGHT_AMOLED = "midnight_amoled";
+    public static final String NIGHT_OCEAN = "night_ocean";
+    public static final String DARK_VIOLET = "dark_violet";
 
     private static final LinkedHashMap<String, TelePremiumThemePreset> THEMES = new LinkedHashMap<>();
 
@@ -34,6 +37,9 @@ public final class TelePremiumThemeRegistry {
         add(theme(SEA_TURQUOISE, "Морская бирюза", false, "#EFFCFC", "#FBFFFF", "#0F9DA5", "#163A3D", R.drawable.tp_theme_sea_turquoise, "waves"));
         add(theme(PINK_SAND, "Розовый песок", false, "#FFF4F4", "#FFFAFA", "#D45F7C", "#432B33", R.drawable.tp_theme_pink_sand, "dunes"));
         add(theme(GRAPHITE_ICE, "Графитовый лёд", false, "#EEF4F7", "#FBFDFE", "#2E8497", "#1E2D35", R.drawable.tp_theme_graphite_ice, "ice"));
+        add(theme(MIDNIGHT_AMOLED, "Полночь AMOLED", true, "#000000", "#0E0F12", "#4FB3F6", "#ECEFF3", R.drawable.tp_theme_dark_graphite, "graphite"));
+        add(theme(NIGHT_OCEAN, "Ночной океан", true, "#0D1A22", "#14242E", "#2EC4B6", "#E4F1F4", R.drawable.tp_theme_sea_turquoise, "waves"));
+        add(theme(DARK_VIOLET, "Тёмная фиалка", true, "#14111D", "#1D1929", "#A084FF", "#EEEAF8", R.drawable.tp_theme_lavender_twilight, "twilight"));
         add(theme(SUNSET_PEACH, "Закатный персик", false, "#FFF2E7", "#FFFAF4", "#EF7048", "#422A20", R.drawable.tp_theme_sunset_peach, "sunset"));
     }
 

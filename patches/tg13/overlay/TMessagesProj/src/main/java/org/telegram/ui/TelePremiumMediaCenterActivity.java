@@ -80,7 +80,8 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     private EditText search;
     private TextView sectionTitle, sectionCount, emptyView, miniTitle, miniSource;
     private ImageView miniPlay, miniArt, sortButton;
-    private LinearLayout chipsRow;
+    private LinearLayout chipsRow, subChipsRow;
+    private HorizontalScrollView subChipsScroll;
     private final LinearLayout[] sourceTabs = new LinearLayout[4];
 
     private int currentSource = TelePremiumMediaItem.SOURCE_DEVICE;
@@ -208,6 +209,17 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         chipsLp.topMargin = dp(12);
         root.addView(chipsScroll, chipsLp);
 
+        // Second row (Network only): actions and filters of the selected mode
+        subChipsScroll = new HorizontalScrollView(this);
+        subChipsScroll.setHorizontalScrollBarEnabled(false);
+        subChipsRow = new LinearLayout(this);
+        subChipsRow.setGravity(Gravity.CENTER_VERTICAL);
+        subChipsScroll.addView(subChipsRow, new FrameLayout.LayoutParams(-2, -1));
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, dp(44));
+        subLp.topMargin = dp(6);
+        root.addView(subChipsScroll, subLp);
+        subChipsScroll.setVisibility(View.GONE);
+
         // Section header
         LinearLayout section = new LinearLayout(this);
         section.setGravity(Gravity.CENTER_VERTICAL);
@@ -332,28 +344,47 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         chipsRow.addView(chip, lp);
     }
 
+    private void addSubChip(TextView chip) {
+        chip.setTextSize(14);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(38));
+        lp.rightMargin = dp(8);
+        subChipsRow.addView(chip, lp);
+    }
+
+    /** Two equal segments that always fit the width: Radio | TV. */
+    private void addModeChip(TextView chip) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        lp.rightMargin = chipsRow.getChildCount() == 0 ? dp(5) : 0;
+        lp.leftMargin = chipsRow.getChildCount() == 0 ? 0 : dp(5);
+        chipsRow.addView(chip, lp);
+    }
+
     private void rebuildChips() {
         if (chipsRow == null) return;
         chipsRow.removeAllViews();
         if (chipsRow.getParent() instanceof HorizontalScrollView) ((HorizontalScrollView) chipsRow.getParent()).scrollTo(0, 0);
-        if (currentSource == TelePremiumMediaItem.SOURCE_NETWORK) {
-            addChip(chip(R.drawable.tp_ic_radio, t("TP_NET_RADIO", R.string.TP_NET_RADIO), networkMode == NET_RADIO, v -> selectNetworkMode(NET_RADIO)));
-            addChip(chip(R.drawable.tp_ic_tv, t("TP_NET_IPTV", R.string.TP_NET_IPTV), networkMode == NET_IPTV, v -> selectNetworkMode(NET_IPTV)));
-            addChip(chip(R.drawable.tp_ic_link, t("TP_NET_LINK", R.string.TP_NET_LINK), networkMode == NET_LINK, v -> selectNetworkMode(NET_LINK)));
+        subChipsRow.removeAllViews();
+        subChipsScroll.scrollTo(0, 0);
+        boolean network = currentSource == TelePremiumMediaItem.SOURCE_NETWORK;
+        subChipsScroll.setVisibility(network ? View.VISIBLE : View.GONE);
+        // In Network mode the mode chips fill the row width; elsewhere chips wrap their text.
+        View scroll = (View) chipsRow.getParent();
+        if (scroll instanceof HorizontalScrollView) ((HorizontalScrollView) scroll).setFillViewport(network);
+        if (network) {
+            addModeChip(chip(R.drawable.tp_ic_radio, t("TP_NET_RADIO", R.string.TP_NET_RADIO), networkMode == NET_RADIO, v -> selectNetworkMode(NET_RADIO)));
+            addModeChip(chip(R.drawable.tp_ic_tv, t("TP_NET_IPTV", R.string.TP_NET_IPTV), networkMode == NET_IPTV, v -> selectNetworkMode(NET_IPTV)));
             if (networkMode == NET_RADIO) {
                 String country = TelePremiumNetworkLibrary.getRadioCountryName();
-                addChip(chip(R.drawable.tp_ic_public, TextUtils.isEmpty(country) ? TelePremiumNetworkLibrary.getRadioCountry() : country, false, v -> pickRadioCountry()));
-                addChip(chip(R.drawable.tp_ic_star, t("TP_L10N_102", R.string.TP_L10N_102), radioFavoritesOnly, v -> { radioFavoritesOnly = !radioFavoritesOnly; rebuildChips(); loadRadio(); }));
-            } else if (networkMode == NET_IPTV) {
-                addChip(chip(R.drawable.tp_ic_add, t("TP_NET_IPTV_ADD", R.string.TP_NET_IPTV_ADD), false, v -> addIptvPlaylist()));
-                if (iptvUrl != null) {
-                    addChip(chip(R.drawable.tp_ic_list, iptvName == null ? "IPTV" : iptvName, true, v -> pickIptvPlaylist()));
-                    addChip(chip(0, iptvGroup == null ? t("TP_NET_ALL_GROUPS", R.string.TP_NET_ALL_GROUPS) : iptvGroup, iptvGroup != null, v -> pickIptvGroup()));
-                } else if (!TelePremiumNetworkLibrary.getIptvPlaylists().isEmpty()) {
-                    addChip(chip(R.drawable.tp_ic_list, t("TP_L10N_332", R.string.TP_L10N_332), false, v -> pickIptvPlaylist()));
-                }
+                addSubChip(chip(R.drawable.tp_ic_public, TextUtils.isEmpty(country) ? TelePremiumNetworkLibrary.getRadioCountry() : country, false, v -> pickRadioCountry()));
+                addSubChip(chip(R.drawable.tp_ic_star, t("TP_L10N_102", R.string.TP_L10N_102), radioFavoritesOnly, v -> { radioFavoritesOnly = !radioFavoritesOnly; rebuildChips(); loadRadio(); }));
             } else {
-                addChip(chip(R.drawable.tp_ic_add, t("TP_L10N_326", R.string.TP_L10N_326), false, v -> showNetworkInput()));
+                addSubChip(chip(R.drawable.tp_ic_add, t("TP_NET_ADD", R.string.TP_NET_ADD), false, v -> addIptvPlaylist()));
+                if (iptvUrl != null) {
+                    addSubChip(chip(R.drawable.tp_ic_list, iptvName == null ? "IPTV" : iptvName, true, v -> pickIptvPlaylist()));
+                    addSubChip(chip(0, iptvGroup == null ? t("TP_NET_ALL_GROUPS", R.string.TP_NET_ALL_GROUPS) : iptvGroup, iptvGroup != null, v -> pickIptvGroup()));
+                } else if (!TelePremiumNetworkLibrary.getIptvPlaylists().isEmpty()) {
+                    addSubChip(chip(R.drawable.tp_ic_list, t("TP_L10N_332", R.string.TP_L10N_332), false, v -> pickIptvPlaylist()));
+                }
             }
             return;
         }
@@ -447,6 +478,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     // ------------------------------------------------------------------ network: radio / IPTV / link
 
     private void selectNetworkMode(int mode) {
+        if (mode == NET_LINK) mode = NET_IPTV;
         currentSource = TelePremiumMediaItem.SOURCE_NETWORK;
         networkMode = mode;
         refreshTabs();
@@ -534,8 +566,8 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
 
     /** IPTV playlist source: a file on the device first, then a network link. */
     private void addIptvPlaylist() {
-        String[] options = {t("TP_NET_FROM_FILE", R.string.TP_NET_FROM_FILE), t("TP_NET_FROM_URL", R.string.TP_NET_FROM_URL)};
-        new AlertDialog.Builder(this).setTitle(t("TP_NET_IPTV_ADD", R.string.TP_NET_IPTV_ADD)).setItems(options, (d, which) -> {
+        String[] options = {t("TP_NET_FROM_FILE_ANY", R.string.TP_NET_FROM_FILE_ANY), t("TP_NET_FROM_URL", R.string.TP_NET_FROM_URL)};
+        new AlertDialog.Builder(this).setTitle(t("TP_NET_ADD", R.string.TP_NET_ADD)).setItems(options, (d, which) -> {
             if (which == 0) pickPlaylistFile(REQUEST_IPTV_FILE);
             else addIptvPlaylistUrl();
         }).show();

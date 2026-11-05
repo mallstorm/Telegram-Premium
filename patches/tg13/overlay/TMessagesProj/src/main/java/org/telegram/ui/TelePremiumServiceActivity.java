@@ -50,6 +50,8 @@ import java.util.zip.ZipOutputStream;
 public class TelePremiumServiceActivity extends BaseFragment {
     private static final long MAX_LOG_BYTES = 20L * 1024L * 1024L;
     private LinearLayout content;
+    private TelePremiumSettingsUi ui;
+    private int rowIndex;
 
     @Override
     public View createView(Context context) {
@@ -59,13 +61,9 @@ public class TelePremiumServiceActivity extends BaseFragment {
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
-        ScrollView scroll = new ScrollView(context);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
-        content = new LinearLayout(context);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(24));
-        scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
+        ui = new TelePremiumSettingsUi(this, context);
+        ScrollView scroll = ui.createScreen();
+        content = ui.content;
         fragmentView = scroll;
         render();
         return fragmentView;
@@ -74,7 +72,11 @@ public class TelePremiumServiceActivity extends BaseFragment {
     private void render() {
         Context context = getParentActivity();
         if (context == null || content == null) return;
-        content.removeAllViews();
+        ui.clear();
+        rowIndex = 0;
+        ui.hero(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_067", org.telegram.messenger.R.string.TP_L10N_067),
+                org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_068", org.telegram.messenger.R.string.TP_L10N_068),
+                "v" + BuildVars.BUILD_VERSION_STRING, R.drawable.tp_ic_update);
 
         section(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_496", org.telegram.messenger.R.string.TP_L10N_496));
         String source = TelePremiumUpdateChecker.getSource();
@@ -244,20 +246,13 @@ public class TelePremiumServiceActivity extends BaseFragment {
     }
 
     private void section(String title) {
-        TextView header = new TextView(getParentActivity());
-        header.setText(title);
-        header.setTextSize(14);
-        header.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        header.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
-        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(20), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
-        content.addView(header);
+        ui.section(title);
     }
 
+    private static final int[] TILES = {TelePremiumSettingsUi.BLUE, TelePremiumSettingsUi.GREEN, TelePremiumSettingsUi.ORANGE,
+            TelePremiumSettingsUi.PURPLE, TelePremiumSettingsUi.TEAL, TelePremiumSettingsUi.PINK, TelePremiumSettingsUi.INDIGO, TelePremiumSettingsUi.RED};
+
     private void row(String title, String subtitle, int icon, View.OnClickListener listener) {
-        TextCell cell = new TextCell(getParentActivity(), getResourceProvider());
-        cell.setTextAndValueAndIcon(title, subtitle, icon, true);
-        cell.setOnClickListener(listener);
-        cell.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-        content.addView(cell, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(58)));
+        ui.row(title, subtitle, icon, TILES[rowIndex++ % TILES.length], null, listener);
     }
 }

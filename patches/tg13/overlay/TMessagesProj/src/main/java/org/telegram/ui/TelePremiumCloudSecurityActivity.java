@@ -38,6 +38,7 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
     private LinearLayout content;
     private Context context;
     private TelePremiumThemePreset theme;
+    private TelePremiumSettingsUi ui;
     private CancellationSignal biometricCancellation;
 
     @Override
@@ -50,13 +51,9 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
 
-        ScrollView scroll = new ScrollView(context);
-        scroll.setFillViewport(true);
-        scroll.setBackgroundColor(theme.background);
-        content = new LinearLayout(context);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(28));
-        scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
+        ui = new TelePremiumSettingsUi(this, context);
+        ScrollView scroll = ui.createScreen();
+        content = ui.content;
         fragmentView = scroll;
         render();
         return fragmentView;
@@ -70,10 +67,14 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
 
     private void render() {
         if (content == null) return;
-        content.removeAllViews();
+        ui.clear();
         boolean hasPattern = TelePremiumCloudSecurityStore.hasPattern(context);
         boolean enabled = TelePremiumCloudSecurityStore.isProtectionEnabled(context);
         boolean whole = TelePremiumCloudSecurityStore.isWholeCloudLocked(context);
+        ui.hero(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_054", org.telegram.messenger.R.string.TP_L10N_054),
+                org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_055", org.telegram.messenger.R.string.TP_L10N_055),
+                enabled ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_450", org.telegram.messenger.R.string.TP_L10N_450) : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_451", org.telegram.messenger.R.string.TP_L10N_451),
+                R.drawable.tp_ic_shield);
 
         addSection(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_177", org.telegram.messenger.R.string.TP_L10N_177));
         addSwitch(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_178", org.telegram.messenger.R.string.TP_L10N_178), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_179", org.telegram.messenger.R.string.TP_L10N_179), enabled, true, (button, checked) -> {
@@ -415,58 +416,11 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
     }
 
     private void addSection(String title) {
-        TextView header = new TextView(context);
-        header.setText(title);
-        header.setTextSize(14);
-        header.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        header.setTextColor(theme.accent);
-        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(18), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
-        content.addView(header, new LinearLayout.LayoutParams(-1, -2));
+        ui.section(title);
     }
 
     private void addSwitch(String title, String subtitle, boolean checked, boolean enabled, CompoundButton.OnCheckedChangeListener listener) {
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
-        row.setBackgroundColor(theme.surface);
-        row.setAlpha(enabled ? 1f : 0.42f);
-        row.setEnabled(enabled);
-        row.setClickable(enabled);
-        row.setFocusable(enabled);
-
-        LinearLayout texts = new LinearLayout(context);
-        texts.setOrientation(LinearLayout.VERTICAL);
-        TextView t = new TextView(context);
-        t.setText(title);
-        t.setTextSize(16);
-        t.setTextColor(theme.textPrimary);
-        TextView s = new TextView(context);
-        s.setText(subtitle);
-        s.setTextSize(12);
-        s.setTextColor(theme.textSecondary);
-        texts.addView(t);
-        texts.addView(s);
-        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
-
-        Switch sw = new Switch(context);
-        sw.setChecked(checked);
-        sw.setEnabled(enabled);
-        sw.setClickable(false);
-        sw.setFocusable(false);
-        tintSwitch(sw, checked, enabled);
-        sw.setOnCheckedChangeListener((button, value) -> {
-            tintSwitch(sw, value, enabled);
-            listener.onCheckedChanged(button, value);
-        });
-        row.addView(sw, new LinearLayout.LayoutParams(AndroidUtilities.dp(58), AndroidUtilities.dp(48)));
-        row.setOnClickListener(v -> {
-            if (!enabled) return;
-            sw.setChecked(!sw.isChecked());
-            performRowHaptic(row);
-        });
-        content.addView(row, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(72)));
-        addDivider();
+        ui.switchRow(title, subtitle, 0, 0, checked, enabled, listener);
     }
 
     private void tintSwitch(Switch sw, boolean checked, boolean enabled) {
@@ -491,37 +445,7 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
     }
 
     private void addAction(String title, String subtitle, Runnable action) {
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(LinearLayout.VERTICAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), 0);
-        row.setBackgroundColor(theme.surface);
-        row.setClickable(true);
-        row.setFocusable(true);
-        TextView t = new TextView(context);
-        t.setText(title);
-        t.setTextSize(16);
-        t.setTextColor(theme.textPrimary);
-        TextView s = new TextView(context);
-        s.setText(subtitle);
-        s.setTextSize(12);
-        s.setTextColor(theme.textSecondary);
-        row.addView(t);
-        row.addView(s);
-        row.setOnClickListener(v -> {
-            performRowHaptic(row);
-            action.run();
-        });
-        content.addView(row, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(68)));
-        addDivider();
-    }
-
-    private void addDivider() {
-        View divider = new View(context);
-        divider.setBackgroundColor(theme.divider);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, Math.max(1, AndroidUtilities.dp(1)));
-        lp.leftMargin = AndroidUtilities.dp(21);
-        content.addView(divider, lp);
+        ui.row(title, subtitle, 0, 0, null, v -> action.run());
     }
 
     private String autoLockLabel() {

@@ -11,7 +11,7 @@
     <string name="TP_L10N_007" formatted="false">"Appearance"</string>
     <string name="TP_L10N_008" formatted="false">"App shell"</string>
     <string name="TP_L10N_009" formatted="false">"Shell accent"</string>
-    <string name="TP_L10N_010" formatted="false">"10 global themes"</string>
+    <string name="TP_L10N_010" formatted="false">"13 global themes"</string>
     <string name="TP_L10N_011" formatted="false">"Chat and messages"</string>
     <string name="TP_L10N_012" formatted="false">"Chat background"</string>
     <string name="TP_L10N_013" formatted="false">"Message accent"</string>
@@ -62,7 +62,7 @@
     <string name="TP_L10N_058" formatted="false">"Cache and storage"</string>
     <string name="TP_L10N_059" formatted="false">"Storage usage and cleanup"</string>
     <string name="TP_L10N_060" formatted="false">"Themes and appearance"</string>
-    <string name="TP_L10N_061" formatted="false">"10 themes, chat background, accents and bubbles"</string>
+    <string name="TP_L10N_061" formatted="false">"13 themes, chat background, accents and bubbles"</string>
     <string name="TP_L10N_062" formatted="false">"Chat settings"</string>
     <string name="TP_L10N_063" formatted="false">"Text, gestures, media and message options — without changing the shell"</string>
     <string name="TP_L10N_064" formatted="false">"Interface scale"</string>
@@ -607,4 +607,17 @@
     <string name="TP_P_SMOOTH_INFO" formatted="false">"Frame interpolation like SVP: in-between frames are drawn on the GPU. Uses more battery"</string>
     <string name="TP_P_SMOOTH_ON" formatted="false">"Smooth motion on"</string>
     <string name="TP_P_SMOOTH_OFF" formatted="false">"Smooth motion off"</string>
+    <string name="TP_A_LIGHT" formatted="false">"Light themes"</string>
+    <string name="TP_A_DARK" formatted="false">"Dark themes"</string>
+    <string name="TP_A_LIGHT_ONE" formatted="false">"Light theme"</string>
+    <string name="TP_A_DARK_ONE" formatted="false">"Dark theme"</string>
+    <string name="TP_A_SHELL_SUB" formatted="false">"Buttons, tabs, icons and switches"</string>
+    <string name="TP_A_CHAT_SUB" formatted="false">"Your messages, links and reactions"</string>
+    <string name="TP_A_SCALE_SUB" formatted="false">"Text and elements across the app"</string>
+    <string name="TP_C_CURRENT" formatted="false">"Current"</string>
+    <string name="TP_C_PROXY" formatted="false">"Proxy"</string>
+    <string name="TP_C_PROXY_SUB" formatted="false">"MTProto and SOCKS5 servers, checking and switching"</string>
+    <string name="TP_C_DATA" formatted="false">"Data and storage"</string>
+    <string name="TP_C_DATA_SUB" formatted="false">"Auto-download, data saver and network usage"</string>
+    <string name="TP_NET_ADD" formatted="false">"Add"</string>
 </resources>

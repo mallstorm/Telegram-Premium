@@ -61,8 +61,15 @@ public final class TelePremiumThemeController {
             try (FileOutputStream out = new FileOutputStream(file, false)) {
                 out.write(data);
             }
+            // A TelePremium theme is an explicit choice: stop Telegram's automatic day/night switching.
+            // With "follow system" on (the Android 10+ default) Telegram replaces any dark *day* theme
+            // by its default light one, which is why the dark preset never stuck.
+            disableAutoNight();
             Theme.ThemeInfo applied = Theme.applyThemeFile(file, "TelePremium_" + preset.id, null, false);
             if (applied == null) return false;
+            if (preset.isDark) {
+                try { Theme.setCurrentNightTheme(applied); } catch (Throwable ignore) {}
+            }
             TelePremiumThemeStore.setThemeId(context, preset.id);
             applySystemBars(context, preset);
             if (recreate && context instanceof Activity) {
@@ -72,6 +79,17 @@ public final class TelePremiumThemeController {
             return true;
         } catch (Throwable ignore) {
             return false;
+        }
+    }
+
+    private static void disableAutoNight() {
+        try {
+            if (Theme.selectedAutoNightType != Theme.AUTO_NIGHT_TYPE_NONE) {
+                Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE;
+                Theme.cancelAutoNightThemeCallbacks();
+                Theme.saveAutoNightThemeConfig();
+            }
+        } catch (Throwable ignore) {
         }
     }
 
