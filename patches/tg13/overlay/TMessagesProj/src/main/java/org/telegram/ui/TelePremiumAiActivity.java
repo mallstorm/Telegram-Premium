@@ -119,10 +119,6 @@ public class TelePremiumAiActivity extends BaseFragment {
                 R.drawable.tp_ic_ai, TelePremiumSettingsUi.SLATE, null, v -> device(TPOmni.KIND_GROK));
         ui.row("Google Gemini · Antigravity", L("Google OAuth в браузере · Cloud Code", "Google OAuth in the browser · Cloud Code"),
                 R.drawable.tp_ic_ai, TelePremiumSettingsUi.BLUE, null, v -> browser(TPOmni.KIND_GEMINI));
-        ui.row("Gemini Web", L("Экспериментально · вход на gemini.google.com во встроенном браузере", "Experimental · sign in to gemini.google.com in a built-in browser"),
-                R.drawable.tp_ic_public, TelePremiumSettingsUi.SKY, null, v -> {
-                    if (getParentActivity() != null) getParentActivity().startActivity(new Intent(getParentActivity(), com.omnichat.app.GeminiWebLoginActivity.class));
-                });
         ui.row("Kilo Code", L("Вход по коду устройства · Kilo Gateway", "Device code sign-in · Kilo Gateway"),
                 R.drawable.tp_ic_ai, TelePremiumSettingsUi.ORANGE, null, v -> device(TPOmni.KIND_KILO));
         ui.row("Cline", L("Вход по коду · Billing, ClinePass и Free", "Device code · Billing, ClinePass and Free"),
@@ -244,7 +240,7 @@ public class TelePremiumAiActivity extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
-        render(); // Gemini Web login activity and browser callbacks add connections meanwhile
+        render(); // browser callbacks (Requesty, Zoo) add connections meanwhile
     }
 
     private void openUrl(String url) {

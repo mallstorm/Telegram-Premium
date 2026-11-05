@@ -4,7 +4,6 @@ import android.content.Context
 import com.omnichat.app.network.ApiGateway
 import com.omnichat.app.network.ClineAccountClient
 import com.omnichat.app.network.OpenAiCodexAccountClient
-import com.omnichat.app.network.GeminiWebClient
 import com.omnichat.app.network.KiloGatewayRepository
 import org.json.JSONArray
 
@@ -39,7 +38,7 @@ object ProviderCatalog {
     const val OPENROUTER_ID = "openrouter"
     const val KILO_GATEWAY_ID = "kilo-gateway"
     const val CUSTOM_ID = "custom"
-    const val GEMINI_WEB_ID = GeminiWebClient.PROVIDER_TYPE
+    const val GEMINI_WEB_ID = "gemini_web" // TelePremium: Gemini Web is not offered
 
     /** Generic API editor only; account-owned definitions are never projected into this list. */
     fun load(context: Context): List<ProviderProfile> =
@@ -156,18 +155,7 @@ object ProviderCatalog {
             "Subscription", "account-oauth", "native", true,
             "Вход через официальный browser/device flow Kilo Code. Ручной API key в OmniChat не используется."
         )
-        val geminiWeb = ProviderProfile(
-            GEMINI_WEB_ID,
-            "Gemini Web · Experimental",
-            "https://gemini.google.com",
-            GeminiWebClient.PROTOCOL,
-            "Web session",
-            "browser-session",
-            "experimental",
-            true,
-            "Использует клиентскую сессию gemini.google.com, а не Gemini API. Модели и лимиты читаются из самого аккаунта; можно привязать существующий Gemini-чат к ветке OmniChat. Поддерживаются текст, изображения и PDF. Транспорт — Android System WebView (Chromium); протокол неофициальный и может измениться. Пользовательский DoH/DoT OmniChat на WebView не распространяется."
-        )
-        return listOf(cline, openAiCodex, openRouter, kiloGateway, geminiWeb) +
+        return listOf(cline, openAiCodex, openRouter, kiloGateway) +
             profiles.filterNot { it.id in setOf(OPENROUTER_ID, KILO_GATEWAY_ID) }
     }
 
@@ -176,7 +164,6 @@ object ProviderCatalog {
         ApiGateway.RESPONSES -> "OpenAI · Responses"
         ApiGateway.ANTHROPIC -> "Anthropic · Messages"
         ApiGateway.GEMINI -> "Google Gemini · native API"
-        GeminiWebClient.PROTOCOL -> "Gemini Web · client session"
         ApiGateway.OLLAMA -> "Ollama · native API"
         else -> protocol
     }

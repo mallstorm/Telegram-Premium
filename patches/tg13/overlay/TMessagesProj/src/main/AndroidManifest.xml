@@ -236,12 +236,6 @@
             android:hardwareAccelerated="true"
             android:exported="false" />
         <activity
-            android:name="com.omnichat.app.GeminiWebLoginActivity"
-            android:theme="@style/Theme.TMessages"
-            android:configChanges="keyboardHidden|orientation|screenSize|uiMode"
-            android:hardwareAccelerated="true"
-            android:exported="false" />
-        <activity
             android:name="org.telegram.ui.TelePremiumOAuthCallbackActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:noHistory="true"

@@ -8,7 +8,6 @@ import com.omnichat.app.network.ApiGateway
 import com.omnichat.app.network.ChatGptPlanClient
 import com.omnichat.app.network.ClineAccountClient
 import com.omnichat.app.network.ClineAccountRepository
-import com.omnichat.app.network.GeminiWebClient
 import com.omnichat.app.network.KiloGatewayRepository
 import com.omnichat.app.network.KimiCodeOAuthRepository
 import com.omnichat.app.network.OpenAiCodexAccountClient
@@ -33,7 +32,7 @@ import org.telegram.messenger.ApplicationLoader
  * Bridge between TelePremium (Java UI, TPAiStore connections) and OmniChat's connection layer
  * (com.omnichat.app.*, ported unchanged): subscription OAuth (ChatGPT plan, Codex, Grok,
  * Gemini/Antigravity), device sign-ins (Kilo Code, Cline, Kimi Code), account API keys
- * (NVIDIA, VseGPT, OpenCode, Cloudflare, Requesty, Zoo…), CLIProxyAPI, Gemini Web, and the
+ * (NVIDIA, VseGPT, OpenCode, Cloudflare, Requesty, Zoo…), and CLIProxyAPI, and the
  * shared ApiGateway transport. All methods block — call them off the UI thread.
  */
 object TPOmni {
@@ -67,7 +66,6 @@ object TPOmni {
     }
     private val kiloRepository by lazy { KiloGatewayRepository(context, keyVault) }
     private val kimiRepository by lazy { KimiCodeOAuthRepository(context, keyVault) }
-    private val geminiWeb by lazy { GeminiWebClient(context) }
 
     // ================================================================== connections
 
@@ -306,21 +304,6 @@ object TPOmni {
     private fun preferFirst(models: List<String>, preferred: String): List<String> =
         if (preferred in models) listOf(preferred) + models.filter { it != preferred } else models
 
-    // ================================================================== Gemini Web
-
-    /** Called by the (ported) Gemini Web login activity and its background enricher. */
-    @JvmStatic
-    fun saveGeminiWeb(credentials: GeminiWebClient.Credentials, models: List<String>): Long {
-        upsert(
-            ProviderCatalog.GEMINI_WEB_ID, "Gemini Web · Experimental", "https://gemini.google.com",
-            GeminiWebClient.PROTOCOL, models.ifEmpty { listOf("gemini-auto") },
-            credentials.authUser.toString(), credentials.toSecret()
-        )
-        return GEMINI_WEB_PROVIDER_ID
-    }
-
-    const val GEMINI_WEB_PROVIDER_ID = 1L
-
     // ================================================================== disconnect
 
     @JvmStatic
@@ -375,11 +358,6 @@ object TPOmni {
         val source = repository.sourceFromProviderType(type)
         val list = when {
             source != null -> runCatching { repository.refreshModels(source) }.getOrElse { repository.cachedModels(source) }
-            type == ProviderCatalog.GEMINI_WEB_ID -> {
-                val creds = GeminiWebClient.Credentials.fromSecret(storedKey(c))
-                val snapshot = geminiWeb.inspectAccount(creds)
-                (listOf("gemini-auto") + snapshot.models.filter { it.available }.map { it.modelName }).distinct()
-            }
             type == ProviderCatalog.OPENAI_CODEX_ID -> codexRepository.models()
             type == ProviderCatalog.CLINE_ID || type == ProviderCatalog.CLINE_PASS_ID || type == ProviderCatalog.CLINE_FREE_ID -> {
                 val catalog = clineRepository.currentCredentials()?.let { clineClient.modelCatalog(it) }
@@ -402,10 +380,6 @@ object TPOmni {
         val sys = system.orEmpty()
         val history = listOf(MessageEntity(chatId = 1L, role = "user", content = user, model = c.model.orEmpty()))
         val type = c.providerId.orEmpty()
-        if (type == ProviderCatalog.GEMINI_WEB_ID) {
-            val creds = GeminiWebClient.Credentials.fromSecret(storedKey(c))
-            return@runBlocking geminiWeb.generate(creds, c.model.orEmpty().ifBlank { "gemini-auto" }, sys, history) { }.text
-        }
         val provider = entity(c, sys)
         val source = repository.sourceFromProviderType(type)
         if (source != null) {
