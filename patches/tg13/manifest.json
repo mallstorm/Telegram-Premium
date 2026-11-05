@@ -1132,7 +1132,12 @@
     {
       "path": "TMessagesProj_App/build.gradle",
       "base_sha256": "d0d805061e01e41d7f9ba6bd42193c7e4c9c712f321f766ad6a85d1e5a09fd1b",
-      "sha256": "079f22015ceb0dc1c305b97348ff4c5aa9a20ce36ca2ca2beedfdf34e2d59b78"
+      "sha256": "46df2a25073ffb10210e52cdfb411c524325625ea716aac1dacadf2d80a8683e"
+    },
+    {
+      "path": "build.gradle",
+      "base_sha256": "a7fc78c873827eb54e95acb73bfa74744ec636490e66a8df0cb32ea8b7009f67",
+      "sha256": "59c076bbb6ca41075de97eecb323bd8dd6c32b9db53a762b0dc0f8124a309dd0"
     },
     {
       "path": "gradle.properties",

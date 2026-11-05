@@ -2,6 +2,10 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.telegram.build-app-plugin'
 
 repositories {
+    maven {
+        url 'https://jitpack.io'
+        content { includeGroupByRegex 'com\\.github\\..*' }
+    }
     mavenCentral()
     google()
 }
