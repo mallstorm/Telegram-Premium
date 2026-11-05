@@ -83,7 +83,8 @@ public class TelePremiumAiActivity extends BaseFragment {
         }
         for (TPAiStore.Connection c : all) {
             TPAiProvider p = TPAiProvider.find(getParentActivity(), c.providerId);
-            String sub = (p == null ? (TPOmni.AUTH.equals(c.authType) ? L("аккаунт · ", "account · ") + c.providerId : c.providerId) : p.name) + "\n" + (TextUtils.isEmpty(c.model) ? L("модель не выбрана", "no model") : c.model);
+            String sub = (p == null ? (TPOmni.AUTH.equals(c.authType) ? L("аккаунт · ", "account · ") + c.providerId : c.providerId) : p.name) + "\n" + (TextUtils.isEmpty(c.model) ? L("модель не выбрана", "no model")
+                    : c.model + " · " + TPAiClient.tierLabel(TPAiClient.tier(c, c.model), TPStrings.isRussian()));
             boolean isDefault = def != null && def.id.equals(c.id);
             ui.row(c.title(), sub, R.drawable.tp_ic_ai, isDefault ? TelePremiumSettingsUi.PURPLE : TelePremiumSettingsUi.INDIGO,
                     isDefault ? L("Основное", "Default") : null, v -> showActions(c));
@@ -462,8 +463,137 @@ public class TelePremiumAiActivity extends BaseFragment {
                                 + L("\n\nВведите идентификатор модели вручную через «Изменить».", "\n\nType the model id manually via Edit."));
                 return;
             }
-            pickFromList(L("Модель", "Model"), new ArrayList<>(models), index -> picked.run(models.get(index)));
+            pickModel(c, models, picked);
         });
+    }
+
+    /**
+     * Model picker split by access: free models, models included in a subscription and billed
+     * ones (Cline Free / ClinePass / Billing, OpenRouter :free, Kilo free, Requesty free…).
+     */
+    private void pickModel(TPAiStore.Connection c, List<String> models, Picked picked) {
+        Context context = getParentActivity();
+        if (context == null) return;
+        boolean ru = TPStrings.isRussian();
+        int[] tiers = new int[models.size()];
+        int[] counts = new int[3];
+        for (int i = 0; i < models.size(); i++) {
+            tiers[i] = Math.min(2, TPAiClient.tier(c, models.get(i)));
+            counts[tiers[i]]++;
+        }
+        // Free first, then subscription, then paid; alphabetical inside a group.
+        ArrayList<Integer> order = new ArrayList<>();
+        for (int i = 0; i < models.size(); i++) order.add(i);
+        java.util.Collections.sort(order, (a, b) -> tiers[a] != tiers[b] ? tiers[a] - tiers[b] : models.get(a).compareToIgnoreCase(models.get(b)));
+        final int[] filter = {-1};
+        final String[] query = {""};
+        ArrayList<Integer> visible = new ArrayList<>();
+        int textColor = getThemedColor(Theme.key_windowBackgroundWhiteBlackText);
+        int accent = getThemedColor(Theme.key_featuredStickers_addButton);
+        int[] tagColors = {0xff20a464, 0xff2f80ed, 0xff8a8f98};
+        String[] tagNames = {ru ? "FREE" : "FREE", ru ? "ПОДПИСКА" : "SUBSCRIPTION", ru ? "ПЛАТНАЯ" : "PAID"};
+
+        LinearLayout box = new LinearLayout(context);
+        box.setOrientation(LinearLayout.VERTICAL);
+        android.widget.HorizontalScrollView chipsScroll = new android.widget.HorizontalScrollView(context);
+        chipsScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout chips = new LinearLayout(context);
+        chips.setPadding(AndroidUtilities.dp(18), 0, AndroidUtilities.dp(18), 0);
+        chipsScroll.addView(chips);
+        box.addView(chipsScroll, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(40)));
+        EditText search = new EditText(context);
+        search.setHint(L("Поиск модели", "Search model"));
+        search.setSingleLine(true);
+        search.setTextColor(textColor);
+        search.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
+        slp.leftMargin = slp.rightMargin = AndroidUtilities.dp(20);
+        box.addView(search, slp);
+
+        android.widget.BaseAdapter adapter = new android.widget.BaseAdapter() {
+            @Override public int getCount() { return visible.size(); }
+            @Override public Object getItem(int position) { return models.get(visible.get(position)); }
+            @Override public long getItemId(int position) { return visible.get(position); }
+            @Override public View getView(int position, View convertView, ViewGroup parent) {
+                TextView v = convertView instanceof TextView ? (TextView) convertView : new TextView(parent.getContext());
+                v.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(11), AndroidUtilities.dp(22), AndroidUtilities.dp(11));
+                v.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+                v.setTextColor(textColor);
+                int index = visible.get(position);
+                String id = models.get(index);
+                android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder(id);
+                if (id.equals(c.model)) sb.append("  ✓");
+                sb.append("\n");
+                int start = sb.length();
+                sb.append(tagNames[tiers[index]]);
+                sb.setSpan(new android.text.style.ForegroundColorSpan(tagColors[tiers[index]]), start, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new android.text.style.RelativeSizeSpan(0.78f), start, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                v.setText(sb);
+                return v;
+            }
+        };
+        Runnable refresh = () -> {
+            visible.clear();
+            String q = query[0].toLowerCase();
+            for (int i : order) {
+                if (filter[0] >= 0 && tiers[i] != filter[0]) continue;
+                if (!q.isEmpty() && !models.get(i).toLowerCase().contains(q)) continue;
+                visible.add(i);
+            }
+            adapter.notifyDataSetChanged();
+        };
+        Runnable[] renderChips = new Runnable[1];
+        renderChips[0] = () -> {
+            chips.removeAllViews();
+            String[] labels = {
+                    L("Все", "All") + " " + models.size(),
+                    L("Бесплатные", "Free") + " " + counts[0],
+                    L("По подписке", "Subscription") + " " + counts[1],
+                    L("Платные", "Paid") + " " + counts[2]
+            };
+            for (int i = 0; i < labels.length; i++) {
+                final int f = i - 1;
+                if (f >= 0 && counts[f] == 0) continue;
+                boolean on = filter[0] == f;
+                TextView chip = new TextView(context);
+                chip.setText(labels[i]);
+                chip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+                chip.setGravity(android.view.Gravity.CENTER);
+                chip.setPadding(AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12), 0);
+                chip.setTextColor(on ? Color.WHITE : textColor);
+                android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                bg.setCornerRadius(AndroidUtilities.dp(16));
+                bg.setColor(on ? (f >= 0 ? tagColors[f] : accent) : getThemedColor(Theme.key_windowBackgroundGray));
+                chip.setBackground(bg);
+                chip.setOnClickListener(v -> { filter[0] = f; renderChips[0].run(); refresh.run(); });
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, AndroidUtilities.dp(32));
+                lp.rightMargin = AndroidUtilities.dp(6);
+                lp.gravity = android.view.Gravity.CENTER_VERTICAL;
+                chips.addView(chip, lp);
+            }
+        };
+        renderChips[0].run();
+        refresh.run();
+
+        ListView list = new ListView(context);
+        list.setAdapter(adapter);
+        list.setDivider(null);
+        list.setSelector(Theme.getSelectorDrawable(false));
+        list.setBackgroundColor(Color.TRANSPARENT);
+        box.addView(list, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(400)));
+        AlertDialog dialog = new AlertDialog.Builder(context).setTitle(L("Модель", "Model") + " · " + c.title()).setView(box)
+                .setNegativeButton(L("Отмена", "Cancel"), null).create();
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            dialog.dismiss();
+            picked.run(models.get(visible.get(position)));
+        });
+        search.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) { query[0] = s.toString().trim(); refresh.run(); }
+        });
+        showDialog(dialog);
     }
 
     interface Index { void run(int index); }

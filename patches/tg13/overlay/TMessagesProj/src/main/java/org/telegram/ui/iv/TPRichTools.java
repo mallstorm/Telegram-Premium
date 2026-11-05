@@ -668,7 +668,8 @@ public final class TPRichTools {
         final boolean[] busy = {false};
         final TPAiStore.Connection[] conn = {TPAiStore.getDefault()};
 
-        Runnable updateModel = () -> model.setText("✨ " + conn[0].title() + " · " + (TextUtils.isEmpty(conn[0].model) ? "—" : conn[0].model) + "  ▾");
+        Runnable updateModel = () -> model.setText("✨ " + conn[0].title() + " · " + (TextUtils.isEmpty(conn[0].model) ? "—"
+                : conn[0].model + " · " + TPAiClient.tierLabel(TPAiClient.tier(conn[0], conn[0].model), TPStrings.isRussian())) + "  ▾");
         updateModel.run();
         model.setOnClickListener(v -> {
             List<TPAiStore.Connection> all = TPAiStore.list();

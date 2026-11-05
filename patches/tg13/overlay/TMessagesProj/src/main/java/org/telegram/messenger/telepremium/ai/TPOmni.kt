@@ -20,6 +20,8 @@ import com.omnichat.app.network.SubscriptionProxyStore
 import com.omnichat.app.providers.AccountProviderCatalog
 import com.omnichat.app.providers.AccountProviderSpec
 import com.omnichat.app.providers.ConnectionModelCatalogStore
+import com.omnichat.app.providers.ModelAccessKind
+import com.omnichat.app.providers.ModelCapabilities
 import com.omnichat.app.providers.ProviderCatalog
 import com.omnichat.app.security.KeyVault
 import com.omnichat.app.security.SubscriptionProxyVault
@@ -180,12 +182,12 @@ object TPOmni {
                             val saved = clineClient.register(tokens)
                             clineRepository.save(saved)
                             val catalog = runCatching { clineClient.modelCatalog(saved) }.getOrNull()
-                            upsert(ProviderCatalog.CLINE_ID, "Cline · Billing", ClineAccountClient.CLINE_OPENAI_BASE_URL, ApiGateway.CHAT,
-                                catalog?.billing ?: ClineAccountClient.DEFAULT_BILLING_MODELS)
-                            upsert(ProviderCatalog.CLINE_PASS_ID, "Cline · ClinePass", ClineAccountClient.CLINE_OPENAI_BASE_URL, ApiGateway.CHAT,
-                                catalog?.pass ?: ClineAccountClient.DEFAULT_PASS_MODELS)
-                            upsert(ProviderCatalog.CLINE_FREE_ID, "Cline · Free", ClineAccountClient.CLINE_OPENAI_BASE_URL, ApiGateway.CHAT,
-                                catalog?.free ?: ClineAccountClient.DEFAULT_FREE_MODELS)
+                            val all = catalog?.all ?: (ClineAccountClient.DEFAULT_FREE_MODELS + ClineAccountClient.DEFAULT_PASS_MODELS +
+                                ClineAccountClient.DEFAULT_BILLING_MODELS).distinct()
+                            // One Cline account: Billing, ClinePass and Free are groups chosen by the model.
+                            TPAiStore.list().filter { it.providerId == ProviderCatalog.CLINE_PASS_ID || it.providerId == ProviderCatalog.CLINE_FREE_ID }
+                                .forEach { TPAiStore.delete(it.id) }
+                            upsert(ProviderCatalog.CLINE_ID, "Cline", ClineAccountClient.CLINE_OPENAI_BASE_URL, ApiGateway.CHAT, all)
                             return@runBlocking "Cline подключён · Billing, ClinePass и Free"
                         }
                     }
@@ -296,6 +298,32 @@ object TPOmni {
     private fun preferFirst(models: List<String>, preferred: String): List<String> =
         if (preferred in models) listOf(preferred) + models.filter { it != preferred } else models
 
+    // ================================================================== access tiers
+
+    const val TIER_FREE = 0
+    const val TIER_SUBSCRIPTION = 1
+    const val TIER_PAID = 2
+    const val TIER_UNKNOWN = 3
+
+    /**
+     * OmniChat's access classification of a model: free, included in a subscription, or billed
+     * (Cline: Free / ClinePass / Billing by model id; OpenRouter, Kilo, Requesty, OpenCode: free ids).
+     */
+    @JvmStatic
+    fun tier(providerId: String?, authType: String?, model: String?): Int {
+        val type = when (providerId) {
+            TPAiProvider.OPENROUTER_ACCOUNT -> ProviderCatalog.OPENROUTER_ID
+            TPAiProvider.POLZA_ACCOUNT -> AccountProviderCatalog.POLZA_ID
+            else -> providerId.orEmpty()
+        }
+        return when (runCatching { ModelCapabilities.accessKind(type, model.orEmpty()) }.getOrDefault(ModelAccessKind.UNKNOWN)) {
+            ModelAccessKind.FREE -> TIER_FREE
+            ModelAccessKind.SUBSCRIPTION -> TIER_SUBSCRIPTION
+            ModelAccessKind.PAID -> TIER_PAID
+            else -> if (authType == TPAiProvider.AUTH_NONE) TIER_FREE else TIER_UNKNOWN
+        }
+    }
+
     // ================================================================== disconnect
 
     @JvmStatic
@@ -353,11 +381,8 @@ object TPOmni {
             type == ProviderCatalog.OPENAI_CODEX_ID -> codexRepository.models()
             type == ProviderCatalog.CLINE_ID || type == ProviderCatalog.CLINE_PASS_ID || type == ProviderCatalog.CLINE_FREE_ID -> {
                 val catalog = clineRepository.currentCredentials()?.let { clineClient.modelCatalog(it) }
-                when (type) {
-                    ProviderCatalog.CLINE_PASS_ID -> catalog?.pass ?: ClineAccountClient.DEFAULT_PASS_MODELS
-                    ProviderCatalog.CLINE_FREE_ID -> catalog?.free ?: ClineAccountClient.DEFAULT_FREE_MODELS
-                    else -> catalog?.billing ?: ClineAccountClient.DEFAULT_BILLING_MODELS
-                }
+                catalog?.all ?: (ClineAccountClient.DEFAULT_FREE_MODELS + ClineAccountClient.DEFAULT_PASS_MODELS +
+                    ClineAccountClient.DEFAULT_BILLING_MODELS).distinct()
             }
             AccountProviderCatalog.byId(type) != null -> accountModels(
                 AccountProviderCatalog.byId(type)!!.copy(baseUrl = c.baseUrl.orEmpty()), keyFor(c), c.scope.orEmpty())

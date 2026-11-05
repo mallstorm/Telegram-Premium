@@ -139,6 +139,7 @@ public final class TPAiClient {
                 Object item = data.opt(i);
                 String id = item instanceof JSONObject ? ((JSONObject) item).optString("id", ((JSONObject) item).optString("name")) : String.valueOf(item);
                 if (id.startsWith("models/")) id = id.substring(7);
+                if (item instanceof JSONObject && isZeroPricing(((JSONObject) item).optJSONObject("pricing"))) FREE_HINTS.add(base(c) + "|" + id);
                 if (!TextUtils.isEmpty(id) && !out.contains(id)) out.add(id);
             }
             Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
@@ -147,6 +148,40 @@ public final class TPAiClient {
             throw e;
         } catch (Exception e) {
             throw new IOException(e.getMessage(), e);
+        }
+    }
+
+    // ------------------------------------------------------------------ access tiers
+
+    private static final java.util.Set<String> FREE_HINTS = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+    private static String base(TPAiStore.Connection c) {
+        return c.baseUrl == null ? "" : c.baseUrl.trim().replaceAll("/+$", "");
+    }
+
+    private static boolean isZeroPricing(JSONObject pricing) {
+        if (pricing == null) return false;
+        try {
+            String p = pricing.optString("prompt", ""), cpl = pricing.optString("completion", "");
+            return !p.isEmpty() && !cpl.isEmpty() && Double.parseDouble(p) == 0d && Double.parseDouble(cpl) == 0d;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Free / subscription / paid for a model of a connection (see TPOmni.tier). */
+    public static int tier(TPAiStore.Connection c, String model) {
+        int t = TPOmni.tier(c.providerId, c.authType, model);
+        if (t != TPOmni.TIER_FREE && model != null && (FREE_HINTS.contains(base(c) + "|" + model) || model.endsWith(":free"))) t = TPOmni.TIER_FREE;
+        if (t == TPOmni.TIER_UNKNOWN) t = TPOmni.TIER_PAID; // API keys are billed per token
+        return t;
+    }
+
+    public static String tierLabel(int tier, boolean ru) {
+        switch (tier) {
+            case TPOmni.TIER_FREE: return ru ? "Бесплатная" : "Free";
+            case TPOmni.TIER_SUBSCRIPTION: return ru ? "По подписке" : "Subscription";
+            default: return ru ? "Платная" : "Paid";
         }
     }
 
