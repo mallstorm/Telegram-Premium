@@ -118,8 +118,20 @@ public final class TelePremiumPlaybackController {
 
     public void bindSurface(SurfaceView view) {
         surfaceView = view;
+        if (view != null) outputSurface = null;
         if (player != null) {
             try { player.setSurfaceView(view); } catch (Throwable ignore) {}
+        }
+    }
+
+    private android.view.Surface outputSurface;
+
+    /** Video goes to a plain Surface (the smooth-motion renderer's input) instead of a SurfaceView. */
+    public void bindOutputSurface(android.view.Surface surface) {
+        outputSurface = surface;
+        if (surface != null) surfaceView = null;
+        if (player != null) {
+            try { player.setSurface(surface); } catch (Throwable ignore) {}
         }
     }
 
@@ -321,7 +333,8 @@ public final class TelePremiumPlaybackController {
         releasePlayer();
         player = new VideoPlayer(true, false);
         player.extraAudioProcessors = TelePremiumBalanceAudioProcessor.chain();
-        if (surfaceView != null) player.setSurfaceView(surfaceView);
+        if (outputSurface != null) player.setSurface(outputSurface);
+        else if (surfaceView != null) player.setSurfaceView(surfaceView);
         player.setDelegate(new VideoPlayer.VideoPlayerDelegate() {
             @Override public void onStateChanged(boolean playWhenReady, int playbackState) {
                 if (token != generation) return;
@@ -335,6 +348,7 @@ public final class TelePremiumPlaybackController {
                     setState(playWhenReady ? STATE_PLAYING : STATE_READY);
                 } else if (playbackState == Player.STATE_ENDED) {
                     setState(STATE_ENDED);
+                    if (sleepAtTrackEnd) { sleepAtTrackEnd = false; return; }
                     TelePremiumMediaItem next = queue.next();
                     if (next != null) playInternal(next);
                 } else if (!playWhenReady && state != STATE_RESOLVING) setState(STATE_PAUSED);
@@ -401,19 +415,45 @@ public final class TelePremiumPlaybackController {
         return "other";
     }
 
-    /** Gives the ExoPlayer a fixed audio session so the equalizer and friends can bind to it. */
+    /** Sound is processed by TelePremium's own DSP (see TelePremiumBalanceAudioProcessor); only playback options here. */
     private void attachAudioEffects() {
+        applySkipSilence();
+    }
+
+    public void applySkipSilence() {
         try {
-            if (player == null || player.player == null) return;
-            android.media.AudioManager am = (android.media.AudioManager) ApplicationLoader.applicationContext.getSystemService(Context.AUDIO_SERVICE);
-            int session = am == null ? 0 : am.generateAudioSessionId();
-            if (session > 0) {
-                player.player.setAudioSessionId(session);
-                TelePremiumAudioEffects.attach(session);
-            }
+            if (player != null && player.player != null) player.player.setSkipSilenceEnabled(TelePremiumAudioEffects.isSkipSilence());
         } catch (Throwable e) {
             org.telegram.messenger.FileLog.e(e);
         }
+    }
+
+    // ---- sleep timer ----
+
+    public static final long SLEEP_END_OF_TRACK = -1;
+    private long sleepAt;
+    private boolean sleepAtTrackEnd;
+    private final Runnable sleepRunnable = () -> {
+        sleepAt = 0;
+        pause();
+        for (Listener listener : listeners) listener.onStateChanged(state);
+    };
+
+    /** @param minutes 0 = off, {@link #SLEEP_END_OF_TRACK} = stop after the current track. */
+    public void setSleepTimer(long minutes) {
+        handler.removeCallbacks(sleepRunnable);
+        sleepAt = 0;
+        sleepAtTrackEnd = minutes == SLEEP_END_OF_TRACK;
+        if (minutes > 0) {
+            sleepAt = android.os.SystemClock.elapsedRealtime() + minutes * 60_000L;
+            handler.postDelayed(sleepRunnable, minutes * 60_000L);
+        }
+    }
+
+    /** Remaining ms, {@link #SLEEP_END_OF_TRACK} for end of track, 0 when off. */
+    public long getSleepTimerRemaining() {
+        if (sleepAtTrackEnd) return SLEEP_END_OF_TRACK;
+        return sleepAt == 0 ? 0 : Math.max(0, sleepAt - android.os.SystemClock.elapsedRealtime());
     }
 
     private void releasePlayer() {

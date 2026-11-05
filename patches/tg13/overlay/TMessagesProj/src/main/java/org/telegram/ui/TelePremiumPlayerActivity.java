@@ -263,7 +263,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         chromeVisible = true;
         clearViewRefs();
         if (landscape) buildLandscape(); else buildPortrait();
-        controller.bindSurface(surface);
+        // The smooth-motion view feeds the decoder through its own Surface once GL is ready.
+        if (!(surface instanceof TelePremiumSmoothVideoView)) controller.bindSurface(surface);
         bindCurrent(displayItem != null ? displayItem : controller.getCurrent());
         setupGestures();
         updatePlayButton();
@@ -640,7 +641,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private FrameLayout createStage(boolean fullscreen) {
         FrameLayout stage = new FrameLayout(this);
         stage.setBackgroundColor(fullscreen ? Color.BLACK : (portraitAudioLayout ? Color.TRANSPARENT : Color.BLACK));
-        surface = new TelePremiumAspectSurfaceView(this);
+        surface = isSmoothMotionEnabled() && TelePremiumSmoothVideoView.isSupported(this)
+                ? new TelePremiumSmoothVideoView(this) : new TelePremiumAspectSurfaceView(this);
         surface.setScaleMode(scaleMode);
         stage.addView(surface, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
 
@@ -930,7 +932,13 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
 
         TextView heading = text(t("TP_L10N_428", R.string.TP_L10N_428), 20, mediaTheme.textPrimary, true);
         content.addView(heading, new LinearLayout.LayoutParams(-1, dp(50)));
-        content.addView(settingsRow(t("TP_FX_TITLE", R.string.TP_FX_TITLE), t("TP_FX_SUBTITLE", R.string.TP_FX_SUBTITLE), TelePremiumAudioEffects.isEqEnabled() ? t("TP_L10N_450", R.string.TP_L10N_450) : "›", v -> { dialog.dismiss(); TelePremiumAudioEffectsDialog.show(this, mediaTheme); }));
+        content.addView(settingsRow(t("TP_FX_TITLE", R.string.TP_FX_TITLE), t("TP_FX_SUBTITLE", R.string.TP_FX_SUBTITLE), TelePremiumAudioEffects.isActive() ? t("TP_L10N_450", R.string.TP_L10N_450) : "›", v -> { dialog.dismiss(); TelePremiumAudioEffectsDialog.show(this, mediaTheme); }));
+        content.addView(settingsRow(t("TP_P_SMOOTH", R.string.TP_P_SMOOTH), t("TP_P_SMOOTH_INFO", R.string.TP_P_SMOOTH_INFO), isSmoothMotionEnabled() ? t("TP_L10N_450", R.string.TP_L10N_450) : t("TP_L10N_451", R.string.TP_L10N_451), v -> {
+            getSharedPreferences("telepremium_player_ui", MODE_PRIVATE).edit().putBoolean("smooth_motion", !isSmoothMotionEnabled()).apply();
+            dialog.dismiss();
+            buildUi();
+            Toast.makeText(this, isSmoothMotionEnabled() ? t("TP_P_SMOOTH_ON", R.string.TP_P_SMOOTH_ON) : t("TP_P_SMOOTH_OFF", R.string.TP_P_SMOOTH_OFF), Toast.LENGTH_SHORT).show();
+        }));
         content.addView(settingsRow(t("TP_P_LOCKSCREEN", R.string.TP_P_LOCKSCREEN), t("TP_P_LOCKSCREEN_INFO", R.string.TP_P_LOCKSCREEN_INFO), isLockscreenEnabled() ? t("TP_L10N_450", R.string.TP_L10N_450) : t("TP_L10N_451", R.string.TP_L10N_451), v -> {
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("lockscreen", !isLockscreenEnabled()).apply();
             applyLockscreenMode();
@@ -1290,6 +1298,10 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private static String t(String key, int res) { return TPStrings.get(key, res); }
 
     private static String tf(String key, int res, Object... args) { return TPStrings.format(key, res, args); }
+
+    private boolean isSmoothMotionEnabled() {
+        return getSharedPreferences("telepremium_player_ui", MODE_PRIVATE).getBoolean("smooth_motion", false);
+    }
 
     private boolean isLockscreenEnabled() { return getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean("lockscreen", true); }
 

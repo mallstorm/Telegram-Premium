@@ -538,13 +538,13 @@
     <string name="TP_L10N_534" formatted="false">"Downloading the update…"</string>
     <string name="TP_L10N_535" formatted="false">"Update not installed"</string>
     <string name="TP_FX_TITLE" formatted="false">"Sound and equalizer"</string>
-    <string name="TP_FX_SUBTITLE" formatted="false">"Equalizer, bass, surround, stereo balance"</string>
+    <string name="TP_FX_SUBTITLE" formatted="false">"10-band equalizer, presets, bass, stereo, sleep timer"</string>
     <string name="TP_FX_RESET" formatted="false">"Reset"</string>
     <string name="TP_FX_EQ" formatted="false">"Equalizer"</string>
     <string name="TP_FX_CUSTOM" formatted="false">"Custom"</string>
     <string name="TP_FX_UNAVAILABLE" formatted="false">"Start playback to tune the equalizer: it binds to the active audio session."</string>
     <string name="TP_FX_EFFECTS" formatted="false">"Effects"</string>
-    <string name="TP_FX_BASS" formatted="false">"Bass boost"</string>
+    <string name="TP_FX_BASS" formatted="false">"Bass"</string>
     <string name="TP_FX_VIRT" formatted="false">"Surround (virtualizer)"</string>
     <string name="TP_FX_LOUD" formatted="false">"Loudness"</string>
     <string name="TP_FX_STEREO" formatted="false">"Stereo"</string>
@@ -588,4 +588,23 @@
     <string name="TP_N_LIVE" formatted="false">"On air"</string>
     <string name="TP_C_MEDIA_SUB" formatted="false">"Music, video, radio and IPTV"</string>
     <string name="TP_C_CLOUD_SUB" formatted="false">"Your files in Telegram: folders, encryption, big files in parts"</string>
+    <string name="TP_NET_FROM_FILE" formatted="false">"Choose a file (M3U / M3U8)"</string>
+    <string name="TP_NET_FROM_URL" formatted="false">"Network stream — enter a link"</string>
+    <string name="TP_NET_FROM_FILE_ANY" formatted="false">"Choose a playlist file (M3U / PLS / XSPF)"</string>
+    <string name="TP_NET_NO_PICKER" formatted="false">"No file manager found"</string>
+    <string name="TP_FX_PREAMP" formatted="false">"Preamp"</string>
+    <string name="TP_FX_TONE" formatted="false">"Tone"</string>
+    <string name="TP_FX_TREBLE" formatted="false">"Treble"</string>
+    <string name="TP_FX_WIDTH" formatted="false">"Stereo width"</string>
+    <string name="TP_FX_LIMITER" formatted="false">"Limiter (no clipping)"</string>
+    <string name="TP_FX_PLAYBACK" formatted="false">"Playback"</string>
+    <string name="TP_FX_SKIP_SILENCE" formatted="false">"Skip silence"</string>
+    <string name="TP_FX_SLEEP" formatted="false">"Sleep timer"</string>
+    <string name="TP_FX_SLEEP_END" formatted="false">"End of track"</string>
+    <string name="TP_FX_SLEEP_LEFT" formatted="false">"%1$d min left"</string>
+    <string name="TP_FX_SLEEP_MIN" formatted="false">"%1$d min"</string>
+    <string name="TP_P_SMOOTH" formatted="false">"Smooth motion 60 fps"</string>
+    <string name="TP_P_SMOOTH_INFO" formatted="false">"Frame interpolation like SVP: in-between frames are drawn on the GPU. Uses more battery"</string>
+    <string name="TP_P_SMOOTH_ON" formatted="false">"Smooth motion on"</string>
+    <string name="TP_P_SMOOTH_OFF" formatted="false">"Smooth motion off"</string>
 </resources>

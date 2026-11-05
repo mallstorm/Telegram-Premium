@@ -6,7 +6,7 @@ import android.view.SurfaceView;
 import org.telegram.messenger.telepremium.media.TelePremiumPlayerMath;
 
 /** Video surface that keeps the aspect ratio for fit / crop / stretch / original scale modes. */
-final class TelePremiumAspectSurfaceView extends SurfaceView {
+class TelePremiumAspectSurfaceView extends SurfaceView {
     private int videoWidth, videoHeight;
     private int scaleMode = TelePremiumPlayerMath.SCALE_FIT;
 

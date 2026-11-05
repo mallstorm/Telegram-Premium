@@ -58,6 +58,8 @@ import java.util.Locale;
  */
 public final class TelePremiumMediaCenterActivity extends Activity implements TelePremiumPlaybackController.Listener {
     private static final int REQUEST_MEDIA_PERMISSIONS = 7718;
+    private static final int REQUEST_IPTV_FILE = 7720;
+    private static final int REQUEST_PLAYLIST_FILE = 7721;
     private static final int SOURCE_PLAYLISTS = 3;
     private static final int NET_RADIO = 0, NET_IPTV = 1, NET_LINK = 2;
     private static final int SORT_DEFAULT = 0, SORT_NAME = 1, SORT_DURATION = 2, SORT_SIZE = 3;
@@ -333,6 +335,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     private void rebuildChips() {
         if (chipsRow == null) return;
         chipsRow.removeAllViews();
+        if (chipsRow.getParent() instanceof HorizontalScrollView) ((HorizontalScrollView) chipsRow.getParent()).scrollTo(0, 0);
         if (currentSource == TelePremiumMediaItem.SOURCE_NETWORK) {
             addChip(chip(R.drawable.tp_ic_radio, t("TP_NET_RADIO", R.string.TP_NET_RADIO), networkMode == NET_RADIO, v -> selectNetworkMode(NET_RADIO)));
             addChip(chip(R.drawable.tp_ic_tv, t("TP_NET_IPTV", R.string.TP_NET_IPTV), networkMode == NET_IPTV, v -> selectNetworkMode(NET_IPTV)));
@@ -529,7 +532,62 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         return new String(Character.toChars(a)) + new String(Character.toChars(b));
     }
 
+    /** IPTV playlist source: a file on the device first, then a network link. */
     private void addIptvPlaylist() {
+        String[] options = {t("TP_NET_FROM_FILE", R.string.TP_NET_FROM_FILE), t("TP_NET_FROM_URL", R.string.TP_NET_FROM_URL)};
+        new AlertDialog.Builder(this).setTitle(t("TP_NET_IPTV_ADD", R.string.TP_NET_IPTV_ADD)).setItems(options, (d, which) -> {
+            if (which == 0) pickPlaylistFile(REQUEST_IPTV_FILE);
+            else addIptvPlaylistUrl();
+        }).show();
+    }
+
+    private void pickPlaylistFile(int request) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        // Playlists come with all kinds of MIME types (or none): let the user pick any file.
+        intent.setType("*/*");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        try {
+            startActivityForResult(intent, request);
+        } catch (Exception e) {
+            Intent fallback = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+            try { startActivityForResult(fallback, request); } catch (Exception ignore) {
+                Toast.makeText(this, t("TP_NET_NO_PICKER", R.string.TP_NET_NO_PICKER), Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if ((requestCode != REQUEST_IPTV_FILE && requestCode != REQUEST_PLAYLIST_FILE) || resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        android.net.Uri uri = data.getData();
+        try {
+            // Keep access after restart: the saved playlist points at this document.
+            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (Exception ignore) {
+        }
+        String name = displayName(uri);
+        if (requestCode == REQUEST_IPTV_FILE) {
+            TelePremiumNetworkLibrary.addIptvPlaylist(name, uri.toString());
+            loadIptv(name, uri.toString());
+        } else {
+            resolveNetwork(uri.toString());
+        }
+    }
+
+    private String displayName(android.net.Uri uri) {
+        try (android.database.Cursor c = getContentResolver().query(uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (c != null && c.moveToFirst() && !c.isNull(0)) {
+                String name = c.getString(0);
+                int dot = name.lastIndexOf('.');
+                return dot > 0 ? name.substring(0, dot) : name;
+            }
+        } catch (Exception ignore) {
+        }
+        return Uri_lastSegment(uri.toString());
+    }
+
+    private void addIptvPlaylistUrl() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), 0, dp(20), 0);
@@ -600,7 +658,16 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         }).show();
     }
 
+    /** Link tab: open a playlist file from the device, or type a stream / playlist address. */
     private void showNetworkInput() {
+        String[] options = {t("TP_NET_FROM_FILE_ANY", R.string.TP_NET_FROM_FILE_ANY), t("TP_NET_FROM_URL", R.string.TP_NET_FROM_URL)};
+        new AlertDialog.Builder(this).setTitle(t("TP_L10N_326", R.string.TP_L10N_326)).setItems(options, (d, which) -> {
+            if (which == 0) pickPlaylistFile(REQUEST_PLAYLIST_FILE);
+            else showNetworkUrlInput();
+        }).show();
+    }
+
+    private void showNetworkUrlInput() {
         EditText input = new EditText(this);
         input.setHint("https://…  MP3 / MP4 / M3U8 / MPD / M3U / PLS / XSPF");
         input.setSingleLine(true);

@@ -2,256 +2,191 @@ package org.telegram.messenger.telepremium.media;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.media.audiofx.BassBoost;
-import android.media.audiofx.Equalizer;
-import android.media.audiofx.LoudnessEnhancer;
-import android.media.audiofx.Virtualizer;
-import android.os.Build;
 
 import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.FileLog;
+
+import java.util.Locale;
 
 /**
- * Sound settings of the TelePremium player: system equalizer (bands + presets), bass boost,
- * virtualizer, loudness enhancer on the player's audio session, plus stereo balance / mono
- * applied by {@link TelePremiumBalanceAudioProcessor}. Settings persist across launches.
+ * Sound settings of the TelePremium player. All processing is done by TelePremium itself
+ * ({@link TelePremiumBalanceAudioProcessor}, a PCM DSP inside the player), so it works the
+ * same on every phone: the system audiofx equalizer is ignored or overridden on many
+ * firmwares (MIUI, One UI, Dirac/Dolby), which is why presets used to sound identical.
+ *
+ * <p>10-band graphic EQ with presets, preamp, bass and treble shelves, stereo width,
+ * balance, mono and a soft limiter. Changes apply live: the processor re-reads the settings
+ * whenever {@link #version()} changes.</p>
  */
 public final class TelePremiumAudioEffects {
-    private static final String PREFS = "telepremium_audio_fx";
+    private static final String PREFS = "telepremium_audio_dsp";
     public static final int PRESET_CUSTOM = -1;
+    public static final int BANDS = 10;
+    public static final float MAX_DB = 12f;
+    /** Center frequencies of the graphic EQ, Hz (one octave apart). */
+    public static final int[] FREQUENCIES = {31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
 
-    private static volatile float leftGain = 1f, rightGain = 1f;
-    private static volatile boolean mono;
+    /** Preset names (Russian UI shows {@link #presetNamesRu}). */
+    private static final String[] PRESET_NAMES_EN = {"Flat", "Rock", "Pop", "Jazz", "Classical", "Dance", "Hip-hop", "Electronic",
+            "Bass boost", "Vocal", "Acoustic", "Metal", "Treble boost", "Soft", "Loudness", "Night"};
+    private static final String[] PRESET_NAMES_RU = {"Обычный", "Рок", "Поп", "Джаз", "Классика", "Танцевальная", "Хип-хоп", "Электроника",
+            "Бас+", "Вокал", "Акустика", "Метал", "Высокие+", "Мягкий", "Громкость", "Ночной"};
+    private static final float[][] PRESETS = {
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            {5, 4, 3, 1, -1, -1, 1, 3, 4, 5},
+            {-1, 1, 3, 4, 3, 1, -1, -1, 1, 2},
+            {3, 2, 1, 2, -1, -1, 0, 1, 2, 3},
+            {4, 3, 2, 1, -1, -1, 0, 2, 3, 4},
+            {6, 5, 3, 0, 0, -1, 0, 2, 4, 4},
+            {6, 5, 2, 3, -1, -1, 1, 0, 2, 3},
+            {5, 4, 1, 0, -2, 2, 1, 1, 4, 5},
+            {8, 7, 5, 3, 1, 0, 0, 0, 0, 0},
+            {-2, -2, -1, 1, 4, 4, 3, 1, 0, -1},
+            {4, 3, 2, 1, 1, 1, 2, 3, 3, 2},
+            {5, 4, 3, 0, -2, -2, 0, 3, 5, 6},
+            {0, 0, 0, 0, 0, 1, 3, 5, 6, 7},
+            {-2, -1, 0, 2, 3, 2, 0, -1, -2, -3},
+            {6, 4, 1, 0, -1, 0, 0, 1, 4, 5},
+            {-3, -2, 0, 1, 2, 2, 1, 0, -2, -4},
+    };
 
-    private static int sessionId;
-    private static Equalizer equalizer;
-    private static BassBoost bassBoost;
-    private static Virtualizer virtualizer;
-    private static LoudnessEnhancer loudness;
-
-    private TelePremiumAudioEffects() {}
+    private static volatile int version;
+    private static volatile boolean eqEnabled;
+    private static final float[] bands = new float[BANDS];
+    private static volatile float preampDb, bassDb, trebleDb;
+    private static volatile int widthPercent = 100;
+    private static volatile int balance;
+    private static volatile boolean mono, limiter = true, skipSilence;
+    private static volatile int preset = PRESET_CUSTOM;
 
     static {
-        applyBalance(prefs().getInt("balance", 0), prefs().getBoolean("mono", false));
+        SharedPreferences p = prefs();
+        eqEnabled = p.getBoolean("eq_enabled", false);
+        for (int i = 0; i < BANDS; i++) bands[i] = p.getFloat("band_" + i, 0f);
+        preampDb = p.getFloat("preamp", 0f);
+        bassDb = p.getFloat("bass", 0f);
+        trebleDb = p.getFloat("treble", 0f);
+        widthPercent = p.getInt("width", 100);
+        balance = p.getInt("balance", 0);
+        mono = p.getBoolean("mono", false);
+        limiter = p.getBoolean("limiter", true);
+        skipSilence = p.getBoolean("skip_silence", false);
+        preset = p.getInt("preset", PRESET_CUSTOM);
     }
+
+    private TelePremiumAudioEffects() {}
 
     private static SharedPreferences prefs() {
         return ApplicationLoader.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    // ---- balance / mono (PCM processor) ----
+    private static void changed() { version++; }
 
-    static float leftGain() { return leftGain; }
-    static float rightGain() { return rightGain; }
-    static boolean isMono() { return mono; }
-
-    /** @param balance -100 (left only) .. 0 .. 100 (right only) */
-    public static void setBalance(int balance) {
-        balance = Math.max(-100, Math.min(100, balance));
-        prefs().edit().putInt("balance", balance).apply();
-        applyBalance(balance, mono);
-    }
-
-    public static int getBalance() { return prefs().getInt("balance", 0); }
-
-    public static void setMono(boolean value) {
-        prefs().edit().putBoolean("mono", value).apply();
-        applyBalance(getBalance(), value);
-    }
-
-    public static boolean getMono() { return prefs().getBoolean("mono", false); }
-
-    private static void applyBalance(int balance, boolean monoValue) {
-        leftGain = balance > 0 ? (100 - balance) / 100f : 1f;
-        rightGain = balance < 0 ? (100 + balance) / 100f : 1f;
-        mono = monoValue;
-    }
-
-    // ---- session effects ----
-
-    /** Binds the effects to a new player audio session and re-applies saved settings. */
-    public static synchronized void attach(int audioSessionId) {
-        if (audioSessionId == 0 || audioSessionId == sessionId) return;
-        release();
-        sessionId = audioSessionId;
-        try {
-            equalizer = new Equalizer(0, audioSessionId);
-        } catch (Throwable e) {
-            FileLog.e(e);
-            equalizer = null;
-        }
-        try {
-            bassBoost = new BassBoost(0, audioSessionId);
-        } catch (Throwable e) {
-            FileLog.e(e);
-            bassBoost = null;
-        }
-        try {
-            virtualizer = new Virtualizer(0, audioSessionId);
-        } catch (Throwable e) {
-            FileLog.e(e);
-            virtualizer = null;
-        }
-        if (Build.VERSION.SDK_INT >= 19) {
-            try {
-                loudness = new LoudnessEnhancer(audioSessionId);
-            } catch (Throwable e) {
-                FileLog.e(e);
-                loudness = null;
-            }
-        }
-        applySaved();
-    }
-
-    public static synchronized void release() {
-        try { if (equalizer != null) equalizer.release(); } catch (Throwable e) { FileLog.e(e); }
-        try { if (bassBoost != null) bassBoost.release(); } catch (Throwable e) { FileLog.e(e); }
-        try { if (virtualizer != null) virtualizer.release(); } catch (Throwable e) { FileLog.e(e); }
-        try { if (loudness != null) loudness.release(); } catch (Throwable e) { FileLog.e(e); }
-        equalizer = null;
-        bassBoost = null;
-        virtualizer = null;
-        loudness = null;
-        sessionId = 0;
-    }
-
-    public static synchronized boolean isAttached() { return equalizer != null; }
-
-    private static void applySaved() {
-        SharedPreferences p = prefs();
-        try {
-            if (equalizer != null) {
-                int preset = p.getInt("eq_preset", PRESET_CUSTOM);
-                if (preset >= 0 && preset < equalizer.getNumberOfPresets()) {
-                    equalizer.usePreset((short) preset);
-                } else {
-                    for (short b = 0; b < equalizer.getNumberOfBands(); b++) {
-                        equalizer.setBandLevel(b, (short) p.getInt("eq_band_" + b, 0));
-                    }
-                }
-                equalizer.setEnabled(p.getBoolean("eq_enabled", false));
-            }
-            if (bassBoost != null && bassBoost.getStrengthSupported()) {
-                int strength = p.getInt("bass", 0);
-                bassBoost.setStrength((short) strength);
-                bassBoost.setEnabled(strength > 0);
-            }
-            if (virtualizer != null && virtualizer.getStrengthSupported()) {
-                int strength = p.getInt("virtualizer", 0);
-                virtualizer.setStrength((short) strength);
-                virtualizer.setEnabled(strength > 0);
-            }
-            if (loudness != null && Build.VERSION.SDK_INT >= 19) {
-                int gain = p.getInt("loudness", 0);
-                loudness.setTargetGain(gain);
-                loudness.setEnabled(gain > 0);
-            }
-        } catch (Throwable e) {
-            FileLog.e(e);
-        }
-    }
+    static int version() { return version; }
 
     // ---- equalizer ----
 
-    public static synchronized boolean isEqEnabled() { return prefs().getBoolean("eq_enabled", false); }
+    public static boolean isEqEnabled() { return eqEnabled; }
 
-    public static synchronized void setEqEnabled(boolean enabled) {
+    public static void setEqEnabled(boolean enabled) {
+        eqEnabled = enabled;
         prefs().edit().putBoolean("eq_enabled", enabled).apply();
-        try { if (equalizer != null) equalizer.setEnabled(enabled); } catch (Throwable e) { FileLog.e(e); }
+        changed();
     }
 
-    public static synchronized int getBandCount() {
-        try { return equalizer == null ? 0 : equalizer.getNumberOfBands(); } catch (Throwable e) { return 0; }
+    public static float getBand(int band) { return bands[band]; }
+
+    public static float[] getBands() {
+        synchronized (bands) { return bands.clone(); }
     }
 
-    /** {min, max} in millibels. */
-    public static synchronized int[] getBandRange() {
-        try {
-            short[] r = equalizer.getBandLevelRange();
-            return new int[]{r[0], r[1]};
-        } catch (Throwable e) {
-            return new int[]{-1500, 1500};
-        }
+    /** Moving a slider switches the equalizer on and marks the preset as custom. */
+    public static void setBand(int band, float db) {
+        db = clamp(db, -MAX_DB, MAX_DB);
+        synchronized (bands) { bands[band] = db; }
+        preset = PRESET_CUSTOM;
+        eqEnabled = true;
+        prefs().edit().putFloat("band_" + band, db).putInt("preset", PRESET_CUSTOM).putBoolean("eq_enabled", true).apply();
+        changed();
     }
 
-    /** Center frequency in Hz. */
-    public static synchronized int getBandFrequency(int band) {
-        try { return equalizer.getCenterFreq((short) band) / 1000; } catch (Throwable e) { return 0; }
+    public static String[] getPresetNames() {
+        return org.telegram.messenger.telepremium.TPStrings.isRussian() ? PRESET_NAMES_RU.clone() : PRESET_NAMES_EN.clone();
     }
 
-    public static synchronized int getBandLevel(int band) {
-        try { return equalizer.getBandLevel((short) band); } catch (Throwable e) { return prefs().getInt("eq_band_" + band, 0); }
-    }
+    public static int getPreset() { return preset; }
 
-    public static synchronized void setBandLevel(int band, int level) {
-        prefs().edit().putInt("eq_band_" + band, level).putInt("eq_preset", PRESET_CUSTOM).apply();
-        try { if (equalizer != null) equalizer.setBandLevel((short) band, (short) level); } catch (Throwable e) { FileLog.e(e); }
-    }
-
-    public static synchronized String[] getPresetNames() {
-        try {
-            if (equalizer == null) return new String[0];
-            String[] names = new String[equalizer.getNumberOfPresets()];
-            for (short i = 0; i < names.length; i++) names[i] = equalizer.getPresetName(i);
-            return names;
-        } catch (Throwable e) {
-            return new String[0];
-        }
-    }
-
-    public static synchronized int getPreset() { return prefs().getInt("eq_preset", PRESET_CUSTOM); }
-
-    public static synchronized void usePreset(int preset) {
-        SharedPreferences.Editor editor = prefs().edit().putInt("eq_preset", preset);
-        try {
-            if (equalizer != null && preset >= 0) {
-                equalizer.usePreset((short) preset);
-                for (short b = 0; b < equalizer.getNumberOfBands(); b++) editor.putInt("eq_band_" + b, equalizer.getBandLevel(b));
+    /** Selecting a preset always enables the equalizer (the old UI left it off, so presets did nothing). */
+    public static void usePreset(int index) {
+        if (index < 0 || index >= PRESETS.length) return;
+        SharedPreferences.Editor e = prefs().edit();
+        synchronized (bands) {
+            for (int i = 0; i < BANDS; i++) {
+                bands[i] = PRESETS[index][i];
+                e.putFloat("band_" + i, bands[i]);
             }
-        } catch (Throwable e) {
-            FileLog.e(e);
         }
-        editor.apply();
+        preset = index;
+        eqEnabled = true;
+        e.putInt("preset", index).putBoolean("eq_enabled", true).apply();
+        changed();
     }
 
-    // ---- bass / virtualizer / loudness (0..1000 strength, loudness in mB) ----
+    // ---- tone ----
 
-    public static int getBass() { return prefs().getInt("bass", 0); }
-    public static int getVirtualizer() { return prefs().getInt("virtualizer", 0); }
-    public static int getLoudness() { return prefs().getInt("loudness", 0); }
+    public static float getPreamp() { return preampDb; }
+    public static float getBass() { return bassDb; }
+    public static float getTreble() { return trebleDb; }
 
-    public static synchronized void setBass(int strength) {
-        prefs().edit().putInt("bass", strength).apply();
-        try {
-            if (bassBoost != null) { bassBoost.setStrength((short) strength); bassBoost.setEnabled(strength > 0); }
-        } catch (Throwable e) { FileLog.e(e); }
+    public static void setPreamp(float db) { preampDb = clamp(db, -MAX_DB, MAX_DB); prefs().edit().putFloat("preamp", preampDb).apply(); changed(); }
+    public static void setBass(float db) { bassDb = clamp(db, -MAX_DB, MAX_DB); prefs().edit().putFloat("bass", bassDb).apply(); changed(); }
+    public static void setTreble(float db) { trebleDb = clamp(db, -MAX_DB, MAX_DB); prefs().edit().putFloat("treble", trebleDb).apply(); changed(); }
+
+    // ---- stereo ----
+
+    /** 0 = mono image, 100 = original, 200 = extra wide. */
+    public static int getWidth() { return widthPercent; }
+    public static void setWidth(int percent) { widthPercent = Math.max(0, Math.min(200, percent)); prefs().edit().putInt("width", widthPercent).apply(); changed(); }
+
+    /** -100 (left only) .. 0 .. 100 (right only). */
+    public static int getBalance() { return balance; }
+    public static void setBalance(int value) { balance = Math.max(-100, Math.min(100, value)); prefs().edit().putInt("balance", balance).apply(); changed(); }
+
+    public static boolean getMono() { return mono; }
+    public static void setMono(boolean value) { mono = value; prefs().edit().putBoolean("mono", value).apply(); changed(); }
+
+    public static boolean isLimiter() { return limiter; }
+    public static void setLimiter(boolean value) { limiter = value; prefs().edit().putBoolean("limiter", value).apply(); changed(); }
+
+    // ---- playback ----
+
+    public static boolean isSkipSilence() { return skipSilence; }
+    public static void setSkipSilence(boolean value) {
+        skipSilence = value;
+        prefs().edit().putBoolean("skip_silence", value).apply();
+        TelePremiumPlaybackController.getInstance().applySkipSilence();
     }
 
-    public static synchronized void setVirtualizer(int strength) {
-        prefs().edit().putInt("virtualizer", strength).apply();
-        try {
-            if (virtualizer != null) { virtualizer.setStrength((short) strength); virtualizer.setEnabled(strength > 0); }
-        } catch (Throwable e) { FileLog.e(e); }
-    }
-
-    public static synchronized void setLoudness(int gainMb) {
-        prefs().edit().putInt("loudness", gainMb).apply();
-        try {
-            if (loudness != null && Build.VERSION.SDK_INT >= 19) { loudness.setTargetGain(gainMb); loudness.setEnabled(gainMb > 0); }
-        } catch (Throwable e) { FileLog.e(e); }
-    }
-
-    public static synchronized void resetAll() {
+    public static void resetAll() {
         prefs().edit().clear().apply();
-        applyBalance(0, false);
-        try {
-            if (equalizer != null) {
-                for (short b = 0; b < equalizer.getNumberOfBands(); b++) equalizer.setBandLevel(b, (short) 0);
-                equalizer.setEnabled(false);
-            }
-        } catch (Throwable e) { FileLog.e(e); }
-        setBass(0);
-        setVirtualizer(0);
-        setLoudness(0);
+        synchronized (bands) { for (int i = 0; i < BANDS; i++) bands[i] = 0; }
+        eqEnabled = false;
+        preampDb = bassDb = trebleDb = 0;
+        widthPercent = 100;
+        balance = 0;
+        mono = false;
+        limiter = true;
+        preset = PRESET_CUSTOM;
+        changed();
     }
+
+    /** True when anything changes the sound (used to show "On" in the settings). */
+    public static boolean isActive() {
+        return eqEnabled || bassDb != 0 || trebleDb != 0 || widthPercent != 100 || balance != 0 || mono;
+    }
+
+    public static String formatDb(float db) {
+        return String.format(Locale.ROOT, "%+.1f dB", db);
+    }
+
+    private static float clamp(float v, float min, float max) { return Math.max(min, Math.min(max, v)); }
 }

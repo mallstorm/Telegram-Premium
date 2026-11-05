@@ -25,6 +25,18 @@ public final class TelePremiumNetworkPlaylistParser {
             String error = null;
             try {
                 String url = input == null ? "" : input.trim();
+                if (isLocal(url)) {
+                    // A playlist file picked on the device: detect the format by its content.
+                    String body = downloadText(url, 16_000_000);
+                    String head = body.trim().toLowerCase(Locale.ROOT);
+                    if (head.startsWith("[playlist]")) parsePls(url, body, result);
+                    else if (head.startsWith("<?xml") || head.startsWith("<playlist")) parseXspf(url, body, result);
+                    else parseM3u(url, body, result, head.contains("tvg-") || head.contains("group-title"));
+                    if (result.isEmpty()) throw new IllegalArgumentException("Плейлист не содержит поддерживаемых медиаадресов");
+                    ArrayList<TelePremiumMediaItem> copy = result;
+                    AndroidUtilities.runOnUIThread(() -> callback.onLoaded(copy, null));
+                    return;
+                }
                 if (!url.startsWith("http://") && !url.startsWith("https://")) throw new IllegalArgumentException("Поддерживаются HTTP/HTTPS адреса");
                 String lower = pathLower(url);
                 if (lower.endsWith(".m3u8")) {
@@ -126,7 +138,7 @@ public final class TelePremiumNetworkPlaylistParser {
             String error = null;
             try {
                 String url = input == null ? "" : input.trim();
-                if (!url.startsWith("http://") && !url.startsWith("https://")) throw new IllegalArgumentException("Поддерживаются HTTP/HTTPS адреса");
+                if (!isLocal(url) && !url.startsWith("http://") && !url.startsWith("https://")) throw new IllegalArgumentException("Поддерживаются HTTP/HTTPS адреса и файлы плейлистов");
                 String body = downloadText(url, 16_000_000);
                 if (looksLikeHlsManifest(body)) result.add(networkItem(url, titleFromUrl(url), "application/x-mpegURL", true));
                 else parseM3u(url, body, result, true);
@@ -179,7 +191,22 @@ public final class TelePremiumNetworkPlaylistParser {
         return downloadText(url, 2_000_000);
     }
 
+    static boolean isLocal(String url) {
+        return url != null && (url.startsWith("content://") || url.startsWith("file://"));
+    }
+
     private static String downloadText(String url, int maxChars) throws Exception {
+        if (isLocal(url)) {
+            StringBuilder b = new StringBuilder();
+            java.io.InputStream raw = org.telegram.messenger.ApplicationLoader.applicationContext.getContentResolver().openInputStream(android.net.Uri.parse(url));
+            if (raw == null) throw new java.io.IOException("Не удалось открыть файл плейлиста");
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(raw, java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = r.readLine()) != null && b.length() < maxChars) b.append(line).append('\n');
+            }
+            String text = b.toString();
+            return text.startsWith("\uFEFF") ? text.substring(1) : text;
+        }
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(12000);
         c.setReadTimeout(15000);
@@ -219,7 +246,8 @@ public final class TelePremiumNetworkPlaylistParser {
     }
 
     private static String resolve(String base, String child) throws Exception {
-        if (child.startsWith("http://") || child.startsWith("https://")) return child;
+        if (child.contains("://")) return child; // http(s), rtmp, rtsp, udp …
+        if (isLocal(base)) return child.startsWith("/") ? "file://" + child : child;
         return new URI(base).resolve(child).toString();
     }
 
