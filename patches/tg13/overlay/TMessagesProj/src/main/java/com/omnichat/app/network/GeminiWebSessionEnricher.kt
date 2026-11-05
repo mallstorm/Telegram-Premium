@@ -56,24 +56,6 @@ object GeminiWebSessionEnricher {
                         )
                     }
 
-                    // Capability discovery is a separate best-effort phase. DOM evidence can still
-                    // confirm image/music/search actions even when account metadata RPCs are slow.
-                    val capabilities = withTimeoutOrNull(45_000L) {
-                        GeminiWebCapabilityScanner(client).scan(
-                            credentials = liveCredentials,
-                            mode = GeminiDiscoveryMode.FULL,
-                            snapshotHint = snapshot
-                        )
-                    }
-                    if (capabilities != null) {
-                        GeminiWebSessionStore.saveCapabilities(app, providerId, capabilities)
-                        GeminiWebDiagnostics.record(
-                            app,
-                            providerId,
-                            "capability_scan",
-                            capabilities.compactLabel()
-                        )
-                    }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled

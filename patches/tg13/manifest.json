@@ -110,14 +110,9 @@
       "sha256": "31f425e63989667d442e8a62fb50efb023a540bb171704cb0d1395b93f400dc0"
     },
     {
-      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebActionRegistry.kt",
-      "base_sha256": null,
-      "sha256": "f4f7c5efc60c348009611b2b828b3924cded4db5875d9d1a1cf886c8a0c1f14f"
-    },
-    {
       "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebCapabilityBridge.kt",
       "base_sha256": null,
-      "sha256": "37373dab12bbe82f7195eb69bacc180211a161e30a58534c3a02c7c1223f01a2"
+      "sha256": "2547d1e8f5f4a240416baacc77695e1d462f3b5013c8eb739d2373857b4ff08d"
     },
     {
       "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebClient.kt",
@@ -130,14 +125,9 @@
       "sha256": "a774f20cf3754224bc7e752d55a52e4abfdcd61150516aed767a6f3130363bf7"
     },
     {
-      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebRecovery.kt",
-      "base_sha256": null,
-      "sha256": "50210bc141acf451768f377695bf0a223c317e539eb4f921f2267c88bbf52a66"
-    },
-    {
       "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebSessionEnricher.kt",
       "base_sha256": null,
-      "sha256": "98ba906b8aaf0416f5592a8f0b92c7a26afe5e1ec1d817ba1a488d1ce49e4a48"
+      "sha256": "1d2ba4e90439dc12461d8490394cb4cc74b3739919f75ab14d9fe3455a1fad64"
     },
     {
       "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebSessionStore.kt",
