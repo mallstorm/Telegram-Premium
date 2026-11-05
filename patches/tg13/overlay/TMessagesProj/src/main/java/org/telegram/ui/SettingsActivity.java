@@ -177,6 +177,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
     private ImageLocation uploadingImageLocation;
 
     private FrameLayout topView;
+    private int tpAccountStripHeight;
     private FrameLayout avatarContainer;
     private AvatarDrawable avatarDrawable;
     private BackupImageView avatarView;
@@ -463,8 +464,6 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         cameraButton.addView(cameraBackground, LayoutHelper.createFrame(30, 30));
         avatarContainer.addView(cameraButton, LayoutHelper.createFrame(34, 34, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 32, 75, 0, 0));
         ScaleStateListAnimator.apply(cameraButton);
-        // TelePremium: swipe the avatar or tap the side avatars to switch accounts.
-        TelePremiumAccountSwitcher.attach(this, topView, avatarContainer);
 
         titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
@@ -480,6 +479,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         subtitleView.setSingleLine();
         subtitleView.setEllipsize(TextUtils.TruncateAt.END);
         topView.addView(subtitleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 168 - 12, 0, 0));
+        // TelePremium: one-tap account switching strip under the name.
+        tpAccountStripHeight = TelePremiumAccountSwitcher.attach(this, topView, 190 - 12);
 
         versionView = new TextView(context);
         versionView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
@@ -644,7 +645,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             return;
         }
 
-        items.add(UItem.asCustomShadow(topView, 200 - 12));
+        items.add(UItem.asCustomShadow(topView, 200 - 12 + tpAccountStripHeight));
 
         accountNumbers.clear();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {

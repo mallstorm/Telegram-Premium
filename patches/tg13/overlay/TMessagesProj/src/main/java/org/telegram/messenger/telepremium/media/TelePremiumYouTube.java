@@ -110,9 +110,12 @@ public final class TelePremiumYouTube {
     private static synchronized void ensureInit() {
         if (initialized) return;
         String lang = TPStrings.isRussian() ? "ru" : Locale.getDefault().getLanguage();
+        if (TextUtils.isEmpty(lang)) lang = "ru";
         String country = Locale.getDefault().getCountry();
         if (TextUtils.isEmpty(country)) country = "RU";
-        NewPipe.init(new HttpDownloader(), new Localization(lang, country), new ContentCountry(country));
+        // Language WITHOUT a region: YouTube does not know combinations such as "ru-UA" and then
+        // falls back to English, returning auto-translated English titles instead of the originals.
+        NewPipe.init(new HttpDownloader(), new Localization(lang), new ContentCountry(country));
         initialized = true;
     }
 

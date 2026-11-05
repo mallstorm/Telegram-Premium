@@ -207,8 +207,8 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         chipsScroll.setHorizontalScrollBarEnabled(false);
         chipsRow = new LinearLayout(this);
         chipsRow.setGravity(Gravity.CENTER_VERTICAL);
-        chipsScroll.addView(chipsRow, new FrameLayout.LayoutParams(-2, -1));
-        LinearLayout.LayoutParams chipsLp = new LinearLayout.LayoutParams(-1, dp(48));
+        chipsScroll.addView(chipsRow, new FrameLayout.LayoutParams(-2, -2));
+        LinearLayout.LayoutParams chipsLp = new LinearLayout.LayoutParams(-1, -2);
         chipsLp.topMargin = dp(12);
         root.addView(chipsScroll, chipsLp);
 
@@ -217,8 +217,8 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         subChipsScroll.setHorizontalScrollBarEnabled(false);
         subChipsRow = new LinearLayout(this);
         subChipsRow.setGravity(Gravity.CENTER_VERTICAL);
-        subChipsScroll.addView(subChipsRow, new FrameLayout.LayoutParams(-2, -1));
-        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, dp(44));
+        subChipsScroll.addView(subChipsRow, new FrameLayout.LayoutParams(-2, -2));
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, -2);
         subLp.topMargin = dp(6);
         root.addView(subChipsScroll, subLp);
         subChipsScroll.setVisibility(View.GONE);
@@ -342,25 +342,42 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     }
 
     private void addChip(TextView chip) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(44));
-        lp.rightMargin = dp(10);
+        sizeChip(chip, 14, 20, 9);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.rightMargin = dp(8);
+        lp.topMargin = lp.bottomMargin = dp(2);
         chipsRow.addView(chip, lp);
     }
 
     private void addSubChip(TextView chip) {
-        chip.setTextSize(14);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(38));
+        sizeChip(chip, 13, 17, 7);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
         lp.rightMargin = dp(8);
+        lp.topMargin = lp.bottomMargin = dp(2);
         subChipsRow.addView(chip, lp);
     }
 
-    /** Two equal segments that always fit the width: Radio | TV. */
+    /** Three equal segments that always fit the width: Radio | TV | YouTube. */
     private void addModeChip(TextView chip) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        chip.setPadding(dp(8), 0, dp(8), 0);
-        chip.setCompoundDrawablePadding(dp(6));
+        sizeChip(chip, 14, 19, 9);
+        chip.setPadding(dp(6), dp(9), dp(8), dp(9));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
         lp.leftMargin = chipsRow.getChildCount() == 0 ? 0 : dp(6);
+        lp.topMargin = lp.bottomMargin = dp(2);
         chipsRow.addView(chip, lp);
+    }
+
+    /** Compact chip: height follows the text (never clipped), smaller icon. */
+    private void sizeChip(TextView chip, float sp, int iconDp, int vPadDp) {
+        chip.setTextSize(sp);
+        chip.setIncludeFontPadding(true);
+        chip.setPadding(chip.getPaddingLeft() > 0 ? dp(12) : dp(12), dp(vPadDp), dp(14), dp(vPadDp));
+        chip.setCompoundDrawablePadding(dp(6));
+        android.graphics.drawable.Drawable[] d = chip.getCompoundDrawables();
+        if (d[0] != null) {
+            d[0].setBounds(0, 0, dp(iconDp), dp(iconDp));
+            chip.setCompoundDrawables(d[0], null, null, null);
+        }
     }
 
     private void rebuildChips() {

@@ -1,21 +1,22 @@
 package org.telegram.ui;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -26,10 +27,13 @@ import org.telegram.ui.Components.LayoutHelper;
 import java.util.ArrayList;
 
 /**
- * Quick account switching in the Settings header: swipe the big avatar left / right, or tap the
- * small neighbour avatars with chevrons on both sides of it. Shown only with 2+ accounts.
+ * Quick account switching in the Settings header: a row of account avatars under the name
+ * (the current one has an accent ring) — one tap switches, "+" adds an account.
+ * Holding the "Profile" tab in the bottom bar opens Telegram's own account menu as well.
  */
 final class TelePremiumAccountSwitcher {
+    static final int STRIP_HEIGHT_DP = 54;
+
     private TelePremiumAccountSwitcher() {}
 
     static ArrayList<Integer> accounts() {
@@ -38,115 +42,74 @@ final class TelePremiumAccountSwitcher {
         return out;
     }
 
-    private static int neighbour(int current, int direction) {
+    /** @return extra header height in dp (0 when there is a single account). */
+    static int attach(BaseFragment fragment, FrameLayout topView, float topDp) {
         ArrayList<Integer> list = accounts();
-        if (list.size() < 2) return -1;
-        int index = Math.max(0, list.indexOf(current));
-        return list.get((index + direction + list.size()) % list.size());
+        if (list.size() < 2) return 0;
+        Context context = topView.getContext();
+        LinearLayout strip = new LinearLayout(context);
+        strip.setGravity(Gravity.CENTER);
+        int current = fragment.getCurrentAccount();
+        int accent = fragment.getThemedColor(Theme.key_featuredStickers_addButton);
+        for (int account : list) strip.addView(avatar(fragment, context, account, account == current, accent), LayoutHelper.createLinear(46, 46, 3f, 0f, 3f, 0f));
+        Integer free = null;
+        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) if (!UserConfig.getInstance(a).isClientActivated()) { free = a; break; }
+        if (free != null) {
+            final int slot = free;
+            FrameLayout add = new FrameLayout(context);
+            add.setBackground(Theme.createCircleDrawable(AndroidUtilities.dp(38), fragment.getThemedColor(Theme.key_windowBackgroundWhite)));
+            ImageView plus = new ImageView(context);
+            Drawable d = context.getResources().getDrawable(R.drawable.tp_ic_add).mutate();
+            d.setColorFilter(accent, PorterDuff.Mode.SRC_IN);
+            plus.setImageDrawable(d);
+            add.addView(plus, LayoutHelper.createFrame(22, 22, Gravity.CENTER));
+            add.setOnClickListener(v -> fragment.presentFragment(new LoginActivity(slot)));
+            FrameLayout holder = new FrameLayout(context);
+            holder.addView(add, LayoutHelper.createFrame(38, 38, Gravity.CENTER));
+            strip.addView(holder, LayoutHelper.createLinear(46, 46, 3f, 0f, 3f, 0f));
+        }
+        HorizontalScrollView scroll = new HorizontalScrollView(context);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setFillViewport(true);
+        scroll.addView(strip, new FrameLayout.LayoutParams(-2, -1, Gravity.CENTER_HORIZONTAL));
+        topView.addView(scroll, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 16, topDp, 16, 0));
+        return STRIP_HEIGHT_DP;
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    static void attach(BaseFragment fragment, FrameLayout topView, View avatarContainer) {
-        int current = fragment.getCurrentAccount();
-        int prev = neighbour(current, -1), next = neighbour(current, 1);
-        if (prev < 0 || next < 0) return;
-        Context context = topView.getContext();
-        topView.addView(sideButton(fragment, context, prev, false), LayoutHelper.createFrame(76, 56, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 28, 150, 0));
-        topView.addView(sideButton(fragment, context, next, true), LayoutHelper.createFrame(76, 56, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 150, 28, 0, 0));
-
-        int slop = ViewConfiguration.get(context).getScaledTouchSlop();
-        float[] start = new float[2];
-        boolean[] dragging = {false};
-        avatarContainer.setOnTouchListener((v, e) -> {
-            switch (e.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                    start[0] = e.getRawX();
-                    start[1] = e.getRawY();
-                    dragging[0] = false;
-                    return false;
-                case MotionEvent.ACTION_MOVE: {
-                    float dx = e.getRawX() - start[0], dy = e.getRawY() - start[1];
-                    if (!dragging[0] && Math.abs(dx) > slop * 1.5f && Math.abs(dx) > Math.abs(dy) * 1.4f) {
-                        dragging[0] = true;
-                        v.setPressed(false);
-                        if (v.getParent() != null) v.getParent().requestDisallowInterceptTouchEvent(true);
-                    }
-                    if (dragging[0]) {
-                        v.setTranslationX(dx * 0.7f);
-                        v.setAlpha(1f - Math.min(0.6f, Math.abs(dx) / AndroidUtilities.dp(240)));
-                        return true;
-                    }
-                    return false;
-                }
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL: {
-                    if (!dragging[0]) return false;
-                    dragging[0] = false;
-                    float dx = e.getRawX() - start[0];
-                    if (e.getActionMasked() == MotionEvent.ACTION_UP && Math.abs(dx) > AndroidUtilities.dp(70)) {
-                        switchTo(v, dx < 0 ? next : prev, dx < 0);
-                    } else {
-                        v.animate().translationX(0).alpha(1f).setDuration(180).start();
-                    }
-                    return true;
+    private static View avatar(BaseFragment fragment, Context context, int account, boolean selected, int accent) {
+        FrameLayout box = new FrameLayout(context) {
+            private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+            @Override protected void dispatchDraw(Canvas canvas) {
+                super.dispatchDraw(canvas);
+                if (selected) {
+                    ring.setStyle(Paint.Style.STROKE);
+                    ring.setStrokeWidth(AndroidUtilities.dp(2));
+                    ring.setColor(accent);
+                    canvas.drawCircle(getWidth() / 2f, getHeight() / 2f, AndroidUtilities.dp(21.5f), ring);
                 }
             }
-            return false;
-        });
-    }
-
-    private static View sideButton(BaseFragment fragment, Context context, int account, boolean right) {
-        LinearLayout box = new LinearLayout(context);
-        box.setGravity(Gravity.CENTER);
-        int iconColor = fragment.getThemedColor(Theme.key_windowBackgroundWhiteGrayIcon);
-        ImageView chevron = new ImageView(context);
-        Drawable d = context.getResources().getDrawable(R.drawable.tp_ic_chevron_right).mutate();
-        d.setColorFilter(iconColor, PorterDuff.Mode.SRC_IN);
-        chevron.setImageDrawable(d);
-        if (!right) chevron.setRotation(180);
-        BackupImageView avatar = new BackupImageView(context);
-        avatar.setRoundRadius(AndroidUtilities.dp(17));
+        };
+        BackupImageView image = new BackupImageView(context);
+        image.setRoundRadius(AndroidUtilities.dp(18));
         AvatarDrawable placeholder = new AvatarDrawable();
         TLRPC.User user = UserConfig.getInstance(account).getCurrentUser();
         if (user != null) {
             placeholder.setInfo(account, user);
-            avatar.setForUserOrChat(user, placeholder);
+            image.setForUserOrChat(user, placeholder);
         } else {
-            avatar.setImageDrawable(placeholder);
+            image.setImageDrawable(placeholder);
         }
-        avatar.setAlpha(0.85f);
-        if (right) {
-            box.addView(avatar, LayoutHelper.createLinear(34, 34));
-            box.addView(chevron, LayoutHelper.createLinear(22, 22, 2f, 0f, 0f, 0f));
-        } else {
-            box.addView(chevron, LayoutHelper.createLinear(22, 22, 0f, 0f, 2f, 0f));
-            box.addView(avatar, LayoutHelper.createLinear(34, 34));
-        }
-        box.setBackground(Theme.createSelectorDrawable(fragment.getThemedColor(Theme.key_listSelector), Theme.RIPPLE_MASK_ROUNDRECT_6DP));
-        box.setContentDescription(user == null ? "" : org.telegram.messenger.UserObject.getUserName(user));
+        box.addView(image, LayoutHelper.createFrame(36, 36, Gravity.CENTER));
+        box.setContentDescription(user == null ? "" : UserObject.getUserName(user));
         box.setOnClickListener(v -> {
-            View parent = (View) v.getParent();
-            View avatarContainer = null;
-            if (parent instanceof FrameLayout) {
-                FrameLayout frame = (FrameLayout) parent;
-                if (frame.getChildCount() > 0) avatarContainer = frame.getChildAt(0);
-            }
-            switchTo(avatarContainer, account, right);
+            if (selected) return;
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            if (LaunchActivity.instance != null) LaunchActivity.instance.switchToAccount(account, true);
+        });
+        box.setOnLongClickListener(v -> {
+            fragment.presentFragment(new TelePremiumNetworkProfileActivity(account));
+            return true;
         });
         return box;
-    }
-
-    private static void switchTo(View avatar, int account, boolean toLeft) {
-        if (avatar != null) avatar.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-        Runnable go = () -> {
-            if (LaunchActivity.instance != null) LaunchActivity.instance.switchToAccount(account, true);
-        };
-        if (avatar == null) { go.run(); return; }
-        avatar.animate().translationX(AndroidUtilities.dp(toLeft ? -160 : 160)).alpha(0f).setDuration(160)
-                .withEndAction(() -> {
-                    avatar.setTranslationX(0);
-                    avatar.setAlpha(1f);
-                    go.run();
-                }).start();
     }
 }
