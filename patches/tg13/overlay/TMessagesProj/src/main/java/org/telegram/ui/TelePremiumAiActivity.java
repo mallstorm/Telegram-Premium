@@ -133,8 +133,6 @@ public class TelePremiumAiActivity extends BaseFragment {
         ui.row(L("NVIDIA NIM и сервисы по ключу", "NVIDIA NIM and key services"),
                 L("VseGPT, OpenCode Zen/Go, Cloudflare, Cohere, Groq, Mistral и другие из OmniChat", "VseGPT, OpenCode Zen/Go, Cloudflare, Cohere, Groq, Mistral and more from OmniChat"),
                 R.drawable.tp_ic_key, TelePremiumSettingsUi.GREEN, null, v -> pickAccountSpec());
-        ui.row("CLIProxyAPI", L("Свой прокси подписок · адрес и токен", "Own subscription proxy · URL and token"),
-                R.drawable.tp_ic_device, TelePremiumSettingsUi.SLATE, null, v -> externalProxy());
         ui.note(L("Подключения ChatGPT, Codex, Grok, Gemini и других подписок работают как в OmniChat: приложение входит от имени их официальных клиентов. "
                         + "Это против правил сервисов — аккаунт могут ограничить. Вход по подписке Claude не поддерживается: используйте API-ключ Anthropic.",
                 "ChatGPT, Codex, Grok, Gemini and other subscription sign-ins work as in OmniChat: the app signs in as their official clients. "
@@ -333,26 +331,6 @@ public class TelePremiumAiActivity extends BaseFragment {
                     if (raw.isEmpty()) return;
                     AlertDialog progress = spinner();
                     TPAiClient.async(() -> TPOmni.importChatGptJson(raw), (message, err) -> {
-                        try { progress.dismiss(); } catch (Exception ignore) {}
-                        done(message, err);
-                    });
-                })
-                .setNegativeButton(L("Отмена", "Cancel"), null).show();
-    }
-
-    private void externalProxy() {
-        Context context = getParentActivity();
-        if (context == null) return;
-        LinearLayout box = new LinearLayout(context);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8), AndroidUtilities.dp(22), 0);
-        EditText base = field(context, box, L("Адрес CLIProxyAPI (…/v1)", "CLIProxyAPI URL (…/v1)"), "http://", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        EditText bearer = field(context, box, L("Токен (если нужен)", "Token (optional)"), "", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        new AlertDialog.Builder(context).setTitle("CLIProxyAPI").setView(box)
-                .setPositiveButton(L("Подключить", "Connect"), (d, w) -> {
-                    String url = base.getText().toString().trim(), token = bearer.getText().toString().trim();
-                    AlertDialog progress = spinner();
-                    TPAiClient.async(() -> TPOmni.saveExternalProxy(url, token), (message, err) -> {
                         try { progress.dismiss(); } catch (Exception ignore) {}
                         done(message, err);
                     });

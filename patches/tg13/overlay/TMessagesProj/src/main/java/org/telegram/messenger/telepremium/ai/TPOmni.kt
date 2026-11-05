@@ -32,7 +32,7 @@ import org.telegram.messenger.ApplicationLoader
  * Bridge between TelePremium (Java UI, TPAiStore connections) and OmniChat's connection layer
  * (com.omnichat.app.*, ported unchanged): subscription OAuth (ChatGPT plan, Codex, Grok,
  * Gemini/Antigravity), device sign-ins (Kilo Code, Cline, Kimi Code), account API keys
- * (NVIDIA, VseGPT, OpenCode, Cloudflare, Requesty, Zoo…), and CLIProxyAPI, and the
+ * (NVIDIA, VseGPT, OpenCode, Cloudflare, Requesty, Zoo…), and the
  * shared ApiGateway transport. All methods block — call them off the UI thread.
  */
 object TPOmni {
@@ -240,14 +240,6 @@ object TPOmni {
         repository.importChatGptJson(raw)
         syncSource(SubscriptionProxyStore.ACCOUNT_CHATGPT_JSON)
         "ChatGPT JSON-сессия импортирована"
-    }
-
-    /** CLIProxyAPI / any external OpenAI-compatible proxy of the Subscription Proxy hub. */
-    @JvmStatic
-    fun saveExternalProxy(baseUrl: String, bearer: String): String = runBlocking(Dispatchers.IO) {
-        store.saveExternalConfig(true, baseUrl.trim(), bearer.trim())
-        syncSource(SubscriptionProxyRepository.ACCOUNT_EXTERNAL)
-        "CLIProxyAPI подключён"
     }
 
     private suspend fun syncSource(source: String): TPAiStore.Connection {
