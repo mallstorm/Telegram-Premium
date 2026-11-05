@@ -32,7 +32,7 @@ import java.util.ArrayList;
  * Holding the "Profile" tab in the bottom bar opens Telegram's own account menu as well.
  */
 final class TelePremiumAccountSwitcher {
-    static final int STRIP_HEIGHT_DP = 54;
+    static final int STRIP_HEIGHT_DP = 60;
 
     private TelePremiumAccountSwitcher() {}
 
@@ -104,7 +104,8 @@ final class TelePremiumAccountSwitcher {
         box.setOnClickListener(v -> {
             if (selected) return;
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            if (LaunchActivity.instance != null) LaunchActivity.instance.switchToAccount(account, true);
+            // Stay in Settings: rebuild the tabs for the new account but open them on the Settings page.
+            if (LaunchActivity.instance != null) LaunchActivity.instance.switchToAccount(account, true, obj -> MainTabsActivity.openedOnSettings());
         });
         box.setOnLongClickListener(v -> {
             fragment.presentFragment(new TelePremiumNetworkProfileActivity(account));

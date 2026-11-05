@@ -480,7 +480,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         subtitleView.setEllipsize(TextUtils.TruncateAt.END);
         topView.addView(subtitleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 168 - 12, 0, 0));
         // TelePremium: one-tap account switching strip under the name.
-        tpAccountStripHeight = TelePremiumAccountSwitcher.attach(this, topView, 190 - 12);
+        tpAccountStripHeight = TelePremiumAccountSwitcher.attach(this, topView, 196 - 12);
 
         versionView = new TextView(context);
         versionView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
