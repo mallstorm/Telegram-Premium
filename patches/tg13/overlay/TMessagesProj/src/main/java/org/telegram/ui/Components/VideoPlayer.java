@@ -397,6 +397,32 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         player.prepare();
     }
 
+    /**
+     * TelePremium: separate video-only and audio streams (YouTube DASH formats, a chosen audio
+     * track) played as one item through a MergingMediaSource; both are progressive files.
+     */
+    public void preparePlayerMerged(Uri video, Uri audio) {
+        this.videoQualities = null;
+        this.videoQualityToSelect = null;
+        this.videoUri = video;
+        this.videoType = "other";
+        this.audioUri = null;
+        this.audioType = null;
+        this.loopingMediaSource = false;
+        this.autoIsOriginal = false;
+        this.currentStreamIsHls = false;
+        videoPlayerReady = false;
+        mixedAudio = false;
+        currentUri = video;
+        isStreaming = true;
+        ensurePlayerCreated();
+        MediaSource videoSource = mediaSourceFromUri(video, 0, "other");
+        MediaSource mediaSource = audio == null ? videoSource
+                : new androidx.media3.exoplayer.source.MergingMediaSource(true, videoSource, mediaSourceFromUri(audio, 0, "other"));
+        player.setMediaSource(mediaSource, true);
+        player.prepare();
+    }
+
     public void preparePlayer(ArrayList<Quality> qualities, Quality select) {
         this.videoQualities = qualities;
         this.videoQualityToSelect = select;

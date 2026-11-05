@@ -37,6 +37,7 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
     public static final String ACTION_PREVIOUS = "telepremium.media.PREVIOUS";
     public static final String ACTION_STOP = "telepremium.media.STOP";
     public static final String ACTION_SEEK = "telepremium.media.SEEK";
+    public static final String ACTION_REC = "telepremium.media.REC";
     private static final String EXTRA_SEGMENT = "segment";
 
     private TelePremiumPlaybackController controller;
@@ -48,6 +49,12 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
     private String artworkFor;
     private android.graphics.Bitmap artwork;
     private TelePremiumMediaNotificationViews cardViews;
+    private final TelePremiumStreamRecorder.Listener recorderListener = (recording, elapsed, saved, error) -> {
+        if (!shuttingDown && controller != null && controller.getCurrent() != null) updateSessionAndNotification();
+        if (saved != null) {
+            try { android.widget.Toast.makeText(this, "REC ✓ " + saved, android.widget.Toast.LENGTH_LONG).show(); } catch (Throwable ignore) {}
+        }
+    };
     private long lastCardUpdate;
 
     private final AudioManager.OnAudioFocusChangeListener focusListener = change -> {
@@ -71,6 +78,7 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         super.onCreate();
         controller = TelePremiumPlaybackController.getInstance();
         controller.addListener(this);
+        TelePremiumStreamRecorder.addListener(recorderListener);
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         createChannel();
         createSession();
@@ -107,6 +115,10 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
             if (ACTION_TOGGLE.equals(action)) controller.toggle();
             else if (ACTION_NEXT.equals(action)) controller.next();
             else if (ACTION_PREVIOUS.equals(action)) controller.previous();
+            else if (ACTION_REC.equals(action)) {
+                TelePremiumMediaItem current = controller.getCurrent();
+                if (current != null) TelePremiumStreamRecorder.toggle(current.title);
+            }
             else if (ACTION_SEEK.equals(action)) {
                 long duration = controller.getDuration();
                 int segment = intent.getIntExtra(EXTRA_SEGMENT, -1);
@@ -154,7 +166,8 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         if (duration > 0 && duration != publishedDuration) updateSession();
         else updatePlaybackState(position);
         // The custom shade card draws its own seek bar: refresh it once a second while playing.
-        if (useCustomCard() && controller != null && controller.isPlaying() && !shuttingDown
+        TelePremiumMediaItem playing = controller == null ? null : controller.getCurrent();
+        if (useCustomCard() && playing != null && (!playing.live || TelePremiumStreamRecorder.isRecording()) && controller.isPlaying() && !shuttingDown
                 && android.os.SystemClock.elapsedRealtime() - lastCardUpdate >= 1000) {
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) {
@@ -163,9 +176,14 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
         }
     }
 
-    /** Android 13+ draws its own media controls (artwork, seek bar) from the session. */
+    /**
+     * TelePremium card (logo/note square, seek bar, centered buttons) on every Android version.
+     * It is posted WITHOUT MediaStyle: with MediaStyle, Android 13+ and MIUI/HyperOS replace any
+     * custom layout by their own system media player. The MediaSession stays active for
+     * headset / Bluetooth / lock-screen controls. Can be switched back in TelePremium settings.
+     */
     private static boolean useCustomCard() {
-        return Build.VERSION.SDK_INT >= 24 && Build.VERSION.SDK_INT < 33;
+        return Build.VERSION.SDK_INT >= 24 && org.telegram.messenger.telepremium.TelePremiumUiPrefs.customPlayerNotification();
     }
 
     @Override public void onError(String message) { updateSessionAndNotification(); }
@@ -208,6 +226,7 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
     private void shutdownPlayback() {
         if (shuttingDown) return;
         shuttingDown = true;
+        TelePremiumStreamRecorder.stop();
         try {
             if (controller != null) controller.stopAndRelease();
         } catch (Throwable tpError) { org.telegram.messenger.FileLog.e(tpError); }
@@ -288,17 +307,20 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
                 .setOnlyAlertOnce(true)
                 .setShowWhen(false)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setCategory(Notification.CATEGORY_TRANSPORT)
+                .setCategory(Notification.CATEGORY_TRANSPORT);
+        boolean custom = useCustomCard() && item != null;
+        if (!custom) builder
                 .addAction(new Notification.Action.Builder(R.drawable.tp_ic_prev, "Назад", servicePending(ACTION_PREVIOUS, 1)).build())
                 .addAction(new Notification.Action.Builder(controller != null && controller.isPlaying() ? R.drawable.tp_ic_pause : R.drawable.tp_ic_play,
                         controller != null && controller.isPlaying() ? "Пауза" : "Играть", servicePending(ACTION_TOGGLE, 2)).build())
                 .addAction(new Notification.Action.Builder(R.drawable.tp_ic_next, "Далее", servicePending(ACTION_NEXT, 3)).build())
                 .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Закрыть", close).build());
         if (artwork != null && item != null && item.id.equals(artworkFor)) builder.setLargeIcon(artwork);
-        if (Build.VERSION.SDK_INT >= 21 && session != null) {
+        if (!custom && Build.VERSION.SDK_INT >= 21 && session != null) {
             builder.setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1, 2));
         }
-        if (useCustomCard() && item != null) {
+        if (custom) {
+            if (Build.VERSION.SDK_INT >= 31) builder.setStyle(new Notification.DecoratedCustomViewStyle());
             try {
                 if (cardViews == null) cardViews = new TelePremiumMediaNotificationViews(this);
                 boolean playing = controller.isPlaying();
@@ -308,6 +330,7 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
                     @Override public PendingIntent previous() { return servicePending(ACTION_PREVIOUS, 1); }
                     @Override public PendingIntent next() { return servicePending(ACTION_NEXT, 3); }
                     @Override public PendingIntent close() { return close; }
+                    @Override public PendingIntent record() { return servicePending(ACTION_REC, 5); }
                     @Override public PendingIntent seek(int segment) {
                         Intent intent = new Intent(TelePremiumMediaSessionService.this, TelePremiumMediaSessionService.class)
                                 .setAction(ACTION_SEEK).putExtra(EXTRA_SEGMENT, segment);
@@ -352,6 +375,7 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
 
     @Override public void onDestroy() {
         if (controller != null) controller.removeListener(this);
+        TelePremiumStreamRecorder.removeListener(recorderListener);
         if (audioManager != null) try { audioManager.abandonAudioFocus(focusListener); } catch (Throwable ignore) {}
         if (noisyRegistered) try { unregisterReceiver(noisyReceiver); } catch (Throwable ignore) {}
         if (session != null) { session.setActive(false); session.release(); session = null; }

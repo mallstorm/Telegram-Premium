@@ -252,6 +252,7 @@ public final class TelePremiumPlaybackController {
         setState(STATE_RESOLVING);
         ensureMediaService();
         if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) resolveCloud(item, token);
+        else if (TelePremiumYouTube.isYouTube(item)) resolveYouTube(item, token);
         else {
             Uri uri = item.uri == null ? null : Uri.parse(item.uri);
             if (uri == null) { fail("Источник не указан"); return; }
@@ -328,6 +329,20 @@ public final class TelePremiumPlaybackController {
         });
     }
 
+    /** Separate audio stream (YouTube DASH) and forced HLS for the next startPlayer call. */
+    private Uri pendingAudioUri;
+    private boolean pendingHls;
+
+    private void resolveYouTube(TelePremiumMediaItem item, int token) {
+        TelePremiumYouTube.resolvePlayback(item.uri, (playback, error) -> {
+            if (token != generation) return;
+            if (playback == null) { fail(error == null ? "YouTube недоступен" : error); return; }
+            pendingAudioUri = playback.audioUrl == null ? null : Uri.parse(playback.audioUrl);
+            pendingHls = playback.hls;
+            startPlayer(Uri.parse(playback.videoUrl), item, token);
+        });
+    }
+
     private void startPlayer(Uri uri, TelePremiumMediaItem item, int token) {
         if (token != generation) return;
         releasePlayer();
@@ -374,7 +389,12 @@ public final class TelePremiumPlaybackController {
         });
         player.setPlayWhenReady(true);
         try {
-            player.preparePlayer(uri, typeFor(item, uri), FileLoader.PRIORITY_HIGH, 0);
+            Uri audioUri = pendingAudioUri;
+            boolean hls = pendingHls;
+            pendingAudioUri = null;
+            pendingHls = false;
+            if (audioUri != null) player.preparePlayerMerged(uri, audioUri);
+            else player.preparePlayer(uri, hls ? "hls" : typeFor(item, uri), FileLoader.PRIORITY_HIGH, 0);
             attachAudioEffects();
             player.setPlaybackSpeed(speed);
             setSubtitlesEnabled(subtitlesEnabled);

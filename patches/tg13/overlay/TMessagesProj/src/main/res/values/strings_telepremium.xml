@@ -6,9 +6,9 @@
     <string name="TP_SettingsCloud">Cloud</string>
     <string name="TP_SettingsCloudInfo">Private file storage and Secure Vault</string>
     <string name="TP_SettingsMedia">Media</string>
-    <string name="TP_SettingsMediaInfo">Player, playlists and downloads</string>
+    <string name="TP_SettingsMediaInfo">"Player, radio, TV, YouTube and recordings"</string>
     <string name="TP_SettingsAppearance">Appearance presets</string>
-    <string name="TP_SettingsAppearanceInfo">Ten global TelePremium themes</string>
+    <string name="TP_SettingsAppearanceInfo">"13 TelePremium themes, accents and chat style"</string>
     <string name="TP_PatternTooManyAttempts">Too many attempts. Try again in %1$s</string>
     <string name="TP_PatternWrongLeft">Wrong pattern. Attempts left: %1$d</string>
     <string name="TP_PatternLockedFor">Input locked for %1$s</string>

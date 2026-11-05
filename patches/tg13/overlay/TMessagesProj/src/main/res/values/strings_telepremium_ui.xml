@@ -620,4 +620,32 @@
     <string name="TP_C_DATA" formatted="false">"Data and storage"</string>
     <string name="TP_C_DATA_SUB" formatted="false">"Auto-download, data saver and network usage"</string>
     <string name="TP_NET_ADD" formatted="false">"Add"</string>
+    <string name="TP_C_SHOW_TG_PREMIUM" formatted="false">"Telegram Premium block in Settings"</string>
+    <string name="TP_C_SHOW_TG_PREMIUM_SUB" formatted="false">"Premium, Stars, Business and gifts rows"</string>
+    <string name="TP_C_PLAYER_CARD" formatted="false">"TelePremium player card in the shade"</string>
+    <string name="TP_C_PLAYER_CARD_SUB" formatted="false">"Own card with logo, seek bar and centered buttons instead of the system one"</string>
+    <string name="TP_NET_TV" formatted="false">"TV"</string>
+    <string name="TP_YT_ADD" formatted="false">"Channel"</string>
+    <string name="TP_YT_CHANNELS" formatted="false">"Channels"</string>
+    <string name="TP_YT_MORE" formatted="false">"More videos"</string>
+    <string name="TP_YT_EMPTY" formatted="false">"Add a YouTube channel, playlist or video link: the videos are loaded with titles, previews and dates."</string>
+    <string name="TP_YT_ADD_TITLE" formatted="false">"YouTube link"</string>
+    <string name="TP_YT_ADD_HINT" formatted="false">"Channel (@name or /channel/…), playlist or a single video"</string>
+    <string name="TP_YT_QUALITY" formatted="false">"Playback quality (maximum)"</string>
+    <string name="TP_YT_LIVE_NO_DL" formatted="false">"A live stream cannot be downloaded; use REC in the player"</string>
+    <string name="TP_YT_AUDIO_ONLY" formatted="false">"Audio only"</string>
+    <string name="TP_YT_DL_QUALITY" formatted="false">"Download: video quality"</string>
+    <string name="TP_YT_DL_AUDIO" formatted="false">"Audio track"</string>
+    <string name="TP_YT_NO_AUDIO" formatted="false">"No compatible audio track for this format"</string>
+    <string name="TP_YT_DL_STARTED" formatted="false">"Download started — progress is in notifications"</string>
+    <string name="TP_YT_DOWNLOAD" formatted="false">"Download…"</string>
+    <string name="TP_YT_MUXING" formatted="false">"Joining video and audio…"</string>
+    <string name="TP_YT_FAILED" formatted="false">"Download failed"</string>
+    <string name="TP_REC" formatted="false">"Record"</string>
+    <string name="TP_REC_STARTED" formatted="false">"Recording — saved to Music/TelePremium/Recordings"</string>
+    <string name="TP_REC_SAVED" formatted="false">"Saved: %1$s"</string>
+    <string name="TP_MC_FOLDERS" formatted="false">"Library folders"</string>
+    <string name="TP_MC_ALL_FOLDERS" formatted="false">"All folders"</string>
+    <string name="TP_MC_FOLDERS_MUSIC" formatted="false">"Music folders"</string>
+    <string name="TP_MC_FOLDERS_VIDEO" formatted="false">"Video folders"</string>
 </resources>

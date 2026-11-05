@@ -70,6 +70,15 @@ public class TelePremiumCenterActivity extends BaseFragment {
         ui.row(t("TP_L10N_064", R.string.TP_L10N_064), t("TP_L10N_065", R.string.TP_L10N_065) + TelePremiumUiScale.getScalePercent(context) + "%",
                 R.drawable.tp_ic_text_size, TelePremiumSettingsUi.INDIGO, null, v -> presentFragment(new TelePremiumAppearanceActivity()));
 
+        ui.switchRow(t("TP_C_SHOW_TG_PREMIUM", R.string.TP_C_SHOW_TG_PREMIUM), t("TP_C_SHOW_TG_PREMIUM_SUB", R.string.TP_C_SHOW_TG_PREMIUM_SUB),
+                R.drawable.tp_ic_star, TelePremiumSettingsUi.PURPLE, org.telegram.messenger.telepremium.TelePremiumUiPrefs.showTelegramPremiumBlock(), true,
+                (b, v) -> org.telegram.messenger.telepremium.TelePremiumUiPrefs.setShowTelegramPremiumBlock(v));
+
+        ui.section(t("TP_L10N_304", R.string.TP_L10N_304));
+        ui.switchRow(t("TP_C_PLAYER_CARD", R.string.TP_C_PLAYER_CARD), t("TP_C_PLAYER_CARD_SUB", R.string.TP_C_PLAYER_CARD_SUB),
+                R.drawable.tp_ic_play, TelePremiumSettingsUi.PINK, org.telegram.messenger.telepremium.TelePremiumUiPrefs.customPlayerNotification(), true,
+                (b, v) -> org.telegram.messenger.telepremium.TelePremiumUiPrefs.setCustomPlayerNotification(v));
+
         ui.section(t("TP_L10N_066", R.string.TP_L10N_066));
         ui.row(t("TP_L10N_067", R.string.TP_L10N_067), t("TP_L10N_068", R.string.TP_L10N_068), R.drawable.tp_ic_update, TelePremiumSettingsUi.SLATE, null,
                 v -> presentFragment(new TelePremiumServiceActivity()));

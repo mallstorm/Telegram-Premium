@@ -28,10 +28,28 @@ public final class TelePremiumNetworkLibrary {
         return ApplicationLoader.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    public static List<IptvPlaylist> getIptvPlaylists() {
+    public static List<IptvPlaylist> getIptvPlaylists() { return getList("iptv"); }
+
+    /** Saved YouTube channels / playlists (name + link). */
+    public static List<IptvPlaylist> getYoutubeChannels() { return getList("youtube"); }
+
+    public static void addYoutubeChannel(String name, String url) {
+        List<IptvPlaylist> list = getYoutubeChannels();
+        for (int i = list.size() - 1; i >= 0; i--) if (list.get(i).url.equals(url)) list.remove(i);
+        list.add(0, new IptvPlaylist(TextUtils.isEmpty(name) ? url : name, url));
+        saveList("youtube", list);
+    }
+
+    public static void removeYoutubeChannel(String url) {
+        List<IptvPlaylist> list = getYoutubeChannels();
+        for (int i = list.size() - 1; i >= 0; i--) if (list.get(i).url.equals(url)) list.remove(i);
+        saveList("youtube", list);
+    }
+
+    private static List<IptvPlaylist> getList(String key) {
         ArrayList<IptvPlaylist> out = new ArrayList<>();
         try {
-            JSONArray arr = new JSONArray(prefs().getString("iptv", "[]"));
+            JSONArray arr = new JSONArray(prefs().getString(key, "[]"));
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.getJSONObject(i);
                 out.add(new IptvPlaylist(o.optString("name"), o.optString("url")));
@@ -55,14 +73,16 @@ public final class TelePremiumNetworkLibrary {
         saveIptv(list);
     }
 
-    private static void saveIptv(List<IptvPlaylist> list) {
+    private static void saveIptv(List<IptvPlaylist> list) { saveList("iptv", list); }
+
+    private static void saveList(String key, List<IptvPlaylist> list) {
         JSONArray arr = new JSONArray();
         try {
             for (IptvPlaylist p : list) arr.put(new JSONObject().put("name", p.name).put("url", p.url));
         } catch (Exception e) {
             FileLog.e(e);
         }
-        prefs().edit().putString("iptv", arr.toString()).apply();
+        prefs().edit().putString(key, arr.toString()).apply();
     }
 
     public static List<TelePremiumMediaItem> getRadioFavorites() {

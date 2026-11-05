@@ -40,6 +40,7 @@ final class TelePremiumMediaNotificationViews {
         PendingIntent previous();
         PendingIntent next();
         PendingIntent close();
+        PendingIntent record();
         PendingIntent seek(int segment);
     }
 
@@ -73,8 +74,11 @@ final class TelePremiumMediaNotificationViews {
         ensureTheme();
         RemoteViews v = new RemoteViews(context.getPackageName(), R.layout.tp_media_notification_big);
         bindCommon(v, item, logo, playing, actions, true);
-        v.setTextViewText(R.id.tp_notif_app, "TelePremium · " + kindLabel(item));
-        v.setTextColor(R.id.tp_notif_app, theme.accent);
+        boolean rec = TelePremiumStreamRecorder.isRecording();
+        v.setTextViewText(R.id.tp_notif_app, rec ? "● REC " + formatTime(TelePremiumStreamRecorder.elapsedMs()) + " · " + kindLabel(item) : "TelePremium · " + kindLabel(item));
+        v.setTextColor(R.id.tp_notif_app, rec ? 0xffe53935 : theme.accent);
+        v.setInt(R.id.tp_notif_rec, "setColorFilter", rec ? 0xffe53935 : theme.withAlpha(0xffe53935, 0x99));
+        v.setOnClickPendingIntent(R.id.tp_notif_rec, actions.record());
         v.setOnClickPendingIntent(R.id.tp_notif_close, actions.close());
         v.setInt(R.id.tp_notif_close, "setColorFilter", theme.textSecondary);
         boolean live = item != null && item.live || duration <= 0;
@@ -105,6 +109,13 @@ final class TelePremiumMediaNotificationViews {
         ensureTheme();
         RemoteViews v = new RemoteViews(context.getPackageName(), R.layout.tp_media_notification_small);
         bindCommon(v, item, logo, playing, actions, false);
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            // Android 12+: collapsed custom content is limited to 48 dp inside the system frame.
+            v.setViewLayoutHeight(R.id.tp_notif_root, 48f, android.util.TypedValue.COMPLEX_UNIT_DIP);
+            v.setViewLayoutWidth(R.id.tp_notif_art, 40f, android.util.TypedValue.COMPLEX_UNIT_DIP);
+            v.setViewLayoutHeight(R.id.tp_notif_art, 40f, android.util.TypedValue.COMPLEX_UNIT_DIP);
+            v.setViewPadding(R.id.tp_notif_root, 0, 0, 0, 0);
+        }
         return v;
     }
 

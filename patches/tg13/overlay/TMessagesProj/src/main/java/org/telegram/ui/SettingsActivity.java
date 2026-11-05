@@ -729,10 +729,10 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         // TelePremium entry points (Telegram 13 has no side drawer any more).
         items.add(UItem.asShadow(null));
         items.add(UItem.asHeader(org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsSection", org.telegram.messenger.R.string.TP_SettingsSection)));
-        items.add(SettingCell.Factory.of(TP_ITEM_CENTER, 0xFFB659FF, 0xFF617CFF, R.drawable.settings_premium, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCenter", org.telegram.messenger.R.string.TP_SettingsCenter), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCenterInfo", org.telegram.messenger.R.string.TP_SettingsCenterInfo)));
-        items.add(SettingCell.Factory.of(TP_ITEM_CLOUD, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_data, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCloud", org.telegram.messenger.R.string.TP_SettingsCloud), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCloudInfo", org.telegram.messenger.R.string.TP_SettingsCloudInfo)));
-        items.add(SettingCell.Factory.of(TP_ITEM_MEDIA, IconBackgroundColors.RED.top, IconBackgroundColors.RED.bottom, R.drawable.settings_sounds, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsMedia", org.telegram.messenger.R.string.TP_SettingsMedia), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsMediaInfo", org.telegram.messenger.R.string.TP_SettingsMediaInfo)));
-        items.add(SettingCell.Factory.of(TP_ITEM_APPEARANCE, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.settings_chat, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsAppearance", org.telegram.messenger.R.string.TP_SettingsAppearance), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsAppearanceInfo", org.telegram.messenger.R.string.TP_SettingsAppearanceInfo)));
+        items.add(SettingCell.Factory.of(TP_ITEM_CENTER, 0xFF14B8A6, 0xFF0E8F84, R.drawable.tp_ic_tune, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCenter", org.telegram.messenger.R.string.TP_SettingsCenter), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCenterInfo", org.telegram.messenger.R.string.TP_SettingsCenterInfo)));
+        items.add(SettingCell.Factory.of(TP_ITEM_CLOUD, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.tp_ic_cloud, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCloud", org.telegram.messenger.R.string.TP_SettingsCloud), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCloudInfo", org.telegram.messenger.R.string.TP_SettingsCloudInfo)));
+        items.add(SettingCell.Factory.of(TP_ITEM_MEDIA, IconBackgroundColors.RED.top, IconBackgroundColors.RED.bottom, R.drawable.tp_ic_music, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsMedia", org.telegram.messenger.R.string.TP_SettingsMedia), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsMediaInfo", org.telegram.messenger.R.string.TP_SettingsMediaInfo)));
+        items.add(SettingCell.Factory.of(TP_ITEM_APPEARANCE, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.tp_ic_palette, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsAppearance", org.telegram.messenger.R.string.TP_SettingsAppearance), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsAppearanceInfo", org.telegram.messenger.R.string.TP_SettingsAppearanceInfo)));
 
         items.add(UItem.asShadow(null));
         if (!walletAbove && getMessagesController().config.walletAvailable.get()) {
@@ -741,25 +741,28 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             items.add(UItem.asShadow(null));
         }
 
-        if (!getMessagesController().premiumFeaturesBlocked()) {
+        // TelePremium: the Telegram Premium / Stars / Business / Gift block is hidden unless enabled
+        // in TelePremium settings (it duplicated the TelePremium entry right above it).
+        final boolean tpShowPremium = org.telegram.messenger.telepremium.TelePremiumUiPrefs.showTelegramPremiumBlock();
+        if (tpShowPremium && !getMessagesController().premiumFeaturesBlocked()) {
             items.add(SettingCell.Factory.of(11, 0xFFB659FF, 0xFF617CFF, R.drawable.settings_premium, getString(R.string.TelegramPremium)));
         }
-        if (getMessagesController().starsPurchaseAvailable()) {
+        if (tpShowPremium && getMessagesController().starsPurchaseAvailable()) {
             StarsController c = StarsController.getInstance(currentAccount);
             long balance = c.getBalance().amount;
             items.add(SettingCell.Factory.of(12, 0xFFEFA612, 0xFFE77512, R.drawable.settings_stars, getString(R.string.TelegramStars), null, c.balanceAvailable() && balance > 0 ? StarsIntroActivity.formatStarsAmount(c.getBalance(), 0.85f, ' ') : ""));
         }
         StarsController.getInstance(currentAccount, true).getBalance();
-        if (ApplicationLoader.isBetaBuild() || ApplicationLoader.isStandaloneBuild() || ApplicationLoader.isHuaweiStoreBuild() || (StarsController.getInstance(currentAccount, true).balanceAvailable() && (StarsController.getInstance(currentAccount, true).hasTransactions() || StarsController.getInstance(currentAccount, true).getBalance().positive()))) {
+        if (tpShowPremium && (ApplicationLoader.isBetaBuild() || ApplicationLoader.isStandaloneBuild() || ApplicationLoader.isHuaweiStoreBuild()) || tpShowPremium && (StarsController.getInstance(currentAccount, true).balanceAvailable() && (StarsController.getInstance(currentAccount, true).hasTransactions() || StarsController.getInstance(currentAccount, true).getBalance().positive()))) {
             final StarsController c = StarsController.getTonInstance(currentAccount);
             final long balance = c.getBalance().amount;
             items.add(SettingCell.Factory.of(13, 0xFF1BA4ED, 0xFF1488E1, R.drawable.filled_gram_earnings, getString(R.string.GramEarnings), null, c.balanceAvailable() && balance > 0 ? StarsIntroActivity.formatStarsAmount(c.getBalance(), 0.85f, ' ') : ""));
         }
 
-        if (!getMessagesController().premiumFeaturesBlocked()) {
+        if (tpShowPremium && !getMessagesController().premiumFeaturesBlocked()) {
             items.add(SettingCell.Factory.of(15, 0xFFF45255, 0xFFDF3955, R.drawable.settings_business, getString(R.string.TelegramBusiness)));
         }
-        if (!getMessagesController().premiumPurchaseBlocked()) {
+        if (tpShowPremium && !getMessagesController().premiumPurchaseBlocked()) {
             items.add(SettingCell.Factory.of(16, 0xFFF38B31, 0xFFE26314, R.drawable.settings_gift, getString(R.string.SendAGift)));
         }
         if (items.get(items.size() - 1).viewType != UniversalAdapter.VIEW_TYPE_SHADOW)

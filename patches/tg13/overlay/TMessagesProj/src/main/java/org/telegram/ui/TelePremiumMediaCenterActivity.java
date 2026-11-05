@@ -61,7 +61,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     private static final int REQUEST_IPTV_FILE = 7720;
     private static final int REQUEST_PLAYLIST_FILE = 7721;
     private static final int SOURCE_PLAYLISTS = 3;
-    private static final int NET_RADIO = 0, NET_IPTV = 1, NET_LINK = 2;
+    private static final int NET_RADIO = 0, NET_IPTV = 1, NET_LINK = 2, NET_YT = 3;
     private static final int SORT_DEFAULT = 0, SORT_NAME = 1, SORT_DURATION = 2, SORT_SIZE = 3;
     private static final String PREFS = "telepremium_media_center";
 
@@ -91,6 +91,8 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     private int sortMode = SORT_DEFAULT;
     private boolean radioFavoritesOnly;
     private String iptvUrl, iptvName, iptvGroup;
+    private org.telegram.messenger.telepremium.media.TelePremiumYouTube.Feed ytFeed;
+    private boolean ytLoading;
     private String sourceLabelText = "";
     private int loadGeneration;
     private final Runnable radioSearch = this::runRadioSearch;
@@ -142,6 +144,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         LinearLayout.LayoutParams titlesLp = new LinearLayout.LayoutParams(0, -2, 1f);
         titlesLp.leftMargin = dp(10);
         header.addView(titles, titlesLp);
+        header.addView(kit.iconButton(R.drawable.tp_ic_folder, pal.accent, 26, t("TP_MC_FOLDERS", R.string.TP_MC_FOLDERS), v -> showLibraryFolders()), new LinearLayout.LayoutParams(dp(46), dp(50)));
         header.addView(kit.iconButton(R.drawable.tp_ic_playlist_add, pal.accent, 28, t("TP_L10N_305", R.string.TP_L10N_305), v -> saveQueueAsPlaylist()), new LinearLayout.LayoutParams(dp(50), dp(50)));
         header.addView(kit.iconButton(R.drawable.tp_ic_play, pal.accent, 32, t("TP_L10N_306", R.string.TP_L10N_306), v -> {
             if (controller.getCurrent() != null) TelePremiumPlayerActivity.openCurrent(this);
@@ -354,8 +357,9 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     /** Two equal segments that always fit the width: Radio | TV. */
     private void addModeChip(TextView chip) {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        lp.rightMargin = chipsRow.getChildCount() == 0 ? dp(5) : 0;
-        lp.leftMargin = chipsRow.getChildCount() == 0 ? 0 : dp(5);
+        chip.setPadding(dp(8), 0, dp(8), 0);
+        chip.setCompoundDrawablePadding(dp(6));
+        lp.leftMargin = chipsRow.getChildCount() == 0 ? 0 : dp(6);
         chipsRow.addView(chip, lp);
     }
 
@@ -372,8 +376,16 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         if (scroll instanceof HorizontalScrollView) ((HorizontalScrollView) scroll).setFillViewport(network);
         if (network) {
             addModeChip(chip(R.drawable.tp_ic_radio, t("TP_NET_RADIO", R.string.TP_NET_RADIO), networkMode == NET_RADIO, v -> selectNetworkMode(NET_RADIO)));
-            addModeChip(chip(R.drawable.tp_ic_tv, t("TP_NET_IPTV", R.string.TP_NET_IPTV), networkMode == NET_IPTV, v -> selectNetworkMode(NET_IPTV)));
-            if (networkMode == NET_RADIO) {
+            addModeChip(chip(R.drawable.tp_ic_tv, t("TP_NET_TV", R.string.TP_NET_TV), networkMode == NET_IPTV, v -> selectNetworkMode(NET_IPTV)));
+            addModeChip(chip(R.drawable.tp_ic_play, "YouTube", networkMode == NET_YT, v -> selectNetworkMode(NET_YT)));
+            if (networkMode == NET_YT) {
+                addSubChip(chip(R.drawable.tp_ic_add, t("TP_YT_ADD", R.string.TP_YT_ADD), false, v -> addYoutubeChannel()));
+                List<TelePremiumNetworkLibrary.IptvPlaylist> channels = TelePremiumNetworkLibrary.getYoutubeChannels();
+                if (ytFeed != null) addSubChip(chip(R.drawable.tp_ic_list, ytFeed.title == null ? "YouTube" : ytFeed.title, true, v -> pickYoutubeChannel()));
+                else if (!channels.isEmpty()) addSubChip(chip(R.drawable.tp_ic_list, t("TP_YT_CHANNELS", R.string.TP_YT_CHANNELS), false, v -> pickYoutubeChannel()));
+                if (ytFeed != null && ytFeed.hasMore()) addSubChip(chip(R.drawable.tp_ic_expand, t("TP_YT_MORE", R.string.TP_YT_MORE), false, v -> loadMoreYoutube()));
+                addSubChip(chip(R.drawable.tp_ic_tune, "≤ " + org.telegram.messenger.telepremium.media.TelePremiumYouTube.getMaxQuality() + "p", false, v -> pickYoutubeQuality()));
+            } else if (networkMode == NET_RADIO) {
                 String country = TelePremiumNetworkLibrary.getRadioCountryName();
                 addSubChip(chip(R.drawable.tp_ic_public, TextUtils.isEmpty(country) ? TelePremiumNetworkLibrary.getRadioCountry() : country, false, v -> pickRadioCountry()));
                 addSubChip(chip(R.drawable.tp_ic_star, t("TP_L10N_102", R.string.TP_L10N_102), radioFavoritesOnly, v -> { radioFavoritesOnly = !radioFavoritesOnly; rebuildChips(); loadRadio(); }));
@@ -475,6 +487,53 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         }
     }
 
+    // ------------------------------------------------------------------ library folders
+
+    /** Which device folders feed the library: e.g. only "Music" for music and "Media" for video. */
+    private void showLibraryFolders() {
+        java.util.Set<String> audio = TelePremiumMediaStoreRepository.getFolders(false);
+        java.util.Set<String> video = TelePremiumMediaStoreRepository.getFolders(true);
+        String all = t("TP_MC_ALL_FOLDERS", R.string.TP_MC_ALL_FOLDERS);
+        String[] items = {
+                t("TP_MC_FOLDERS_MUSIC", R.string.TP_MC_FOLDERS_MUSIC) + "\n" + (audio.isEmpty() ? all : TextUtils.join(", ", audio)),
+                t("TP_MC_FOLDERS_VIDEO", R.string.TP_MC_FOLDERS_VIDEO) + "\n" + (video.isEmpty() ? all : TextUtils.join(", ", video))};
+        new AlertDialog.Builder(this).setTitle(t("TP_MC_FOLDERS", R.string.TP_MC_FOLDERS)).setItems(items, (d, which) -> pickFolders(which == 1)).show();
+    }
+
+    private void pickFolders(boolean video) {
+        Toast.makeText(this, t("TP_L10N_316", R.string.TP_L10N_316), Toast.LENGTH_SHORT).show();
+        TelePremiumMediaStoreRepository.loadFolders((audioFolders, videoFolders) -> {
+            if (isFinishing()) return;
+            java.util.LinkedHashMap<String, Integer> folders = video ? videoFolders : audioFolders;
+            java.util.Set<String> selected = TelePremiumMediaStoreRepository.getFolders(video);
+            // keep previously chosen folders visible even if they are empty now
+            for (String f : selected) if (!folders.containsKey(f)) folders.put(f, 0);
+            if (folders.isEmpty()) { Toast.makeText(this, t("TP_L10N_165", R.string.TP_L10N_165), Toast.LENGTH_SHORT).show(); return; }
+            String[] names = folders.keySet().toArray(new String[0]);
+            String[] labels = new String[names.length];
+            boolean[] checked = new boolean[names.length];
+            for (int i = 0; i < names.length; i++) {
+                labels[i] = names[i] + "  ·  " + folders.get(names[i]);
+                checked[i] = selected.contains(names[i]);
+            }
+            new AlertDialog.Builder(this)
+                    .setTitle(video ? t("TP_MC_FOLDERS_VIDEO", R.string.TP_MC_FOLDERS_VIDEO) : t("TP_MC_FOLDERS_MUSIC", R.string.TP_MC_FOLDERS_MUSIC))
+                    .setMultiChoiceItems(labels, checked, (d, which, isChecked) -> checked[which] = isChecked)
+                    .setPositiveButton(t("TP_L10N_137", R.string.TP_L10N_137), (d, w) -> {
+                        java.util.HashSet<String> result = new java.util.HashSet<>();
+                        for (int i = 0; i < names.length; i++) if (checked[i]) result.add(names[i]);
+                        TelePremiumMediaStoreRepository.setFolders(video, result);
+                        if (currentSource == TelePremiumMediaItem.SOURCE_DEVICE) loadDevice();
+                    })
+                    .setNeutralButton(t("TP_MC_ALL_FOLDERS", R.string.TP_MC_ALL_FOLDERS), (d, w) -> {
+                        TelePremiumMediaStoreRepository.setFolders(video, new java.util.HashSet<>());
+                        if (currentSource == TelePremiumMediaItem.SOURCE_DEVICE) loadDevice();
+                    })
+                    .setNegativeButton(t("TP_L10N_135", R.string.TP_L10N_135), null)
+                    .show();
+        });
+    }
+
     // ------------------------------------------------------------------ network: radio / IPTV / link
 
     private void selectNetworkMode(int mode) {
@@ -495,10 +554,136 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
             } else {
                 loadIptv(iptvName, iptvUrl);
             }
-        } else {
-            setSource(Collections.emptyList(), t("TP_NET_LINK", R.string.TP_NET_LINK), null);
-            showNetworkInput();
+        } else if (mode == NET_YT) {
+            if (ytFeed != null) {
+                setSource(ytFeed.items, ytFeed.title, null);
+            } else {
+                List<TelePremiumNetworkLibrary.IptvPlaylist> saved = TelePremiumNetworkLibrary.getYoutubeChannels();
+                if (!saved.isEmpty()) { loadYoutube(saved.get(0).url); return; }
+                setSource(Collections.emptyList(), "YouTube", null);
+                emptyView.setText(t("TP_YT_EMPTY", R.string.TP_YT_EMPTY));
+                emptyView.setVisibility(View.VISIBLE);
+            }
         }
+    }
+
+    // ------------------------------------------------------------------ YouTube
+
+    private void addYoutubeChannel() {
+        EditText input = new EditText(this);
+        input.setHint("https://www.youtube.com/@channel");
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        LinearLayout box = new LinearLayout(this);
+        box.setPadding(dp(20), 0, dp(20), 0);
+        box.addView(input, new LinearLayout.LayoutParams(-1, -2));
+        new AlertDialog.Builder(this).setTitle(t("TP_YT_ADD_TITLE", R.string.TP_YT_ADD_TITLE)).setMessage(t("TP_YT_ADD_HINT", R.string.TP_YT_ADD_HINT)).setView(box)
+                .setPositiveButton(t("TP_L10N_117", R.string.TP_L10N_117), (d, w) -> {
+                    String url = input.getText().toString().trim();
+                    if (!url.isEmpty()) loadYoutube(url);
+                }).setNegativeButton(t("TP_L10N_135", R.string.TP_L10N_135), null).show();
+    }
+
+    private void loadYoutube(String url) {
+        setSection("YouTube", t("TP_L10N_316", R.string.TP_L10N_316));
+        int gen = ++loadGeneration;
+        ytLoading = true;
+        org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadFeed(url, (feed, error) -> {
+            ytLoading = false;
+            if (gen != loadGeneration) return;
+            if (feed == null) {
+                setSource(Collections.emptyList(), "YouTube", error);
+                return;
+            }
+            ytFeed = feed;
+            TelePremiumNetworkLibrary.addYoutubeChannel(feed.title, url);
+            rebuildChips();
+            setSource(feed.items, feed.title, null);
+        });
+    }
+
+    private void loadMoreYoutube() {
+        if (ytFeed == null || ytLoading) return;
+        ytLoading = true;
+        Toast.makeText(this, t("TP_L10N_316", R.string.TP_L10N_316), Toast.LENGTH_SHORT).show();
+        org.telegram.messenger.telepremium.media.TelePremiumYouTube.Feed feed = ytFeed;
+        org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadMore(feed, (items, error) -> {
+            ytLoading = false;
+            if (feed != ytFeed || networkMode != NET_YT) return;
+            if (error != null) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); return; }
+            rebuildChips();
+            setSource(feed.items, feed.title, null);
+        });
+    }
+
+    private void pickYoutubeChannel() {
+        List<TelePremiumNetworkLibrary.IptvPlaylist> saved = TelePremiumNetworkLibrary.getYoutubeChannels();
+        if (saved.isEmpty()) { addYoutubeChannel(); return; }
+        String[] names = new String[saved.size()];
+        for (int i = 0; i < names.length; i++) names[i] = saved.get(i).name;
+        new AlertDialog.Builder(this).setTitle(t("TP_YT_CHANNELS", R.string.TP_YT_CHANNELS)).setItems(names, (d, which) -> loadYoutube(saved.get(which).url))
+                .setNeutralButton(t("TP_NET_DELETE_PLAYLIST", R.string.TP_NET_DELETE_PLAYLIST), (d, w) -> {
+                    if (ytFeed != null) TelePremiumNetworkLibrary.removeYoutubeChannel(ytFeed.url);
+                    ytFeed = null;
+                    selectNetworkMode(NET_YT);
+                }).show();
+    }
+
+    private void pickYoutubeQuality() {
+        int[] values = org.telegram.messenger.telepremium.media.TelePremiumYouTube.qualities();
+        String[] labels = new String[values.length];
+        int selected = 0;
+        for (int i = 0; i < values.length; i++) {
+            labels[i] = values[i] + "p";
+            if (values[i] == org.telegram.messenger.telepremium.media.TelePremiumYouTube.getMaxQuality()) selected = i;
+        }
+        new AlertDialog.Builder(this).setTitle(t("TP_YT_QUALITY", R.string.TP_YT_QUALITY)).setSingleChoiceItems(labels, selected, (d, which) -> {
+            org.telegram.messenger.telepremium.media.TelePremiumYouTube.setMaxQuality(values[which]);
+            d.dismiss();
+            rebuildChips();
+        }).show();
+    }
+
+    /** Quality and audio track for a download; "audio only" is the first entry. */
+    private void showYoutubeDownload(TelePremiumMediaItem item) {
+        Toast.makeText(this, t("TP_L10N_316", R.string.TP_L10N_316), Toast.LENGTH_SHORT).show();
+        org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadFormats(item.uri, (formats, error) -> {
+            if (isFinishing()) return;
+            if (formats == null) { Toast.makeText(this, error == null ? "YouTube" : error, Toast.LENGTH_LONG).show(); return; }
+            if (formats.live) { Toast.makeText(this, t("TP_YT_LIVE_NO_DL", R.string.TP_YT_LIVE_NO_DL), Toast.LENGTH_LONG).show(); return; }
+            ArrayList<org.telegram.messenger.telepremium.media.TelePremiumYouTube.VideoOption> videos = new ArrayList<>();
+            for (org.telegram.messenger.telepremium.media.TelePremiumYouTube.VideoOption v : formats.videos) {
+                // WebM (VP9) needs the WebM muxer with Opus: Android 10+
+                if (v.webm && Build.VERSION.SDK_INT < 29) continue;
+                videos.add(v);
+            }
+            String[] labels = new String[videos.size() + 1];
+            labels[0] = "🎵 " + t("TP_YT_AUDIO_ONLY", R.string.TP_YT_AUDIO_ONLY);
+            for (int i = 0; i < videos.size(); i++) labels[i + 1] = videos.get(i).label;
+            new AlertDialog.Builder(this).setTitle(t("TP_YT_DL_QUALITY", R.string.TP_YT_DL_QUALITY)).setItems(labels, (d, which) -> {
+                org.telegram.messenger.telepremium.media.TelePremiumYouTube.VideoOption video = which == 0 ? null : videos.get(which - 1);
+                if (video != null && !video.videoOnly) { startYoutubeDownload(formats.title, video, null); return; }
+                ArrayList<org.telegram.messenger.telepremium.media.TelePremiumYouTube.AudioOption> audios = new ArrayList<>();
+                for (org.telegram.messenger.telepremium.media.TelePremiumYouTube.AudioOption a : formats.audios) {
+                    if (video == null || a.webm == video.webm) audios.add(a);
+                }
+                if (audios.isEmpty()) { Toast.makeText(this, t("TP_YT_NO_AUDIO", R.string.TP_YT_NO_AUDIO), Toast.LENGTH_LONG).show(); return; }
+                if (audios.size() == 1) { startYoutubeDownload(formats.title, video, audios.get(0)); return; }
+                String[] audioLabels = new String[audios.size()];
+                for (int i = 0; i < audios.size(); i++) audioLabels[i] = audios.get(i).label;
+                new AlertDialog.Builder(this).setTitle(t("TP_YT_DL_AUDIO", R.string.TP_YT_DL_AUDIO)).setItems(audioLabels,
+                        (d2, which2) -> startYoutubeDownload(formats.title, video, audios.get(which2))).show();
+            }).show();
+        });
+    }
+
+    private void startYoutubeDownload(String title, org.telegram.messenger.telepremium.media.TelePremiumYouTube.VideoOption video,
+                                      org.telegram.messenger.telepremium.media.TelePremiumYouTube.AudioOption audio) {
+        Toast.makeText(this, t("TP_YT_DL_STARTED", R.string.TP_YT_DL_STARTED), Toast.LENGTH_LONG).show();
+        org.telegram.messenger.telepremium.media.TelePremiumYouTubeDownloader.download(title, video, audio, (saved, error) -> {
+            if (isFinishing()) return;
+            Toast.makeText(this, saved != null ? tf("TP_REC_SAVED", R.string.TP_REC_SAVED, saved) : (error == null ? "YouTube" : error), Toast.LENGTH_LONG).show();
+        });
     }
 
     private void loadRadio() {
@@ -1003,7 +1188,10 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         actions.add(t("TP_L10N_346", R.string.TP_L10N_346));
         actions.add(t("TP_L10N_341", R.string.TP_L10N_341));
         if (radio) actions.add(TelePremiumNetworkLibrary.isRadioFavorite(item) ? t("TP_L10N_124", R.string.TP_L10N_124) : t("TP_L10N_125", R.string.TP_L10N_125));
+        boolean youtube = org.telegram.messenger.telepremium.media.TelePremiumYouTube.isYouTube(item);
+        if (youtube) actions.add(t("TP_YT_DOWNLOAD", R.string.TP_YT_DOWNLOAD));
         new AlertDialog.Builder(this).setTitle(item.title).setItems(actions.toArray(new String[0]), (d, which) -> {
+            if (youtube && which == 3) { showYoutubeDownload(item); return; }
             if (which == 0) {
                 controller.play(item);
                 TelePremiumRadioBrowser.countClick(item);

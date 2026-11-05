@@ -138,6 +138,7 @@ public final class TelePremiumBalanceAudioProcessor extends BaseAudioProcessor {
         if (!dspOn || channels <= 0) {
             out.put(in);
             out.flip();
+            TelePremiumStreamRecorder.feed(out, sampleRate, channels);
             return;
         }
         int frameBytes = channels * 2;
@@ -177,6 +178,7 @@ public final class TelePremiumBalanceAudioProcessor extends BaseAudioProcessor {
         }
         while (in.hasRemaining()) out.put(in.get());
         out.flip();
+        TelePremiumStreamRecorder.feed(out, sampleRate, channels);
     }
 
     private short toPcm(float x) {

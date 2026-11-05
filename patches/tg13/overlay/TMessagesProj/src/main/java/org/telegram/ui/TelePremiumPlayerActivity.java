@@ -95,6 +95,13 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private View nextCard, leftSeek, rightSeek;
     private TextView fallbackArtist, fallbackTitle, headerTitleView, titleView, artistView, stateView, positionView, durationView;
     private TextView speedButton, speedLabel, sourceLabel, hwButton, nextSubtitle;
+    private TextView recLabel;
+    private ImageView recIcon, recTool;
+    private final org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.Listener recListener = (recording, elapsed, saved, error) -> {
+        updateRecViews();
+        if (saved != null) Toast.makeText(this, tf("TP_REC_SAVED", R.string.TP_REC_SAVED, saved), Toast.LENGTH_LONG).show();
+        else if (error != null) Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+    };
     private boolean portraitAudioLayout;
     private TelePremiumAspectSurfaceView surface;
     private SeekBar seekBar;
@@ -200,6 +207,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         launchItem = readLaunchItem(getIntent());
         displayItem = launchItem != null ? launchItem : controller.getCurrent();
         controller.addListener(this);
+        org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.addListener(recListener);
         controller.getQueue().addListener(this);
         applyLockscreenMode();
         buildUi();
@@ -279,6 +287,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         headerTitleView = null; titleView = null; artistView = null; stateView = null; positionView = null; durationView = null;
         playButton = null; speedButton = null; speedLabel = null; fitButton = null; subtitlesButton = null; hwButton = null;
         shuffleButton = null; repeatButton = null; sourcePill = null; sourceIcon = null; sourceLabel = null;
+        recLabel = null; recIcon = null; recTool = null;
         nextCard = null; nextSubtitle = null; topChrome = null; bottomChrome = null; leftSeek = null; rightSeek = null; lockButton = null;
     }
 
@@ -464,13 +473,41 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         LinearLayout source = extraColumn(R.drawable.tp_ic_device, t("TP_L10N_411", R.string.TP_L10N_411), v -> showPlayerSettings());
         sourceLabel = (TextView) source.getChildAt(1);
         LinearLayout queue = extraColumn(R.drawable.tp_ic_list, t("TP_P_QUEUE", R.string.TP_P_QUEUE), v -> showQueue());
+        LinearLayout rec = extraColumn(R.drawable.tp_ic_rec, t("TP_REC", R.string.TP_REC), v -> toggleRecording());
+        recIcon = (ImageView) rec.getChildAt(0);
+        recLabel = (TextView) rec.getChildAt(1);
 
         row.addView(speed, new LinearLayout.LayoutParams(0, -1, 1f));
         row.addView(kit.divider(dividerColor, true));
         row.addView(source, new LinearLayout.LayoutParams(0, -1, 1f));
         row.addView(kit.divider(dividerColor, true));
         row.addView(queue, new LinearLayout.LayoutParams(0, -1, 1f));
+        row.addView(kit.divider(dividerColor, true));
+        row.addView(rec, new LinearLayout.LayoutParams(0, -1, 1f));
+        updateRecViews();
         return row;
+    }
+
+    // ---------------------------------------------------------------- recording
+
+    private void toggleRecording() {
+        TelePremiumMediaItem item = controller.getCurrent();
+        if (item == null) return;
+        org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.toggle(item.title);
+        updateRecViews();
+        if (org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.isRecording())
+            Toast.makeText(this, t("TP_REC_STARTED", R.string.TP_REC_STARTED), Toast.LENGTH_SHORT).show();
+    }
+
+    private void updateRecViews() {
+        boolean on = org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.isRecording();
+        int red = 0xffe53935;
+        if (recIcon != null) kit.setIcon(recIcon, on ? R.drawable.tp_ic_rec : R.drawable.tp_ic_rec, on ? red : TelePremiumPlayerKit.withAlpha(red, 0xb0));
+        if (recLabel != null) {
+            recLabel.setText(on ? "● " + formatTime(org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.elapsedMs()) : t("TP_REC", R.string.TP_REC));
+            recLabel.setTextColor(on ? red : pal.muted);
+        }
+        if (recTool != null) kit.setIcon(recTool, R.drawable.tp_ic_rec, on ? red : TelePremiumPlayerKit.withAlpha(red, 0xb0));
     }
 
     private LinearLayout extraColumn(Integer iconRes, String label, View.OnClickListener listener) {
@@ -591,6 +628,8 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         tools.setGravity(Gravity.CENTER_VERTICAL);
         fitButton = kit.toolButton(R.drawable.tp_ic_expand, pal, t("TP_L10N_422", R.string.TP_L10N_422), v -> { toggleFit(); scheduleChromeHide(); });
         tools.addView(fitButton, toolLp());
+        recTool = kit.toolButton(R.drawable.tp_ic_rec, pal, t("TP_REC", R.string.TP_REC), v -> { toggleRecording(); scheduleChromeHide(); });
+        tools.addView(recTool, toolLp());
         tools.addView(kit.toolButton(R.drawable.tp_ic_pip, pal, t("TP_L10N_423", R.string.TP_L10N_423), v -> enterPip()), toolLp());
         tools.addView(kit.toolButton(R.drawable.tp_ic_list, pal, t("TP_L10N_417", R.string.TP_L10N_417), v -> showQueue()), toolLp());
         controls.addView(tools, new FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
@@ -858,6 +897,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             seekBar.setSecondaryProgress(b);
         }
         if (!userSeeking) positionView.setText(formatTime(position));
+        if (org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.isRecording()) updateRecViews();
         durationView.setText(duration > 0 ? formatTime(duration) : "LIVE");
     }
 
@@ -1262,6 +1302,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
         controller.removeListener(this);
+        org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.removeListener(recListener);
         controller.getQueue().removeListener(this);
         controller.bindSurface(null);
         super.onDestroy();

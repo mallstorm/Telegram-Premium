@@ -30,6 +30,10 @@ idea {
 repositories {
     mavenCentral()
     google()
+    maven {
+        url 'https://jitpack.io'
+        content { includeGroupByRegex 'com\\.github\\..*' }
+    }
 }
 
 configurations {
@@ -106,7 +110,13 @@ dependencies {
 
     implementation 'com.google.android.recaptcha:recaptcha:18.7.1'
 
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    // TelePremium: YouTube channel parsing and stream extraction (GPL-3.0, NewPipe e.V.).
+    // It needs java.nio desugaring below API 33, hence desugar_jdk_libs_nio.
+    implementation('com.github.teamnewpipe:NewPipeExtractor:v0.26.5') {
+        exclude group: 'com.google.code.findbugs', module: 'jsr305'
+    }
+
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs_nio:2.1.5'
 }
 
 android {

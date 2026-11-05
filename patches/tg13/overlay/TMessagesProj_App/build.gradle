@@ -17,7 +17,7 @@ configurations.all {
 
 dependencies {
     implementation project(':TMessagesProj')
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs_nio:2.1.5'
     implementation files('../TMessagesProj/libs/libgsaverification-client.aar')
 }
 

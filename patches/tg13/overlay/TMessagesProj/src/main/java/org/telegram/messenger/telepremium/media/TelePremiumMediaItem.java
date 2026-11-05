@@ -37,6 +37,8 @@ public final class TelePremiumMediaItem {
     public int encryptionVersion;
     public String sha256;
     public String localBackupId;
+    /** Device folder relative to the storage root ("Music", "Movies/Clips"); not persisted. */
+    public transient String folder;
     /** Multipart Cloud payload (see CloudNode#partMessageIds); null for single-document files. */
     public long[] partMessageIds;
     public long[] partDocumentIds;
