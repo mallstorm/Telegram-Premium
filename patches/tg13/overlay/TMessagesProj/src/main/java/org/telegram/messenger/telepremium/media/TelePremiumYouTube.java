@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
 
+import org.schabi.newpipe.extractor.Extractor;
 import org.schabi.newpipe.extractor.Image;
 import org.schabi.newpipe.extractor.InfoItem;
 import org.schabi.newpipe.extractor.ListExtractor;
@@ -12,7 +13,9 @@ import org.schabi.newpipe.extractor.NewPipe;
 import org.schabi.newpipe.extractor.Page;
 import org.schabi.newpipe.extractor.ServiceList;
 import org.schabi.newpipe.extractor.StreamingService;
+import org.schabi.newpipe.extractor.channel.ChannelExtractor;
 import org.schabi.newpipe.extractor.channel.ChannelInfo;
+import org.schabi.newpipe.extractor.channel.tabs.ChannelTabExtractor;
 import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo;
 import org.schabi.newpipe.extractor.channel.tabs.ChannelTabs;
 import org.schabi.newpipe.extractor.downloader.Downloader;
@@ -22,10 +25,12 @@ import org.schabi.newpipe.extractor.exceptions.ReCaptchaException;
 import org.schabi.newpipe.extractor.linkhandler.ListLinkHandler;
 import org.schabi.newpipe.extractor.localization.ContentCountry;
 import org.schabi.newpipe.extractor.localization.Localization;
+import org.schabi.newpipe.extractor.playlist.PlaylistExtractor;
 import org.schabi.newpipe.extractor.playlist.PlaylistInfo;
 import org.schabi.newpipe.extractor.stream.AudioStream;
 import org.schabi.newpipe.extractor.stream.AudioTrackType;
 import org.schabi.newpipe.extractor.stream.DeliveryMethod;
+import org.schabi.newpipe.extractor.stream.StreamExtractor;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.schabi.newpipe.extractor.stream.StreamType;
@@ -107,16 +112,37 @@ public final class TelePremiumYouTube {
 
     // ------------------------------------------------------------------ setup
 
+    private static volatile Localization localization = new Localization("ru");
+    private static volatile ContentCountry contentCountry = new ContentCountry("RU");
+
     private static synchronized void ensureInit() {
         if (initialized) return;
         String lang = TPStrings.isRussian() ? "ru" : Locale.getDefault().getLanguage();
         if (TextUtils.isEmpty(lang)) lang = "ru";
         String country = Locale.getDefault().getCountry();
-        if (TextUtils.isEmpty(country)) country = "RU";
-        // Language WITHOUT a region: YouTube does not know combinations such as "ru-UA" and then
-        // falls back to English, returning auto-translated English titles instead of the originals.
-        NewPipe.init(new HttpDownloader(), new Localization(lang), new ContentCountry(country));
+        if (TextUtils.isEmpty(country)) country = "ru".equals(lang) ? "RU" : "US";
+        // NewPipe maps the preferred language onto its supported list whose entries carry an empty
+        // region, so YouTube receives "hl=ru-" — an unknown code — and answers in English with
+        // auto-translated titles. Every extractor is therefore forced to a clean "ru".
+        localization = new Localization(lang);
+        contentCountry = new ContentCountry(country);
+        NewPipe.init(new HttpDownloader(), localization, contentCountry);
         initialized = true;
+    }
+
+    private static <E extends Extractor> E force(E extractor) {
+        extractor.forceLocalization(localization);
+        extractor.forceContentCountry(contentCountry);
+        return extractor;
+    }
+
+    private static String acceptLanguage() {
+        String lang = localization.getLanguageCode();
+        return "ru".equals(lang) ? "ru-RU,ru;q=0.9,en;q=0.5" : lang + ";q=1.0,en;q=0.5";
+    }
+
+    private static StreamInfo streamInfo(String url) throws Exception {
+        return StreamInfo.getInfo(force(yt().getStreamExtractor(url)));
     }
 
     private static StreamingService yt() { return ServiceList.YouTube; }
@@ -151,7 +177,9 @@ public final class TelePremiumYouTube {
             Feed feed = new Feed();
             feed.url = url;
             if (type == StreamingService.LinkType.CHANNEL) {
-                ChannelInfo channel = ChannelInfo.getInfo(service, url);
+                ChannelExtractor channelExtractor = force(service.getChannelExtractor(url));
+                channelExtractor.fetchPage();
+                ChannelInfo channel = ChannelInfo.getInfo(channelExtractor);
                 feed.title = channel.getName();
                 ListLinkHandler videos = null;
                 for (ListLinkHandler tab : channel.getTabs()) {
@@ -159,19 +187,23 @@ public final class TelePremiumYouTube {
                 }
                 if (videos == null && !channel.getTabs().isEmpty()) videos = channel.getTabs().get(0);
                 if (videos == null) throw new IllegalStateException("На канале нет видео");
-                ChannelTabInfo info = ChannelTabInfo.getInfo(service, videos);
+                ChannelTabExtractor tabExtractor = force(service.getChannelTabExtractor(videos));
+                tabExtractor.fetchPage();
+                ChannelTabInfo info = ChannelTabInfo.getInfo(tabExtractor);
                 feed.tab = videos;
                 feed.kind = 0;
                 addItems(feed, info.getRelatedItems(), channel.getName());
                 feed.nextPage = info.getNextPage();
             } else if (type == StreamingService.LinkType.PLAYLIST) {
-                PlaylistInfo playlist = PlaylistInfo.getInfo(service, url);
+                PlaylistExtractor playlistExtractor = force(service.getPlaylistExtractor(url));
+                playlistExtractor.fetchPage();
+                PlaylistInfo playlist = PlaylistInfo.getInfo(playlistExtractor);
                 feed.title = playlist.getName();
                 feed.kind = 1;
                 addItems(feed, new ArrayList<InfoItem>(playlist.getRelatedItems()), playlist.getUploaderName());
                 feed.nextPage = playlist.getNextPage();
             } else if (type == StreamingService.LinkType.STREAM) {
-                StreamInfo info = StreamInfo.getInfo(service, url);
+                StreamInfo info = streamInfo(url);
                 feed.title = info.getUploaderName();
                 feed.items.add(itemFromStream(info));
             } else {
@@ -188,11 +220,11 @@ public final class TelePremiumYouTube {
             if (!feed.hasMore()) return Collections.<TelePremiumMediaItem>emptyList();
             Feed page = new Feed();
             if (feed.kind == 0) {
-                ListExtractor.InfoItemsPage<InfoItem> more = ChannelTabInfo.getMoreItems(yt(), feed.tab, feed.nextPage);
+                ListExtractor.InfoItemsPage<InfoItem> more = force(yt().getChannelTabExtractor(feed.tab)).getPage(feed.nextPage);
                 addItems(page, more.getItems(), feed.title);
                 feed.nextPage = more.getNextPage();
             } else {
-                ListExtractor.InfoItemsPage<StreamInfoItem> more = PlaylistInfo.getMoreItems(yt(), feed.url, feed.nextPage);
+                ListExtractor.InfoItemsPage<StreamInfoItem> more = force(yt().getPlaylistExtractor(feed.url)).getPage(feed.nextPage);
                 addItems(page, new ArrayList<InfoItem>(more.getItems()), feed.title);
                 feed.nextPage = more.getNextPage();
             }
@@ -268,7 +300,7 @@ public final class TelePremiumYouTube {
     }
 
     private static Formats formats(String videoUrl) throws Exception {
-        StreamInfo info = StreamInfo.getInfo(yt(), videoUrl);
+        StreamInfo info = streamInfo(videoUrl);
         Formats f = new Formats();
         f.title = info.getName();
         f.uploader = info.getUploaderName();
@@ -406,10 +438,12 @@ public final class TelePremiumYouTube {
             if (request.headers() != null) {
                 for (Map.Entry<String, List<String>> h : request.headers().entrySet()) {
                     if ("User-Agent".equalsIgnoreCase(h.getKey())) hasAgent = true;
+                    if ("Accept-Language".equalsIgnoreCase(h.getKey())) continue;
                     for (String value : h.getValue()) c.addRequestProperty(h.getKey(), value);
                 }
             }
             if (!hasAgent) c.setRequestProperty("User-Agent", USER_AGENT);
+            c.setRequestProperty("Accept-Language", acceptLanguage());
             byte[] body = request.dataToSend();
             if (body != null) {
                 c.setDoOutput(true);
