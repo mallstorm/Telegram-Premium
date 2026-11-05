@@ -57,6 +57,10 @@ public class TelePremiumCenterActivity extends BaseFragment {
                 v -> presentFragment(new TelePremiumFileCenterActivity()));
         ui.row(t("TP_L10N_054", R.string.TP_L10N_054), t("TP_L10N_055", R.string.TP_L10N_055), R.drawable.tp_ic_shield, TelePremiumSettingsUi.RED, null,
                 v -> presentFragment(new TelePremiumCloudSecurityActivity()));
+        ui.row(TPStrings.isRussian() ? "ИИ-подключения" : "AI connections",
+                TPStrings.isRussian() ? "Свои модели по API-ключу или через аккаунт (OAuth PKCE) для редактора статей"
+                        : "Your own models by API key or account sign-in (OAuth PKCE) for the article editor",
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.INDIGO, null, v -> presentFragment(new TelePremiumAiActivity()));
         ui.row(t("TP_L10N_056", R.string.TP_L10N_056), t("TP_L10N_057", R.string.TP_L10N_057), R.drawable.tp_ic_translate, TelePremiumSettingsUi.PURPLE, null,
                 v -> presentFragment(new LanguageSelectActivity()));
         ui.row(t("TP_L10N_058", R.string.TP_L10N_058), t("TP_L10N_059", R.string.TP_L10N_059), R.drawable.tp_ic_storage, TelePremiumSettingsUi.TEAL, null,
