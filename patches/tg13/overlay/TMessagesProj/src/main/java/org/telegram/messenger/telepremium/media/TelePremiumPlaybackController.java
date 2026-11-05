@@ -265,73 +265,82 @@ public final class TelePremiumPlaybackController {
         }
     }
 
+    /**
+     * Streams a Cloud file — one document or several parts, plain or Vault — through
+     * {@link TelePremiumMultipartDataSource}: sliding window cache, next-part prefetch and
+     * chunk-by-chunk Vault decryption (nothing is pre-downloaded, plaintext never hits the disk).
+     */
     private void resolveCloud(TelePremiumMediaItem item, int token) {
         if (item.cloudAccount < 0 || item.telegramMessageId == 0) { fail("Облачный файл не указан"); return; }
-        // Encrypted media cannot be played through the Telegram raw-document stream.
-        if (item.encryptionVersion!=0){
-            startFullDownloadFallback(item,token,"Vault требует проверенной расшифровки файла");
+        boolean vault = item.encryptionVersion != 0;
+        if (vault && item.encryptionVersion != 1) { startFullDownloadFallback(item, token, "Неподдерживаемый формат Vault"); return; }
+        boolean multipart = item.isMultipart();
+        long[] ids = multipart ? item.partMessageIds : new long[]{item.telegramMessageId};
+        if (vault && multipart && (item.partSizes == null || item.partSizes.length != ids.length)) {
+            startFullDownloadFallback(item, token, "Нет размеров частей Vault");
             return;
         }
-        if (item.isMultipart()) { resolveCloudMultipart(item, token); return; }
-        TelePremiumCloudPeerManager peer = TelePremiumCloudPeerManager.getInstance(item.cloudAccount);
+        TelePremiumCloudPeerManager peer = vault ? TelePremiumCloudPeerManager.getVaultInstance(item.cloudAccount) : TelePremiumCloudPeerManager.getInstance(item.cloudAccount);
         peer.ensure((dialogId, error) -> {
             if (token != generation) return;
             if (error != null || peer.getInputChannel() == null) { AndroidUtilities.runOnUIThread(() -> fail(error == null ? "Облако недоступно" : error)); return; }
             TLRPC.TL_channels_getMessages req = new TLRPC.TL_channels_getMessages();
             req.channel = peer.getInputChannel();
-            req.id.add((int) item.telegramMessageId);
-            ConnectionsManager.getInstance(item.cloudAccount).sendRequest(req, (response, requestError) -> AndroidUtilities.runOnUIThread(() -> {
-                if (token != generation) return;
-                if (requestError != null) { fail(requestError.text); return; }
-                if (!(response instanceof TLRPC.messages_Messages) || ((TLRPC.messages_Messages) response).messages.isEmpty()) { fail("Файл удалён из облака"); return; }
-                TLRPC.Message message = ((TLRPC.messages_Messages) response).messages.get(0);
-                if (message.media == null || message.media.document == null) { fail("Telegram document отсутствует"); return; }
-                streamMessage = message;
-                streamDocument = message.media.document;
-                FileStreamLoadOperation.setPriorityForDocument(streamDocument, FileLoader.PRIORITY_HIGH);
-                Uri uri = FileStreamLoadOperation.prepareUri(item.cloudAccount, streamDocument, streamMessage);
-                if (uri == null) { startFullDownloadFallback(item, token, "Не удалось создать поток"); return; }
-                cloudStreaming = !"file".equalsIgnoreCase(uri.getScheme());
-                startPlayer(uri, item, token);
-            }));
-        });
-    }
-
-    /**
-     * A Cloud file larger than the Telegram document limit is stored as several documents.
-     * All parts are resolved in one request and exposed to ExoPlayer as a single seekable stream.
-     */
-    private void resolveCloudMultipart(TelePremiumMediaItem item, int token) {
-        TelePremiumCloudPeerManager peer = TelePremiumCloudPeerManager.getInstance(item.cloudAccount);
-        peer.ensure((dialogId, error) -> {
-            if (token != generation) return;
-            if (error != null || peer.getInputChannel() == null) { AndroidUtilities.runOnUIThread(() -> fail(error == null ? "Облако недоступно" : error)); return; }
-            TLRPC.TL_channels_getMessages req = new TLRPC.TL_channels_getMessages();
-            req.channel = peer.getInputChannel();
-            for (long id : item.partMessageIds) req.id.add((int) id);
+            for (long id : ids) req.id.add((int) id);
             ConnectionsManager.getInstance(item.cloudAccount).sendRequest(req, (response, requestError) -> AndroidUtilities.runOnUIThread(() -> {
                 if (token != generation) return;
                 if (requestError != null) { fail(requestError.text); return; }
                 if (!(response instanceof TLRPC.messages_Messages)) { fail("Файл удалён из облака"); return; }
                 java.util.HashMap<Integer, TLRPC.Message> byId = new java.util.HashMap<>();
                 for (TLRPC.Message m : ((TLRPC.messages_Messages) response).messages) if (m != null) byId.put(m.id, m);
-                int count = item.partMessageIds.length;
+                int count = ids.length;
                 Uri[] parts = new Uri[count];
+                TLRPC.Document[] documents = new TLRPC.Document[count];
                 long[] sizes = new long[count];
                 for (int i = 0; i < count; i++) {
-                    TLRPC.Message m = byId.get((int) item.partMessageIds[i]);
-                    if (m == null || m.media == null || m.media.document == null) { fail("Часть " + (i + 1) + " из " + count + " отсутствует в облаке"); return; }
+                    TLRPC.Message m = byId.get((int) ids[i]);
+                    if (m == null || m.media == null || m.media.document == null) {
+                        fail(count == 1 ? "Файл удалён из облака" : "Часть " + (i + 1) + " из " + count + " отсутствует в облаке");
+                        return;
+                    }
                     TLRPC.Document document = m.media.document;
                     if (i == 0) { streamMessage = m; streamDocument = document; }
                     FileStreamLoadOperation.setPriorityForDocument(document, FileLoader.PRIORITY_HIGH);
                     parts[i] = FileStreamLoadOperation.prepareUri(item.cloudAccount, document, m);
-                    if (parts[i] == null) { fail("Не удалось создать поток части " + (i + 1)); return; }
-                    sizes[i] = document.size;
+                    if (parts[i] == null) { startFullDownloadFallback(item, token, "Не удалось создать поток"); return; }
+                    documents[i] = document;
+                    // Plain parts: the document is the data. Vault parts: the plaintext length.
+                    sizes[i] = !vault ? document.size : multipart ? item.partSizes[i] : item.size;
+                }
+                byte[] master = null;
+                if (vault) {
+                    try {
+                        master = org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultKeyManager
+                                .getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
+                    } catch (Throwable t) {
+                        fail("Vault заблокирован — разблокируйте облако");
+                        return;
+                    }
+                }
+                try {
+                    releaseCloudStream();
+                    cloudStreamUri = TelePremiumMultipartDataSource.register(item.cloudAccount, parts, documents, sizes, master);
+                } finally {
+                    if (master != null) java.util.Arrays.fill(master, (byte) 0);
                 }
                 cloudStreaming = true;
-                startPlayer(TelePremiumMultipartDataSource.register(parts, sizes), item, token);
+                startPlayer(cloudStreamUri, item, token);
             }));
         });
+    }
+
+    /** Current Cloud stream (its cached parts are removed when playback of the item ends). */
+    private Uri cloudStreamUri;
+
+    private void releaseCloudStream() {
+        Uri uri = cloudStreamUri;
+        cloudStreamUri = null;
+        TelePremiumMultipartDataSource.unregister(uri);
     }
 
     /** Separate audio stream (YouTube DASH) and forced HLS for the next startPlayer call. */
@@ -350,7 +359,8 @@ public final class TelePremiumPlaybackController {
 
     private void startPlayer(Uri uri, TelePremiumMediaItem item, int token) {
         if (token != generation) return;
-        releasePlayer();
+        if (cloudStreamUri != null && !cloudStreamUri.equals(uri)) releaseCloudStream();
+        releasePlayerOnly();
         player = new VideoPlayer(true, false);
         player.extraAudioProcessors = TelePremiumBalanceAudioProcessor.chain();
         if (outputSurface != null) player.setSurface(outputSurface);
@@ -419,7 +429,7 @@ public final class TelePremiumPlaybackController {
     }
 
     private static boolean isRemote(TelePremiumMediaItem item) {
-        if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return item.encryptionVersion == 0;
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return true;
         if (TelePremiumYouTube.isYouTube(item)) return true;
         String scheme = item.uri == null ? null : Uri.parse(item.uri).getScheme();
         return scheme != null && !"file".equalsIgnoreCase(scheme) && !"content".equalsIgnoreCase(scheme);
@@ -523,6 +533,11 @@ public final class TelePremiumPlaybackController {
     }
 
     private void releasePlayer() {
+        releasePlayerOnly();
+        releaseCloudStream();
+    }
+
+    private void releasePlayerOnly() {
         if (player != null) {
             try { player.releasePlayer(false); } catch (Throwable ignore) {}
             player = null;

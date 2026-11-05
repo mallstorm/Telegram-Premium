@@ -165,6 +165,75 @@ public final class TelePremiumVaultCrypto {
         return out.toByteArray();
     }
 
+    // ------------------------------------------------------------------ random access
+
+    /** Envelope header length (magic, version, salt, nonce prefix, chunk size). */
+    public static final int STREAM_HEADER_BYTES = HEADER_BYTES;
+    /** Plaintext bytes per chunk; every chunk except the last one is full. */
+    public static final int STREAM_CHUNK_BYTES = CHUNK_SIZE;
+    public static final int STREAM_TAG_BYTES = TAG_BYTES;
+
+    /** Ciphertext offset of chunk {@code index} (its 4-byte length prefix). */
+    public static long chunkOffset(long index) {
+        return HEADER_BYTES + index * (4L + CHUNK_SIZE + TAG_BYTES);
+    }
+
+    /**
+     * Decrypts individual chunks of a FILE envelope for streaming playback. Each chunk is an
+     * independent AES-GCM message whose nonce and AAD bind the envelope header and the chunk
+     * index, so any chunk can be authenticated on its own: no plaintext is released before its
+     * tag is verified, and chunks cannot be reordered, swapped between files or truncated
+     * (the caller checks the exact expected length of every chunk and the terminator).
+     */
+    public static final class ChunkDecryptor implements java.io.Closeable {
+        private final byte[] header;
+        private final byte[] noncePrefix;
+        private final byte[] subkey;
+
+        private ChunkDecryptor(byte[] header, byte[] noncePrefix, byte[] subkey) {
+            this.header = header;
+            this.noncePrefix = noncePrefix;
+            this.subkey = subkey;
+        }
+
+        public static ChunkDecryptor open(byte[] header, byte[] master, Purpose purpose)
+                throws IOException, GeneralSecurityException {
+            if (header == null || header.length != HEADER_BYTES) throw new IOException("Invalid Vault header");
+            if (master == null || master.length != MASTER_BYTES || purpose == null)
+                throw new IllegalArgumentException("Invalid Vault arguments (32-byte random master required)");
+            for (int i = 0; i < MAGIC.length; i++) {
+                if (header[i] != MAGIC[i]) throw new IOException("Unknown Vault envelope");
+            }
+            if ((header[8] & 0xff) != VERSION) throw new IOException("Unsupported Vault version");
+            if (bytesToInt(header, HEADER_BYTES - 4) != CHUNK_SIZE) throw new IOException("Unsupported chunk size");
+            byte[] salt = Arrays.copyOfRange(header, 9, 9 + SALT_BYTES);
+            byte[] prefix = Arrays.copyOfRange(header, 9 + SALT_BYTES, 9 + SALT_BYTES + NONCE_PREFIX_BYTES);
+            return new ChunkDecryptor(header.clone(), prefix, hkdf(master, salt, purpose));
+        }
+
+        /** Authenticates and decrypts a data chunk; throws on any tag mismatch. */
+        public byte[] decryptChunk(long index, byte[] cipherText, int length)
+                throws IOException, GeneralSecurityException {
+            if (index < 0 || index >= 0xffffffffL) throw new IOException("Vault stream too large");
+            if (length <= TAG_BYTES || length > CHUNK_SIZE + TAG_BYTES) throw new IOException("Invalid Vault chunk size");
+            return process(Cipher.DECRYPT_MODE, subkey, noncePrefix, header, index, false, cipherText, length);
+        }
+
+        /** Authenticates the empty final chunk that marks the genuine end of the envelope. */
+        public void verifyTerminator(long index, byte[] cipherText, int length)
+                throws IOException, GeneralSecurityException {
+            if (index < 0 || index >= 0xffffffffL) throw new IOException("Vault stream too large");
+            if (length != TAG_BYTES) throw new IOException("Invalid Vault terminator");
+            byte[] plain = process(Cipher.DECRYPT_MODE, subkey, noncePrefix, header, index, true, cipherText, length);
+            if (plain.length != 0) throw new IOException("Invalid Vault terminator");
+        }
+
+        @Override
+        public void close() {
+            Arrays.fill(subkey, (byte) 0);
+        }
+    }
+
     private static void validate(InputStream in, OutputStream out, byte[] master, Purpose purpose) {
         if (in == null || out == null || master == null || master.length != MASTER_BYTES || purpose == null)
             throw new IllegalArgumentException("Invalid Vault arguments (32-byte random master required)");
