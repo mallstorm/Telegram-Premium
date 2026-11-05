@@ -17,6 +17,9 @@ import org.telegram.messenger.FileStreamLoadOperation;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Presents a Cloud file stored as several Telegram documents (byte-range parts) as one
@@ -56,8 +59,19 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
         return Uri.parse(SCHEME + "://" + key);
     }
 
+    /** The next part starts downloading when this many bytes of the current part are left. */
+    private static final long PREFETCH_BYTES = 64L * 1024L * 1024L;
+    private static final ExecutorService PREFETCH = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "tp-multipart-prefetch");
+        t.setDaemon(true);
+        return t;
+    });
+
     private Uri uri;
     private Entry entry;
+    private long position;
+    private Future<DataSource> prefetch;
+    private int prefetchIndex = -1;
     private int partIndex;
     private long bytesRemaining;
     private DataSource child;
@@ -73,7 +87,7 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
         entry = REGISTRY.get(uri.getHost());
         if (entry == null) throw new IOException("Multipart stream expired");
         transferInitializing(dataSpec);
-        long position = Math.max(0, dataSpec.position);
+        position = Math.max(0, dataSpec.position);
         if (position > entry.total) throw new IOException("Position beyond end of multipart file");
         bytesRemaining = entry.total - position;
         if (dataSpec.length != C.LENGTH_UNSET) bytesRemaining = Math.min(bytesRemaining, dataSpec.length);
@@ -86,6 +100,18 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
 
     private void openPart(long offsetInPart) throws IOException {
         closeChild();
+        if (offsetInPart == 0 && prefetch != null && prefetchIndex == partIndex) {
+            Future<DataSource> ready = prefetch;
+            prefetch = null;
+            prefetchIndex = -1;
+            try {
+                child = ready.get();
+                return;
+            } catch (Exception ignore) {
+                child = null; // fall through to a regular open
+            }
+        }
+        discardPrefetch();
         Uri part = entry.parts[partIndex];
         child = "tg".equals(part.getScheme()) ? new FileStreamLoadOperation() : new FileDataSource();
         child.open(new DataSpec.Builder().setUri(part).setPosition(offsetInPart).build());
@@ -101,12 +127,15 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
             if (n == C.RESULT_END_OF_INPUT) {
                 if (partIndex + 1 >= entry.parts.length) return C.RESULT_END_OF_INPUT;
                 partIndex++;
+                position = entry.offsets[partIndex];
                 openPart(0);
                 continue;
             }
             if (n > 0) {
                 bytesRemaining -= n;
+                position += n;
                 bytesTransferred(n);
+                maybePrefetch();
             }
             return n;
         }
@@ -121,6 +150,7 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
     @Override
     public void close() throws IOException {
         try {
+            discardPrefetch();
             closeChild();
         } finally {
             if (opened) {
@@ -128,6 +158,37 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
                 transferEnded();
             }
         }
+    }
+
+    /**
+     * Opens the next Telegram part in the background shortly before the current one ends, so its
+     * download is already running when the player crosses the boundary (no rebuffer at the joint).
+     */
+    private void maybePrefetch() {
+        int next = partIndex + 1;
+        if (prefetch != null || next >= entry.parts.length) return;
+        if (entry.offsets[next] - position > PREFETCH_BYTES) return;
+        Uri part = entry.parts[next];
+        if (!"tg".equals(part.getScheme())) return; // cached on disk: nothing to warm up
+        prefetchIndex = next;
+        prefetch = PREFETCH.submit(() -> {
+            DataSource source = new FileStreamLoadOperation();
+            source.open(new DataSpec.Builder().setUri(part).setPosition(0).build());
+            return source;
+        });
+    }
+
+    private void discardPrefetch() {
+        Future<DataSource> stale = prefetch;
+        prefetch = null;
+        prefetchIndex = -1;
+        if (stale == null) return;
+        PREFETCH.execute(() -> {
+            try {
+                stale.get().close();
+            } catch (Exception ignore) {
+            }
+        });
     }
 
     private void closeChild() throws IOException {

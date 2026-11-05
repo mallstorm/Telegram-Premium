@@ -352,7 +352,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMultipartDataSource.java",
       "base_sha256": null,
-      "sha256": "0858c2b550f47d7cf624a7482be04f6f77e8829cb61affbf3c2971ab797961e3"
+      "sha256": "68efdab3167083647ba2c894599d4eee43abc56c40463808849009b72becfdbd"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumNetworkLibrary.java",
@@ -367,7 +367,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumPlaybackController.java",
       "base_sha256": null,
-      "sha256": "df0067c0de105b0ff14b13e681370946d00404d2e305f336afa02b7139c0b37c"
+      "sha256": "340075fe9b7b676d949587f96788e2732289fe0ca401360c3fdc4e4100b158db"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumPlayerMath.java",

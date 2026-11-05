@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.view.SurfaceView;
 
 import androidx.media3.common.C;
+import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.analytics.AnalyticsListener;
 
@@ -71,6 +72,9 @@ public final class TelePremiumPlaybackController {
     private int state = STATE_IDLE;
     private int generation;
     private long pendingResume;
+    private int reconnectAttempts;
+    private long lastReconnectAt;
+    private static final int MAX_RECONNECTS = 3;
     private long lastResumeWrite;
     private int videoWidth;
     private int videoHeight;
@@ -246,6 +250,7 @@ public final class TelePremiumPlaybackController {
         current = item;
         fallbackAttempted = false;
         cloudStreaming = false;
+        reconnectAttempts = 0;
         pendingResume = item.isVideo() ? resumePrefs.getLong(item.id, item.resumePosition) : item.resumePosition;
         videoWidth = videoHeight = 0;
         notifyMediaChanged();
@@ -371,6 +376,7 @@ public final class TelePremiumPlaybackController {
 
             @Override public void onError(VideoPlayer videoPlayer, Exception e) {
                 if (token != generation) return;
+                if (tryReconnect(item, token, e)) return;
                 if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD && !fallbackAttempted) startFullDownloadFallback(item, token, "Поток прерван");
                 else fail("Декодер устройства не поддерживает этот формат");
             }
@@ -402,6 +408,46 @@ public final class TelePremiumPlaybackController {
             if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD && !fallbackAttempted) startFullDownloadFallback(item, token, "Ошибка потока");
             else fail("Не удалось открыть поток");
         }
+    }
+
+    /** Network/IO playback errors (ExoPlayer codes 2000–2999, timeouts, live-window drops). */
+    private static boolean isNetworkError(Exception e) {
+        if (!(e instanceof PlaybackException)) return false;
+        int code = ((PlaybackException) e).errorCode;
+        return (code >= 2000 && code < 3000) || code == PlaybackException.ERROR_CODE_TIMEOUT
+                || code == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW;
+    }
+
+    private static boolean isRemote(TelePremiumMediaItem item) {
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return item.encryptionVersion == 0;
+        if (TelePremiumYouTube.isYouTube(item)) return true;
+        String scheme = item.uri == null ? null : Uri.parse(item.uri).getScheme();
+        return scheme != null && !"file".equalsIgnoreCase(scheme) && !"content".equalsIgnoreCase(scheme);
+    }
+
+    /**
+     * A dropped connection is reopened at the same position (up to {@link #MAX_RECONNECTS} times
+     * a minute, with growing pauses) instead of failing or downloading the whole Cloud file.
+     * Cloud links and YouTube URLs are resolved again, so expired file references are renewed.
+     */
+    private boolean tryReconnect(TelePremiumMediaItem item, int token, Exception e) {
+        if (!isNetworkError(e) || !isRemote(item) || fallbackAttempted) return false;
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - lastReconnectAt > 60_000L) reconnectAttempts = 0;
+        if (reconnectAttempts >= MAX_RECONNECTS) return false;
+        reconnectAttempts++;
+        lastReconnectAt = now;
+        long position = getPosition();
+        if (!item.live && position > 0) pendingResume = position;
+        releasePlayer();
+        setState(STATE_BUFFERING);
+        handler.postDelayed(() -> {
+            if (token != generation) return;
+            if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) resolveCloud(item, token);
+            else if (TelePremiumYouTube.isYouTube(item)) resolveYouTube(item, token);
+            else startPlayer(Uri.parse(item.uri), item, token);
+        }, 1200L * reconnectAttempts);
+        return true;
     }
 
     private void startFullDownloadFallback(TelePremiumMediaItem item, int token, String reason) {
