@@ -73,6 +73,7 @@ public final class TPAiClient {
     public static String complete(TPAiStore.Connection c, String system, String user) throws IOException {
         if (c == null) throw new IOException("Нет подключения к ИИ");
         if (TextUtils.isEmpty(c.model)) throw new IOException("В подключении не выбрана модель");
+        if (TPOmni.AUTH.equals(c.authType)) return TPOmni.complete(c, system, user);
         String key = TPAiStore.getSecret(c.id);
         try {
             if (TPAiProvider.ANTHROPIC.equals(c.protocol)) {
@@ -123,6 +124,7 @@ public final class TPAiClient {
 
     /** Available model ids of the connection (sorted). */
     public static List<String> models(TPAiStore.Connection c) throws IOException {
+        if (TPOmni.AUTH.equals(c.authType)) return TPOmni.models(c);
         String key = TPAiStore.getSecret(c.id);
         return models(c, key);
     }

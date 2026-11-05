@@ -7,7 +7,7 @@
     {
       "path": "TMessagesProj/build.gradle",
       "base_sha256": "41730d38da7f0486e2cf41e2c0c85a1187ca9473d6de0d84c61205359dde4c45",
-      "sha256": "32256e61a0d5bf4d6e2d306304938d145297463da102f3c377a1d3a57a2e9dd0"
+      "sha256": "4094a5c6f9a6f071bccc7028d535eb878f2510d5fd995250ac7d6c7f11df1861"
     },
     {
       "path": "TMessagesProj/jni/tgnet/ConnectionsManager.cpp",
@@ -27,7 +27,12 @@
     {
       "path": "TMessagesProj/src/main/AndroidManifest.xml",
       "base_sha256": "1ed490c551c32ade792bc390a652e0e4c1c76cd53fca6156152b09ca82df3789",
-      "sha256": "26d19f9f8b05955c4ed9b224db1b8d12607cfe53d531464570854822c1d41a31"
+      "sha256": "f13ef7c76e507c65dd5465bf1f6bff899bf12cb7f8182cf49b2379a50a1949b3"
+    },
+    {
+      "path": "TMessagesProj/src/main/assets/provider_catalog.json",
+      "base_sha256": null,
+      "sha256": "3d02fc452096d40e7f7ef4d6c3c85e48c0f3272b7bbbded90e0c1b05c2ef0cae"
     },
     {
       "path": "TMessagesProj/src/main/assets/telepremium/ai_providers.json",
@@ -43,6 +48,271 @@
       "path": "TMessagesProj/src/main/assets/telepremium/strings_ru.json",
       "base_sha256": null,
       "sha256": "aea79ae4e2434cef22093c4ce758502148b5b2b52e805e8584058daed6476e12"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/BuildConfig.kt",
+      "base_sha256": null,
+      "sha256": "7facb57b23b78bc06868d2182d70c08b95f63be5ba86a2b1994615be447c4856"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/GeminiWebLoginActivity.kt",
+      "base_sha256": null,
+      "sha256": "6aa615c689b7c507f8ceec03c3864b0e22e5de4c0a206e0ce1b19b2a5f8fc746"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/agent/WorkspaceTools.kt",
+      "base_sha256": null,
+      "sha256": "38c56b0dfbd863ed6721b8da698b6d5f797df20417566ef27ed9e26eac55cf9e"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/data/Entities.kt",
+      "base_sha256": null,
+      "sha256": "95317f33bd4cf3fbc5b3348acaab4ba9703ddf5a1b91b2f46e8b5b1c65cf5dfb"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/AiServiceResolver.kt",
+      "base_sha256": null,
+      "sha256": "137802887641e3e8aeb7566204376f2bd28e982ba78cc7e1cb33b28786610305"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/ApiGateway.kt",
+      "base_sha256": null,
+      "sha256": "520992a185aa5742b5961059ae6d0f70813718aa3f4f547f93415419fde22f8a"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/ArchiveContext.kt",
+      "base_sha256": null,
+      "sha256": "8d3f84d05e028a55a2a7d6c17ab8caef2a4549c4cd7845e9cafcf61213bd0a69"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/AuthenticatedRequestExecutor.kt",
+      "base_sha256": null,
+      "sha256": "b1d9e0ad67b8b8b22c7e7fae3cdc46dbd4fe33c27dd67338a2f984e3c06c27ab"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/ChatGptPlanClient.kt",
+      "base_sha256": null,
+      "sha256": "0bb50b588e6b43068578eff64f7081eebd3830e0b63de157abec66744dda66e0"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/ClineAccountClient.kt",
+      "base_sha256": null,
+      "sha256": "e5d411893ae4d36cd88ef7fa3217ece8edb4cbb006cc839ca45553c7262fe5f8"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/ClineAccountRepository.kt",
+      "base_sha256": null,
+      "sha256": "b25db14c156037cfe8b1e2aa13d989fb19982833f8cdc42bb73290ed7a05cd5f"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/DeviceFlowPollBackoff.kt",
+      "base_sha256": null,
+      "sha256": "31f425e63989667d442e8a62fb50efb023a540bb171704cb0d1395b93f400dc0"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebActionRegistry.kt",
+      "base_sha256": null,
+      "sha256": "f4f7c5efc60c348009611b2b828b3924cded4db5875d9d1a1cf886c8a0c1f14f"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebCapabilityBridge.kt",
+      "base_sha256": null,
+      "sha256": "37373dab12bbe82f7195eb69bacc180211a161e30a58534c3a02c7c1223f01a2"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebClient.kt",
+      "base_sha256": null,
+      "sha256": "d91c709cb255300cbf209c932febd81eef6b94c7ceb826d252a41527bc8963a5"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebConsumerProtocol.kt",
+      "base_sha256": null,
+      "sha256": "a774f20cf3754224bc7e752d55a52e4abfdcd61150516aed767a6f3130363bf7"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebRecovery.kt",
+      "base_sha256": null,
+      "sha256": "50210bc141acf451768f377695bf0a223c317e539eb4f921f2267c88bbf52a66"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebSessionEnricher.kt",
+      "base_sha256": null,
+      "sha256": "98ba906b8aaf0416f5592a8f0b92c7a26afe5e1ec1d817ba1a488d1ce49e4a48"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebSessionStore.kt",
+      "base_sha256": null,
+      "sha256": "94cf2575422804c975578513bebf53d7e6f80a3a773212d11d84b423d8bbd1da"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GeminiWebTrafficObserver.kt",
+      "base_sha256": null,
+      "sha256": "80714945c581a84e6f4b194f86327e883ef5176151cde1c86a1fbc2b7dd98feb"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GigaChatAuth.kt",
+      "base_sha256": null,
+      "sha256": "55850be1e1b1100257d420c6aebba2e3620487cb85939b8a82c5be7fc8104dc1"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/GrokSubscriptionSupport.kt",
+      "base_sha256": null,
+      "sha256": "5f29e1a94ebd0bcf3581fc0dcdb00ea44a388ec86c25188288b50fa0b7c8402c"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/KiloGatewayClient.kt",
+      "base_sha256": null,
+      "sha256": "545b6b17dcc6dc86174a8fefdd12aee7bca0d8be9a108cde972a311c1736c38a"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/KimiCodeOAuthRepository.kt",
+      "base_sha256": null,
+      "sha256": "82bef0cc400449e59558d30bd26489142fd7eb079c2c5bc4333450ac2bd012f5"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/NetworkDnsPolicy.kt",
+      "base_sha256": null,
+      "sha256": "bfa09a8c055deb0076aa7363a899a43214cd22ae11b3f4bd07f8a7b92cb36a8f"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/NetworkEndpointPolicy.kt",
+      "base_sha256": null,
+      "sha256": "a9a855cb1514a496df67c3d760d41aee39b7913f24057a7d5bedb5538abbd3d2"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/NvidiaNimClient.kt",
+      "base_sha256": null,
+      "sha256": "b6ac04283d76868ada165eac44913a7d1c8cf6b83df420df173fe45a80b4ac92"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/OAuthPkce.kt",
+      "base_sha256": null,
+      "sha256": "a36cab1649ac01ba83cc53ffae300fd7b02ce826634213707e7ff953312bc192"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/OpenAiCodexAccountClient.kt",
+      "base_sha256": null,
+      "sha256": "f091a10e498ca219011b37c7bb2dcba3290c25ccb17debd90f5c3e9588f77362"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/OpenAiCodexAccountRepository.kt",
+      "base_sha256": null,
+      "sha256": "881dc00c2e5a7c6da8249a9d4220908d05db0c41ad6f75e1d9a6cda683f6b7fc"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/OpenRouterAccountRepository.kt",
+      "base_sha256": null,
+      "sha256": "b14bfa96dc430b18d80e9e6249f095df902aeb5c6f60f50b59fd8facb66789e5"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/PolzaOAuthClient.kt",
+      "base_sha256": null,
+      "sha256": "5c29082a73f917d31d5ca0f62610e930dd93b01899e9825065324791ffe1eae6"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/SseDecoder.kt",
+      "base_sha256": null,
+      "sha256": "75e230ea4a8263ba29be7f7dfaf96bbaa7ca6db9bfb96844a5e144c763f74ccb"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionAdapters.kt",
+      "base_sha256": null,
+      "sha256": "7cdf1f8dd944762129ec71ad510bd647766276daf305f644924d8364835e95de"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionProxyClaudeClient.kt",
+      "base_sha256": null,
+      "sha256": "ca9e71638c416b1fa2909c688e1817ffd7130b2556f7196d7ea78a90bbcd964f"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionProxyGeminiClient.kt",
+      "base_sha256": null,
+      "sha256": "2f321288a53b1d7a4a4fc36c9c73c35e75c0e597ba37a634b877b87d31468692"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionProxyGeminiSupport.kt",
+      "base_sha256": null,
+      "sha256": "651e4d8cf1cde5a23556498903556d69a3482f4817ab6dda7185cd643ef4e88f"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionProxyGrokClient.kt",
+      "base_sha256": null,
+      "sha256": "f0e2382ec7235903e71d6d2fe0af7d271bcf2ad03ba81440457ed8c86f9ea01e"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionProxyRepository.kt",
+      "base_sha256": null,
+      "sha256": "9320e9a6dd0a0a50a7e30037f94795b67df62fa4ec88f081aad9aba0dfeb455b"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionProxyStore.kt",
+      "base_sha256": null,
+      "sha256": "cc4e544b247414dc069f5e1f828563c45db52b6ed1f6341425519aa519e4c40c"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/network/WebViewXrayProxy.kt",
+      "base_sha256": null,
+      "sha256": "b880ba12cb73d28dfbb1fb54b1ecb3168f26b410dae51e6d87ee738998030a1d"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/providers/AccountProviderCatalog.kt",
+      "base_sha256": null,
+      "sha256": "1f92cc0cc0dd70ef79b3be3cec97eb6aa4705d9c204718a38ed68ee9507edbc6"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/providers/ConnectionCore.kt",
+      "base_sha256": null,
+      "sha256": "af185a6c2ac3a3a165cd3787f39b8aa4a9b3012be763fb4b789f42b7060e2f26"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/providers/ConnectionModelCatalogStore.kt",
+      "base_sha256": null,
+      "sha256": "6d2196189e48aab85a835b39703d1bf3e0e4c261af34a60b2bcfe2aec20a2b7a"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/providers/GeminiModelPresentation.kt",
+      "base_sha256": null,
+      "sha256": "e4668ce8548847533bb9f0d60c724f12245b72b985e2046a090628bec11a1264"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/providers/ModelCapabilities.kt",
+      "base_sha256": null,
+      "sha256": "aa4ee21bc73b404788cc99cea354c4dd30f8c709ef70905ddee7e6b52da8cd2d"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/providers/ProviderCatalog.kt",
+      "base_sha256": null,
+      "sha256": "0a70c0b1d806102c3fcdb02518e4c6b43c7049fae9115a2fa1e9377c6e845de8"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/providers/UnifiedConnectionCatalog.kt",
+      "base_sha256": null,
+      "sha256": "d45d5e212bf5a60956c9797219439518998d54930090481e0c140fbb9e47dd28"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/security/AndroidKeystoreAesGcmVault.kt",
+      "base_sha256": null,
+      "sha256": "a4d08d48465fca698d3a7abd0ede02230c37de082391dcad3cde1bd4e1c386ea"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/security/EncryptedPreferences.kt",
+      "base_sha256": null,
+      "sha256": "58864c939ebeb57d98efef6a38648bf69081661fae178a5d56b2bcfd62f810f5"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/security/KeyVault.kt",
+      "base_sha256": null,
+      "sha256": "e5a22fa311752bdfbc6bfade843c55d47407d9d5bd7d31aafb4d3cd03b626392"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/security/SecretCipher.kt",
+      "base_sha256": null,
+      "sha256": "837fd178a405cbc58e9e2a06afa9c50a203f98f06e0ed1029cdec7dd92274f70"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/com/omnichat/app/security/SubscriptionProxyVault.kt",
+      "base_sha256": null,
+      "sha256": "dcc30ec4f4dd773d16f81012c025c5b28e0bc99914c9deb5c996d02881ec38c3"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/AndroidUtilities.java",
@@ -167,7 +437,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/ai/TPAiClient.java",
       "base_sha256": null,
-      "sha256": "8b29d52d2d4be8cdc206f985a2c3ad2eec87c2411cb7a307e71265134463224c"
+      "sha256": "0be1b9ff34c3dd5f2d091dbeb6a6ca4c6604d70633386d4ab8d55d41f3d89e40"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/ai/TPAiOAuth.java",
@@ -183,6 +453,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/ai/TPAiStore.java",
       "base_sha256": null,
       "sha256": "277c4a8841f964dcd5c320a82e9cafd6ddd3f1efa07e4a8565a442d68600429e"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/ai/TPOmni.kt",
+      "base_sha256": null,
+      "sha256": "6377884069e0ce2489dbf8d4f8b4b2509a34e6c3180342da5b2d0ebade94ffc9"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudConflictResolver.java",
@@ -642,7 +917,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAiActivity.java",
       "base_sha256": null,
-      "sha256": "cf2367c9a58abc61f36cbbf0961527d860508d18da98b8134083aeeac162f21b"
+      "sha256": "7bc85db778fc5ae736dc800e89b7c325bee14a15603a98740944529c51a4b9e9"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAppearanceActivity.java",
@@ -718,6 +993,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkProfileActivity.java",
       "base_sha256": null,
       "sha256": "9b611ab0ee0c46749a63ade85367bb5e570338cd9ed6cba4a7c07c124cb64ac4"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumOAuthCallbackActivity.java",
+      "base_sha256": null,
+      "sha256": "14db7bc9a18d9c1357c75313e7bd18737f9acfc9196d168f623636dfda89d0ce"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumOverviewActivity.java",

@@ -1,6 +1,7 @@
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 apply plugin: 'org.telegram.build-plugin'
 apply plugin: 'idea'
 
@@ -117,6 +118,11 @@ dependencies {
     }
 
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs_nio:2.1.5'
+
+    // TelePremium: OmniChat connection layer (Kotlin) — account/subscription sign-ins and transports.
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+    implementation 'androidx.room:room-common:2.6.1'
 }
 
 android {
@@ -143,6 +149,10 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
 
         coreLibraryDesugaringEnabled true
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
     }
 
     defaultConfig {

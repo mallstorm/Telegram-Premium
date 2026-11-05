@@ -23,6 +23,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.telepremium.TPStrings;
 import org.telegram.messenger.telepremium.ai.TPAiClient;
 import org.telegram.messenger.telepremium.ai.TPAiOAuth;
+import org.telegram.messenger.telepremium.ai.TPOmni;
 import org.telegram.messenger.telepremium.ai.TPAiProvider;
 import org.telegram.messenger.telepremium.ai.TPAiStore;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -82,7 +83,7 @@ public class TelePremiumAiActivity extends BaseFragment {
         }
         for (TPAiStore.Connection c : all) {
             TPAiProvider p = TPAiProvider.find(getParentActivity(), c.providerId);
-            String sub = (p == null ? c.providerId : p.name) + "\n" + (TextUtils.isEmpty(c.model) ? L("модель не выбрана", "no model") : c.model);
+            String sub = (p == null ? (TPOmni.AUTH.equals(c.authType) ? L("аккаунт · ", "account · ") + c.providerId : c.providerId) : p.name) + "\n" + (TextUtils.isEmpty(c.model) ? L("модель не выбрана", "no model") : c.model);
             boolean isDefault = def != null && def.id.equals(c.id);
             ui.row(c.title(), sub, R.drawable.tp_ic_ai, isDefault ? TelePremiumSettingsUi.PURPLE : TelePremiumSettingsUi.INDIGO,
                     isDefault ? L("Основное", "Default") : null, v -> showActions(c));
@@ -107,6 +108,42 @@ public class TelePremiumAiActivity extends BaseFragment {
                     if (custom != null) editConnection(custom, null);
                 });
 
+        ui.section(L("Подписки и аккаунты", "Subscriptions & accounts"));
+        ui.row("ChatGPT · " + L("подписка", "subscription"), L("OAuth в браузере · модели вашего тарифа ChatGPT", "Browser OAuth · models of your ChatGPT plan"),
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.GREEN, null, v -> browser(TPOmni.KIND_CHATGPT));
+        ui.row("OpenAI Codex", L("Вход по коду устройства · подписка ChatGPT Plus/Pro", "Device code sign-in · ChatGPT Plus/Pro"),
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.MINT, null, v -> device(TPOmni.KIND_CODEX));
+        ui.row("ChatGPT · JSON " + L("сессия", "session"), L("Экспериментально · JSON из chatgpt.com/api/auth/session", "Experimental · JSON from chatgpt.com/api/auth/session"),
+                R.drawable.tp_ic_key, TelePremiumSettingsUi.SLATE, null, v -> importChatGptJson());
+        ui.row("xAI Grok", L("Вход по коду устройства · подписка Grok", "Device code sign-in · Grok subscription"),
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.SLATE, null, v -> device(TPOmni.KIND_GROK));
+        ui.row("Google Gemini · Antigravity", L("Google OAuth в браузере · Cloud Code", "Google OAuth in the browser · Cloud Code"),
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.BLUE, null, v -> browser(TPOmni.KIND_GEMINI));
+        ui.row("Gemini Web", L("Экспериментально · вход на gemini.google.com во встроенном браузере", "Experimental · sign in to gemini.google.com in a built-in browser"),
+                R.drawable.tp_ic_public, TelePremiumSettingsUi.SKY, null, v -> {
+                    if (getParentActivity() != null) getParentActivity().startActivity(new Intent(getParentActivity(), com.omnichat.app.GeminiWebLoginActivity.class));
+                });
+        ui.row("Kilo Code", L("Вход по коду устройства · Kilo Gateway", "Device code sign-in · Kilo Gateway"),
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.ORANGE, null, v -> device(TPOmni.KIND_KILO));
+        ui.row("Cline", L("Вход по коду · Billing, ClinePass и Free", "Device code · Billing, ClinePass and Free"),
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.PURPLE, null, v -> device(TPOmni.KIND_CLINE));
+        ui.row("Kimi Code", L("Вход по коду устройства · подписка Kimi", "Device code sign-in · Kimi subscription"),
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.INDIGO, null, v -> device(TPOmni.KIND_KIMI));
+        ui.row("Requesty", L("Вход в браузере · бесплатные модели + PAYG", "Browser sign-in · free models + PAYG"),
+                R.drawable.tp_ic_link, TelePremiumSettingsUi.TEAL, null, v -> openUrl("https://app.requesty.ai/oauth/authorize?callback_url=" + Uri.encode("telepremium://requesty/oauth")));
+        ui.row("Zoo Code", L("Вход в браузере · Zoo Gateway", "Browser sign-in · Zoo Gateway"),
+                R.drawable.tp_ic_link, TelePremiumSettingsUi.AMBER, null, v -> openUrl("https://www.zoocode.dev/dashboard/connect?device=" + Uri.encode(android.os.Build.MODEL)
+                        + "&editor=TelePremium&version=1.0.2&callback_uri=" + Uri.encode("telepremium://zoo/auth-callback")));
+        ui.row(L("NVIDIA NIM и сервисы по ключу", "NVIDIA NIM and key services"),
+                L("VseGPT, OpenCode Zen/Go, Cloudflare, Cohere, Groq, Mistral и другие из OmniChat", "VseGPT, OpenCode Zen/Go, Cloudflare, Cohere, Groq, Mistral and more from OmniChat"),
+                R.drawable.tp_ic_key, TelePremiumSettingsUi.GREEN, null, v -> pickAccountSpec());
+        ui.row("CLIProxyAPI", L("Свой прокси подписок · адрес и токен", "Own subscription proxy · URL and token"),
+                R.drawable.tp_ic_device, TelePremiumSettingsUi.SLATE, null, v -> externalProxy());
+        ui.note(L("Подключения ChatGPT, Codex, Grok, Gemini и других подписок работают как в OmniChat: приложение входит от имени их официальных клиентов. "
+                        + "Это против правил сервисов — аккаунт могут ограничить. Вход по подписке Claude не поддерживается: используйте API-ключ Anthropic.",
+                "ChatGPT, Codex, Grok, Gemini and other subscription sign-ins work as in OmniChat: the app signs in as their official clients. "
+                        + "This is against the services' terms — accounts may be restricted. Claude subscription sign-in is not supported: use an Anthropic API key."));
+
         ui.note(L("Ключи шифруются ключом Android Keystore и отправляются только на адрес своего провайдера. "
                         + "Основное подключение используется кнопкой ✨ в редакторе статей.",
                 "Keys are encrypted with an Android Keystore key and are sent only to their own provider. "
@@ -130,6 +167,7 @@ public class TelePremiumAiActivity extends BaseFragment {
                 case 1: test(c); break;
                 case 2: chooseModel(c, null, model -> { c.model = model; TPAiStore.save(c, null); render(); }); break;
                 case 3: {
+                    if (TPOmni.AUTH.equals(c.authType)) { toast(L("Это подключение управляется входом в аккаунт", "This connection is managed by the account sign-in")); break; }
                     TPAiProvider p = TPAiProvider.find(getParentActivity(), c.providerId);
                     if (p == null) p = TPAiProvider.find(getParentActivity(), TPAiProvider.CUSTOM);
                     editConnection(p, c);
@@ -138,7 +176,11 @@ public class TelePremiumAiActivity extends BaseFragment {
                 case 4:
                     new AlertDialog.Builder(getParentActivity()).setTitle(L("Удалить подключение?", "Delete connection?"))
                             .setMessage(c.title())
-                            .setPositiveButton(L("Удалить", "Delete"), (d2, w2) -> { TPAiStore.delete(c.id); render(); })
+                            .setPositiveButton(L("Удалить", "Delete"), (d2, w2) -> {
+                                if (TPOmni.AUTH.equals(c.authType)) TPOmni.disconnect(c.providerId);
+                                TPAiStore.delete(c.id);
+                                render();
+                            })
                             .setNegativeButton(L("Отмена", "Cancel"), null).show();
                     break;
             }
@@ -195,6 +237,167 @@ public class TelePremiumAiActivity extends BaseFragment {
         } catch (Exception e) {
             alert(L("Ошибка", "Error"), e.getMessage());
         }
+    }
+
+    // ------------------------------------------------------------------ OmniChat accounts
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        render(); // Gemini Web login activity and browser callbacks add connections meanwhile
+    }
+
+    private void openUrl(String url) {
+        if (getParentActivity() == null) return;
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getParentActivity().startActivity(intent);
+            toast(L("Завершите вход в браузере — TelePremium подключит аккаунт сам", "Finish signing in in the browser — TelePremium connects it automatically"));
+        } catch (Exception e) {
+            alert(L("Ошибка", "Error"), e.getMessage());
+        }
+    }
+
+    private AlertDialog spinner() {
+        AlertDialog progress = new AlertDialog(getParentActivity(), AlertDialog.ALERT_TYPE_SPINNER);
+        progress.setCanCancel(false);
+        progress.show();
+        return progress;
+    }
+
+    private void done(String message, String error) {
+        render();
+        if (error != null) alert(L("Не подключено", "Not connected"), error);
+        else alert(L("Готово", "Done"), message);
+    }
+
+    private void device(String kind) {
+        if (getParentActivity() == null) return;
+        AlertDialog progress = spinner();
+        TPAiClient.async(() -> TPOmni.beginDevice(kind), (dev, error) -> {
+            try { progress.dismiss(); } catch (Exception ignore) {}
+            if (error != null || dev == null) { alert(L("Ошибка", "Error"), error); return; }
+            Context context = getParentActivity();
+            if (context == null) return;
+            java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
+            TextView code = new TextView(context);
+            code.setText(dev.userCode);
+            code.setTextIsSelectable(true);
+            code.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 28);
+            code.setTypeface(AndroidUtilities.bold());
+            code.setGravity(android.view.Gravity.CENTER);
+            code.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            code.setPadding(0, AndroidUtilities.dp(16), 0, AndroidUtilities.dp(8));
+            new AlertDialog.Builder(context)
+                    .setTitle(L("Код для входа", "Sign-in code"))
+                    .setView(code)
+                    .setPositiveButton(L("Скопировать и открыть", "Copy and open"), (d, w) -> {
+                        AndroidUtilities.addToClipboard(dev.userCode);
+                        openUrl(dev.url);
+                    })
+                    .setNegativeButton(L("Отмена", "Cancel"), (d, w) -> cancelled.set(true))
+                    .show();
+            TPAiClient.async(() -> TPOmni.awaitDevice(dev, cancelled), (message, err) -> {
+                if (cancelled.get()) return;
+                done(message, err);
+            });
+        });
+    }
+
+    private TPOmni.Browser pendingBrowser;
+
+    private void browser(String kind) {
+        if (getParentActivity() == null) return;
+        TPOmni.cancelBrowser(pendingBrowser);
+        TPAiClient.async(() -> TPOmni.beginBrowser(kind), (b, error) -> {
+            if (error != null || b == null) { alert(L("Ошибка", "Error"), error); return; }
+            pendingBrowser = b;
+            openUrl(b.url);
+            TPAiClient.async(() -> TPOmni.awaitBrowser(b), (message, err) -> {
+                if (pendingBrowser == b) pendingBrowser = null;
+                done(message, err);
+            });
+        });
+    }
+
+    private void importChatGptJson() {
+        Context context = getParentActivity();
+        if (context == null) return;
+        LinearLayout box = new LinearLayout(context);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8), AndroidUtilities.dp(22), 0);
+        EditText json = field(context, box, L("JSON со страницы chatgpt.com/api/auth/session", "JSON from chatgpt.com/api/auth/session"), "",
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        json.setSingleLine(false);
+        json.setMaxLines(6);
+        new AlertDialog.Builder(context).setTitle("ChatGPT · JSON").setView(box)
+                .setPositiveButton(L("Импорт", "Import"), (d, w) -> {
+                    String raw = json.getText().toString().trim();
+                    if (raw.isEmpty()) return;
+                    AlertDialog progress = spinner();
+                    TPAiClient.async(() -> TPOmni.importChatGptJson(raw), (message, err) -> {
+                        try { progress.dismiss(); } catch (Exception ignore) {}
+                        done(message, err);
+                    });
+                })
+                .setNegativeButton(L("Отмена", "Cancel"), null).show();
+    }
+
+    private void externalProxy() {
+        Context context = getParentActivity();
+        if (context == null) return;
+        LinearLayout box = new LinearLayout(context);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8), AndroidUtilities.dp(22), 0);
+        EditText base = field(context, box, L("Адрес CLIProxyAPI (…/v1)", "CLIProxyAPI URL (…/v1)"), "http://", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        EditText bearer = field(context, box, L("Токен (если нужен)", "Token (optional)"), "", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        new AlertDialog.Builder(context).setTitle("CLIProxyAPI").setView(box)
+                .setPositiveButton(L("Подключить", "Connect"), (d, w) -> {
+                    String url = base.getText().toString().trim(), token = bearer.getText().toString().trim();
+                    AlertDialog progress = spinner();
+                    TPAiClient.async(() -> TPOmni.saveExternalProxy(url, token), (message, err) -> {
+                        try { progress.dismiss(); } catch (Exception ignore) {}
+                        done(message, err);
+                    });
+                })
+                .setNegativeButton(L("Отмена", "Cancel"), null).show();
+    }
+
+    private void pickAccountSpec() {
+        ArrayList<com.omnichat.app.providers.AccountProviderSpec> specs = new ArrayList<>();
+        for (com.omnichat.app.providers.AccountProviderSpec spec : TPOmni.accountSpecs()) {
+            if (spec.getAuthMode() == com.omnichat.app.providers.AccountAuthMode.API_KEY) specs.add(spec);
+        }
+        ArrayList<String> labels = new ArrayList<>();
+        for (com.omnichat.app.providers.AccountProviderSpec spec : specs) labels.add(spec.getName() + "  ·  " + spec.getAccessLabel());
+        pickFromList(L("Сервис", "Service"), labels, index -> {
+            com.omnichat.app.providers.AccountProviderSpec spec = specs.get(index);
+            Context context = getParentActivity();
+            if (context == null) return;
+            LinearLayout box = new LinearLayout(context);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8), AndroidUtilities.dp(22), 0);
+            TextView about = new TextView(context);
+            about.setText(spec.getDescription());
+            about.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            about.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+            box.addView(about);
+            EditText key = field(context, box, L("API-ключ", "API key"), "", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            EditText account = spec.getRequiresAccountId() ? field(context, box, spec.getAccountIdLabel(), "", InputType.TYPE_CLASS_TEXT) : null;
+            new AlertDialog.Builder(context).setTitle(spec.getName()).setView(box)
+                    .setPositiveButton(L("Подключить", "Connect"), (d, w) -> {
+                        String k = key.getText().toString().trim();
+                        String a = account == null ? "" : account.getText().toString().trim();
+                        AlertDialog progress = spinner();
+                        TPAiClient.async(() -> TPOmni.connectAccount(spec.getId(), k, a), (message, err) -> {
+                            try { progress.dismiss(); } catch (Exception ignore) {}
+                            done(message, err);
+                        });
+                    })
+                    .setNeutralButton(L("Получить ключ", "Get a key"), (d, w) -> openUrl(spec.getAccountUrl()))
+                    .setNegativeButton(L("Отмена", "Cancel"), null).show();
+        });
     }
 
     // ------------------------------------------------------------------ editor
