@@ -32,7 +32,7 @@
     {
       "path": "TMessagesProj/src/main/assets/telepremium/strings_ru.json",
       "base_sha256": null,
-      "sha256": "b8838ce37533e94cc2d827b8f2011a6b522bd0e4ada2fc3f930973f627051635"
+      "sha256": "aea79ae4e2434cef22093c4ce758502148b5b2b52e805e8584058daed6476e12"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/AndroidUtilities.java",
@@ -337,17 +337,17 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaNotificationViews.java",
       "base_sha256": null,
-      "sha256": "5bdf78290ddd936ff797dfa29c5ab0dc29f8c92f1807d8b43aa00d7dfad8d30f"
+      "sha256": "2eb3da250d7670d699bb22250fa46508529dbcde77b44fda83ea7df9e57867a8"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaSessionService.java",
       "base_sha256": null,
-      "sha256": "dbbb76ec44118d6829e235aef1f9ba2da54c161a3f6b36afff4e6ee0309660a0"
+      "sha256": "78a099d27922f03a497206eaf35a0e50558071eb4181df9c68171888ec0f9be2"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaStoreRepository.java",
       "base_sha256": null,
-      "sha256": "d9d8070c17f558947f29f18372e9ba6c20d6c30eaadbcbf877781fed9e130349"
+      "sha256": "23a6fac2c3d6670af5ce0c4a84f3c86774af58a6c4301ff2bd2f414843d7b50a"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMultipartDataSource.java",
@@ -587,12 +587,17 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/SettingsActivity.java",
       "base_sha256": "bae838c93d17001f9fdb403db147e9a633b32fee4e3055938141a67af011367e",
-      "sha256": "bf911e46c795f3cce41dadf9a464c37e603954f2d071b2b8a978c962c65a79ba"
+      "sha256": "e6eebad00e8003fd2a4887add4d8a49377e9280fd3a7b3b165c945f10f0c27d4"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAccountCenterActivity.java",
       "base_sha256": null,
       "sha256": "d531eb817e3cba070bbd199a71cf7462e583b5e1b43e28976fc450573699efa5"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAccountSwitcher.java",
+      "base_sha256": null,
+      "sha256": "1ca6f286cfe561eb6eaf720a20427466bec29728da3f2083a372f71d9f75a7a1"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAppearanceActivity.java",
@@ -682,7 +687,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPlayerActivity.java",
       "base_sha256": null,
-      "sha256": "440c07e75212812920bbed5e2d6d2a1558c69a5b91cf0503dbfe5829bdb54bc6"
+      "sha256": "756f347b0f450ebbd4336f51bb216f2ec8cb731b4ed7f246244022664a11ce27"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPlayerKit.java",
@@ -703,6 +708,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumQrLoginDialog.java",
       "base_sha256": null,
       "sha256": "af49dc80c08e1b213ff5d85a3a0843ecbf51afa5d3c05e3cc4851408d25c79bb"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumQueueSheet.java",
+      "base_sha256": null,
+      "sha256": "cfddde2e579ce144e1304efa4f310d757cff502e2a92fab586fe9016a68b2b3b"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumServiceActivity.java",
@@ -840,6 +850,11 @@
       "sha256": "6270bd08242888e7ece66c41937982f7d333559e7f348a7824ac6edbf0a7f736"
     },
     {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_clear_all.xml",
+      "base_sha256": null,
+      "sha256": "d8e02544c9e7a6039b303c265fcfada96675e160059323403f015ecc9bee00c7"
+    },
+    {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_close.xml",
       "base_sha256": null,
       "sha256": "38b82aaa5468c3a82d34226733a55ec8c396d658f2f5b5e09ed643e2b1199c65"
@@ -850,9 +865,19 @@
       "sha256": "e0a78c72a03a04479c14f4ca0d46b91333256f3ecc78b91dc3aa608be2ddb899"
     },
     {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_delete.xml",
+      "base_sha256": null,
+      "sha256": "dcd2a00e8f7e6740b728fd540cde983aac1da961e8e21bc52ded0710c9d54459"
+    },
+    {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_device.xml",
       "base_sha256": null,
       "sha256": "55aa2b3846d790950da76381dc813612c310bc05e7d830578961f91feaa6865e"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_ic_drag.xml",
+      "base_sha256": null,
+      "sha256": "d80acd363bb6b4f461f5907125f5349a3a4fff6fa0a5b5e45ff758f2c153d955"
     },
     {
       "path": "TMessagesProj/src/main/res/drawable/tp_ic_equalizer.xml",
@@ -1055,6 +1080,16 @@
       "sha256": "c3da77db8080eb0b8e3c010f0b75c381ccb693c8f50e6a4e7d2b8f00c80ac967"
     },
     {
+      "path": "TMessagesProj/src/main/res/drawable/tp_notif_rec_off.xml",
+      "base_sha256": null,
+      "sha256": "d2029cc36a22c5766f1715675d526645bf6ee2bb49e3d95ef907938394ff9ac3"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_notif_rec_on.xml",
+      "base_sha256": null,
+      "sha256": "663a6a9ed029f546d9ef2e9f64fc797026745e9de81580ce3dcb181d91b56865"
+    },
+    {
       "path": "TMessagesProj/src/main/res/drawable/tp_theme_dark_graphite.xml",
       "base_sha256": null,
       "sha256": "ee1e52c9fd07544c82b7e46fd7e0760e650a5648abc7c420d1206022c5aae399"
@@ -1107,7 +1142,7 @@
     {
       "path": "TMessagesProj/src/main/res/layout/tp_media_notification_big.xml",
       "base_sha256": null,
-      "sha256": "42f96f41685b23d96a2dcdb9b537694cac39d6da5b37506ff928dfeb209a40f4"
+      "sha256": "018fcb68bff46293aab7383608fc79f5a7ace7c32203bb6f350b5c39476b48e6"
     },
     {
       "path": "TMessagesProj/src/main/res/layout/tp_media_notification_small.xml",
@@ -1122,7 +1157,7 @@
     {
       "path": "TMessagesProj/src/main/res/values/strings_telepremium_ui.xml",
       "base_sha256": null,
-      "sha256": "0653f157ddb162068fb4ea6ffa08d95d53bfdf15012602392807f2d95593e520"
+      "sha256": "bdfc6ef25ef7200199b53c80e890a5f27f19035d2914fdc5c6dc799e850c120b"
     },
     {
       "path": "TMessagesProj/src/main/res/xml/provider_paths.xml",

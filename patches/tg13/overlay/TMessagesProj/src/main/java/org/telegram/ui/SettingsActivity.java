@@ -463,6 +463,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         cameraButton.addView(cameraBackground, LayoutHelper.createFrame(30, 30));
         avatarContainer.addView(cameraButton, LayoutHelper.createFrame(34, 34, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 32, 75, 0, 0));
         ScaleStateListAnimator.apply(cameraButton);
+        // TelePremium: swipe the avatar or tap the side avatars to switch accounts.
+        TelePremiumAccountSwitcher.attach(this, topView, avatarContainer);
 
         titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
@@ -701,7 +703,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             items.add(UItem.asShadow(null));
         }
 
-        if (accountNumbers.size() > 0) {
+        // TelePremium: the account list block is replaced by swiping the header avatar.
+        if (accountNumbers.size() > 0 && false) {
             items.add(UItem.asHeader(getString(R.string.SettingsAccounts)));
             for (int i = 0; i < accountNumbers.size(); ++i) {
                 items.add(AccountCell.Factory.of(i, accountNumbers.get(i)));

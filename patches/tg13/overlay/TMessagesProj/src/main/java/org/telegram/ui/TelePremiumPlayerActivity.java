@@ -1115,54 +1115,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     }
 
     private void showQueue() {
-        Dialog dialog = new Dialog(this);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(16), dp(12), dp(16), dp(20));
-        content.setBackgroundColor(mediaTheme.surfaceElevated);
-        TextView heading = text(t("TP_L10N_483", R.string.TP_L10N_483), 19, mediaTheme.textPrimary, true);
-        content.addView(heading, new LinearLayout.LayoutParams(-1, dp(48)));
-
-        List<TelePremiumMediaItem> items = controller.getQueue().snapshot();
-        int currentIndex = controller.getQueue().getCurrentIndex();
-        for (int i = 0; i < items.size(); i++) {
-            final int index = i;
-            TelePremiumMediaItem item = items.get(i);
-            LinearLayout row = new LinearLayout(this);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(8), dp(4), dp(4), dp(4));
-            TextView label = text((i == currentIndex ? "▶  " : (i + 1) + ".  ") + item.title + "\n" + item.sourceLabel(),
-                    13, i == currentIndex ? mediaTheme.accent : mediaTheme.textPrimary, false);
-            row.addView(label, new LinearLayout.LayoutParams(0, dp(56), 1f));
-            TextView up = transparentButton("↑", 20);
-            up.setOnClickListener(v -> { if (index > 0) controller.getQueue().move(index, index - 1); dialog.dismiss(); showQueue(); });
-            row.addView(up, new LinearLayout.LayoutParams(dp(42), dp(50)));
-            TextView down = transparentButton("↓", 20);
-            down.setOnClickListener(v -> { if (index + 1 < controller.getQueue().size()) controller.getQueue().move(index, index + 1); dialog.dismiss(); showQueue(); });
-            row.addView(down, new LinearLayout.LayoutParams(dp(42), dp(50)));
-            TextView remove = transparentButton("×", 22);
-            remove.setOnClickListener(v -> { controller.getQueue().remove(index); dialog.dismiss(); showQueue(); });
-            row.addView(remove, new LinearLayout.LayoutParams(dp(42), dp(50)));
-            label.setOnClickListener(v -> { controller.getQueue().setCurrentIndex(index); controller.playCurrent(); dialog.dismiss(); });
-            content.addView(row, new LinearLayout.LayoutParams(-1, dp(62)));
-        }
-
-        TextView mediaCenter = pill(t("TP_L10N_484", R.string.TP_L10N_484));
-        mediaCenter.setGravity(Gravity.CENTER);
-        mediaCenter.setOnClickListener(v -> { startActivity(new Intent(this, TelePremiumMediaCenterActivity.class)); dialog.dismiss(); });
-        content.addView(mediaCenter, new LinearLayout.LayoutParams(-1, dp(54)));
-        dialog.setContentView(content);
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawableResource(android.R.color.transparent);
-            window.setLayout(-1, -2);
-            window.setGravity(Gravity.BOTTOM);
-        }
-        dialog.setOnShowListener(d -> {
-            Window w = dialog.getWindow();
-            if (w != null) { w.setLayout(-1, -2); w.setGravity(Gravity.BOTTOM); }
-        });
-        dialog.show();
+        TelePremiumQueueSheet.show(this, mediaTheme);
     }
 
     private void setupGestures() {

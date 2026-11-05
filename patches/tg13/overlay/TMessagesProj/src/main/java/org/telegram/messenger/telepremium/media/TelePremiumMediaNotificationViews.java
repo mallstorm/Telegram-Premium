@@ -51,6 +51,9 @@ final class TelePremiumMediaNotificationViews {
     private Bitmap artBig, artSmall;
     private Bitmap playBitmap, pauseBitmap;
     private String themeId;
+    /** Android 12+: the system draws the card frame; we blend into it instead of painting a dark block. */
+    private final boolean decorated = android.os.Build.VERSION.SDK_INT >= 31;
+    private int fg, fg2;
 
     TelePremiumMediaNotificationViews(Context context) {
         this.context = context;
@@ -60,6 +63,12 @@ final class TelePremiumMediaNotificationViews {
     private int dp(float v) { return Math.round(v * density); }
 
     private void ensureTheme() {
+        if (decorated) {
+            boolean night = (context.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                    == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+            fg = night ? 0xfff2f3f5 : 0xff1b1d21;
+            fg2 = night ? 0xb3ffffff : 0x99000000;
+        }
         TelePremiumMediaTheme fresh = TelePremiumMediaTheme.from(context);
         if (theme == null || themeId == null || !themeId.equals(fresh.preset.id)) {
             theme = fresh;
@@ -68,6 +77,10 @@ final class TelePremiumMediaNotificationViews {
             pauseBitmap = null;
             artKey = null;
         }
+        if (!decorated) {
+            fg = theme.textPrimary;
+            fg2 = theme.textSecondary;
+        }
     }
 
     RemoteViews big(TelePremiumMediaItem item, Bitmap logo, boolean playing, long position, long duration, long buffered, Actions actions) {
@@ -75,12 +88,15 @@ final class TelePremiumMediaNotificationViews {
         RemoteViews v = new RemoteViews(context.getPackageName(), R.layout.tp_media_notification_big);
         bindCommon(v, item, logo, playing, actions, true);
         boolean rec = TelePremiumStreamRecorder.isRecording();
-        v.setTextViewText(R.id.tp_notif_app, rec ? "● REC " + formatTime(TelePremiumStreamRecorder.elapsedMs()) + " · " + kindLabel(item) : "TelePremium · " + kindLabel(item));
-        v.setTextColor(R.id.tp_notif_app, rec ? 0xffe53935 : theme.accent);
-        v.setInt(R.id.tp_notif_rec, "setColorFilter", rec ? 0xffe53935 : theme.withAlpha(0xffe53935, 0x99));
+        v.setTextViewText(R.id.tp_notif_app, "TelePremium · " + kindLabel(item));
+        v.setTextColor(R.id.tp_notif_app, theme.accent);
+        v.setTextViewText(R.id.tp_notif_rec, rec ? "● " + formatTime(TelePremiumStreamRecorder.elapsedMs()) : "REC");
+        v.setTextColor(R.id.tp_notif_rec, rec ? 0xffffffff : 0xffe53935);
+        v.setInt(R.id.tp_notif_rec, "setBackgroundResource", rec ? R.drawable.tp_notif_rec_on : R.drawable.tp_notif_rec_off);
         v.setOnClickPendingIntent(R.id.tp_notif_rec, actions.record());
         v.setOnClickPendingIntent(R.id.tp_notif_close, actions.close());
-        v.setInt(R.id.tp_notif_close, "setColorFilter", theme.textSecondary);
+        v.setInt(R.id.tp_notif_close, "setColorFilter", fg2);
+        if (decorated) v.setViewPadding(R.id.tp_notif_root, 0, dp(2), 0, dp(6));
         boolean live = item != null && item.live || duration <= 0;
         if (live) {
             v.setViewVisibility(R.id.tp_notif_progress_box, View.GONE);
@@ -98,8 +114,8 @@ final class TelePremiumMediaNotificationViews {
             v.setImageViewBitmap(R.id.tp_notif_progress, progressBitmap(position, duration, buffered));
             v.setTextViewText(R.id.tp_notif_elapsed, formatTime(position));
             v.setTextViewText(R.id.tp_notif_total, formatTime(duration));
-            v.setTextColor(R.id.tp_notif_elapsed, theme.textSecondary);
-            v.setTextColor(R.id.tp_notif_total, theme.textSecondary);
+            v.setTextColor(R.id.tp_notif_elapsed, fg2);
+            v.setTextColor(R.id.tp_notif_total, fg2);
             for (int i = 0; i < SEEK_IDS.length; i++) v.setOnClickPendingIntent(SEEK_IDS[i], actions.seek(i));
         }
         return v;
@@ -120,24 +136,36 @@ final class TelePremiumMediaNotificationViews {
     }
 
     private void bindCommon(RemoteViews v, TelePremiumMediaItem item, Bitmap logo, boolean playing, Actions actions, boolean big) {
-        v.setInt(R.id.tp_notif_root, "setBackgroundColor", theme.surface);
-        v.setTextViewText(R.id.tp_notif_title, item == null ? "TelePremium" : item.title);
-        v.setTextColor(R.id.tp_notif_title, theme.textPrimary);
+        v.setInt(R.id.tp_notif_root, "setBackgroundColor", decorated ? 0 : theme.surface);
+        v.setTextViewText(R.id.tp_notif_title, item == null ? "TelePremium" : cleanTitle(item));
+        v.setTextColor(R.id.tp_notif_title, fg);
         v.setTextViewText(R.id.tp_notif_subtitle, subtitle(item));
-        v.setTextColor(R.id.tp_notif_subtitle, theme.textSecondary);
+        v.setTextColor(R.id.tp_notif_subtitle, fg2);
         v.setImageViewBitmap(R.id.tp_notif_art, artwork(item, logo, big));
-        v.setInt(R.id.tp_notif_prev, "setColorFilter", theme.textPrimary);
-        v.setInt(R.id.tp_notif_next, "setColorFilter", theme.textPrimary);
+        v.setInt(R.id.tp_notif_prev, "setColorFilter", fg);
+        v.setInt(R.id.tp_notif_next, "setColorFilter", fg);
         v.setImageViewBitmap(R.id.tp_notif_play, playing ? pauseBitmap() : playBitmap());
         v.setOnClickPendingIntent(R.id.tp_notif_prev, actions.previous());
         v.setOnClickPendingIntent(R.id.tp_notif_play, actions.toggle());
         v.setOnClickPendingIntent(R.id.tp_notif_next, actions.next());
     }
 
+    /** "Morozoff_-_Some_Song.mp3" → "Morozoff - Some Song". */
+    static String cleanTitle(TelePremiumMediaItem item) {
+        String title = item.title == null ? "" : item.title;
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_DEVICE || item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) {
+            int dot = title.lastIndexOf('.');
+            if (dot > 0 && title.length() - dot <= 5) title = title.substring(0, dot);
+        }
+        if (!title.contains(" ") && title.contains("_")) title = title.replace('_', ' ');
+        return title.replaceAll("\\s*-\\s*-\\s*|\\s+-\\s+", " - ").replaceAll("\\s{2,}", " ").trim();
+    }
+
     private static String subtitle(TelePremiumMediaItem item) {
         if (item == null) return "";
         StringBuilder b = new StringBuilder();
-        if (!TextUtils.isEmpty(item.artist)) b.append(item.artist);
+        if (!TextUtils.isEmpty(item.artist) && !"<unknown>".equals(item.artist)) b.append(item.artist);
+        else if (!TextUtils.isEmpty(item.folder)) b.append(item.folder);
         if (item.sourceType == TelePremiumMediaItem.SOURCE_NETWORK && !TextUtils.isEmpty(item.album)) {
             if (b.length() > 0) b.append(" · ");
             b.append(item.album);
@@ -243,7 +271,7 @@ final class TelePremiumMediaNotificationViews {
 
     /** Seek bar picture: track, buffered range, progress and a round thumb (taps go to the overlay segments). */
     private Bitmap progressBitmap(long position, long duration, long buffered) {
-        int width = Math.max(dp(160), context.getResources().getDisplayMetrics().widthPixels - dp(64));
+        int width = Math.max(dp(160), context.getResources().getDisplayMetrics().widthPixels - dp(decorated ? 70 : 64));
         int height = dp(28);
         Bitmap out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(out);

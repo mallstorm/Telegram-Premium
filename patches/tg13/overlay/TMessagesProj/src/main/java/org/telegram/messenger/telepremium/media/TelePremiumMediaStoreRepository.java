@@ -77,6 +77,10 @@ public final class TelePremiumMediaStoreRepository {
         out.putAll(sorted);
     }
 
+    private static String known(String value) {
+        return value == null || value.isEmpty() || "<unknown>".equals(value) ? null : value;
+    }
+
     /** "Music/Albums" from RELATIVE_PATH (Android 10+) or the file path. */
     private static String folderOf(Cursor cursor, int relative, int data) {
         String value = null;
@@ -150,8 +154,8 @@ public final class TelePremiumMediaStoreRepository {
                 if (folders != null && !allowed(folders, folder)) continue;
                 Uri uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, cursor.getLong(id));
                 TelePremiumMediaItem item = TelePremiumMediaItem.device(uri.toString(), cursor.getString(name), cursor.getString(mime), cursor.getLong(duration), cursor.getLong(size));
-                item.artist = cursor.getString(artist);
-                item.album = cursor.getString(album);
+                item.artist = known(cursor.getString(artist));
+                item.album = known(cursor.getString(album));
                 item.mediaType = TelePremiumMediaItem.TYPE_AUDIO;
                 item.folder = folder;
                 out.add(item);

@@ -648,4 +648,14 @@
     <string name="TP_MC_ALL_FOLDERS" formatted="false">"All folders"</string>
     <string name="TP_MC_FOLDERS_MUSIC" formatted="false">"Music folders"</string>
     <string name="TP_MC_FOLDERS_VIDEO" formatted="false">"Video folders"</string>
+    <string name="TP_Q_SHUFFLE" formatted="false">"Shuffle"</string>
+    <string name="TP_Q_REPEAT" formatted="false">"Repeat"</string>
+    <string name="TP_Q_CLEAR" formatted="false">"Clear upcoming"</string>
+    <string name="TP_Q_HINT" formatted="false">"Tap to play · hold or drag ≡ to reorder · swipe to remove"</string>
+    <string name="TP_Q_NOW" formatted="false">"Now playing"</string>
+    <string name="TP_Q_COUNT_VIDEO" formatted="false">"%1$d videos"</string>
+    <string name="TP_Q_COUNT_AUDIO" formatted="false">"%1$d tracks"</string>
+    <string name="TP_Q_LEFT" formatted="false">"%1$s left"</string>
+    <string name="TP_Q_CLEARED" formatted="false">"Upcoming items removed"</string>
+    <string name="TP_Q_REMOVED" formatted="false">"Removed: %1$s"</string>
 </resources>

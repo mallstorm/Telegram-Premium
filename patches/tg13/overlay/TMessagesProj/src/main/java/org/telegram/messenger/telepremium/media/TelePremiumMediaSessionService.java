@@ -315,7 +315,8 @@ public final class TelePremiumMediaSessionService extends Service implements Tel
                         controller != null && controller.isPlaying() ? "Пауза" : "Играть", servicePending(ACTION_TOGGLE, 2)).build())
                 .addAction(new Notification.Action.Builder(R.drawable.tp_ic_next, "Далее", servicePending(ACTION_NEXT, 3)).build())
                 .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Закрыть", close).build());
-        if (artwork != null && item != null && item.id.equals(artworkFor)) builder.setLargeIcon(artwork);
+        // The custom card shows the artwork itself; a large icon would also squeeze the card on MIUI.
+        if (!(useCustomCard() && item != null) && artwork != null && item != null && item.id.equals(artworkFor)) builder.setLargeIcon(artwork);
         if (!custom && Build.VERSION.SDK_INT >= 21 && session != null) {
             builder.setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1, 2));
         }
