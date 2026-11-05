@@ -616,7 +616,7 @@ public final class TPRichTools {
 
         LinearLayout box = new LinearLayout(context);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(20), dp(4), dp(20), dp(8));
+        box.setPadding(dp(16), dp(4), dp(16), dp(16));
 
         TextView model = new TextView(context);
         model.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
@@ -635,7 +635,8 @@ public final class TPRichTools {
         prompt.setTextColor(textColor);
         prompt.setHintTextColor(grayText);
         prompt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        prompt.setMaxLines(5);
+        prompt.setMinLines(4);
+        prompt.setMaxLines(8);
         prompt.setGravity(Gravity.TOP);
         prompt.setBackground(roundRect(field, 14));
         prompt.setPadding(dp(12), dp(10), dp(12), dp(10));
@@ -652,7 +653,7 @@ public final class TPRichTools {
         result.setTextIsSelectable(true);
         resultScroll.addView(result);
         resultScroll.setVisibility(View.GONE);
-        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(260));
+        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, Math.max(dp(300), (int) (AndroidUtilities.displaySize.y * 0.42f)));
         rlp.topMargin = dp(10);
         box.addView(resultScroll, rlp);
 
@@ -662,7 +663,10 @@ public final class TPRichTools {
         alp.topMargin = dp(12);
         box.addView(actions, alp);
 
-        AlertDialog dialog = new AlertDialog.Builder(context, rp).setTitle(L("ИИ-помощник", "AI assistant")).setView(box).create();
+        // Full-width sheet: room for the prompt and a long answer.
+        org.telegram.ui.ActionBar.BottomSheet dialog = new org.telegram.ui.ActionBar.BottomSheet(context, true, rp);
+        dialog.setTitle(L("ИИ-помощник", "AI assistant"), true);
+        dialog.setCustomView(box);
         final int[] mode = {list.hasAnyText() ? 1 : 0};
         final String[] html = {null};
         final boolean[] busy = {false};

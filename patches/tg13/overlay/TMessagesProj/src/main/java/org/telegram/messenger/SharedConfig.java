@@ -675,7 +675,7 @@ public class SharedConfig {
             bigCameraForRound = preferences.getBoolean("bigCameraForRound", false);
             useNewBlur = preferences.getBoolean("useNewBlur", true);
             useCamera2Force = !preferences.contains("useCamera2Force_2") ? null : preferences.getBoolean("useCamera2Force_2", false);
-            useSurfaceInStories = preferences.getBoolean("useSurfaceInStories", Build.VERSION.SDK_INT >= 30);
+            useSurfaceInStories = false; // TelePremium: TextureView — SurfaceView stories render black (sound only) under TelePremium layouts
             payByInvoice = preferences.getBoolean("payByInvoice", false);
             photoViewerBlur = preferences.getBoolean("photoViewerBlur", true);
             multipleReactionsPromoShowed = preferences.getBoolean("multipleReactionsPromoShowed", false);

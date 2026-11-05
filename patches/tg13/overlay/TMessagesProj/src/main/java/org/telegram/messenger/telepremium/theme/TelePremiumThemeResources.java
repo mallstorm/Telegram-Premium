@@ -11,6 +11,10 @@ public final class TelePremiumThemeResources {
 
     public static String buildAttheme(Context context, TelePremiumThemePreset p) {
         LinkedHashMap<String, Integer> c = new LinkedHashMap<>();
+        // Dark presets start from Telegram's complete night palette: keys a preset does not set
+        // (popup menus, sheets, pickers, story UI…) must not fall back to the light defaults —
+        // that was the white "⋮" menu on dark themes.
+        if (p.isDark) loadBase(context, "night.attheme", c);
         int shellAccent = resolveAccent(context, p, false);
         int chatAccent = resolveAccent(context, p, true);
         int chatBackground = resolveChatBackground(context, p);
@@ -43,6 +47,26 @@ public final class TelePremiumThemeResources {
         c.put("actionBarDefaultSelector", p.listSelector);
         c.put("actionBarDefaultSearch", p.textPrimary);
         c.put("actionBarDefaultSearchPlaceholder", p.textSecondary);
+        c.put("actionBarDefaultSubmenuBackground", p.surfaceElevated);
+        c.put("actionBarDefaultSubmenuItem", p.textPrimary);
+        c.put("actionBarDefaultSubmenuItemIcon", p.iconPrimary);
+        c.put("actionBarDefaultSubmenuSeparator", p.isDark ? TelePremiumThemeRegistry.blend(p.surfaceElevated, Color.BLACK, 0.25f) : p.background);
+        c.put("actionBarDefaultSubmenuSelector", p.listSelector);
+        c.put("actionBarActionModeDefault", p.actionBar);
+        c.put("actionBarActionModeDefaultIcon", p.iconPrimary);
+        c.put("actionBarActionModeDefaultTop", p.actionBar);
+        c.put("actionBarActionModeDefaultSelector", p.listSelector);
+        c.put("dialogBackgroundGray", p.background);
+        c.put("dialogTextBlue", shellAccent);
+        c.put("dialogTextBlue2", shellAccent);
+        c.put("dialogTextLink", shellAccent);
+        c.put("dialogLineProgress", shellAccent);
+        c.put("dialogGrayLine", p.divider);
+        c.put("dialogScrollGlow", p.background);
+        c.put("dialogSearchBackground", p.inputBackground);
+        c.put("dialogSearchText", p.textPrimary);
+        c.put("dialogSearchHint", p.textSecondary);
+        c.put("dialogSearchIcon", p.textSecondary);
 
         c.put("chats_menuBackground", p.drawerBackground);
         c.put("chats_menuTopBackground", p.background);
@@ -119,6 +143,23 @@ public final class TelePremiumThemeResources {
             out.append(e.getKey()).append('=').append(e.getValue()).append('\n');
         }
         return out.toString();
+    }
+
+    private static void loadBase(Context context, String asset, Map<String, Integer> out) {
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(context.getAssets().open(asset), java.nio.charset.StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("WPS") || line.startsWith("WLS")) break;
+                int eq = line.indexOf('=');
+                if (eq <= 0) continue;
+                String key = line.substring(0, eq).trim(), value = line.substring(eq + 1).trim();
+                try {
+                    out.put(key, value.startsWith("#") ? (int) Long.parseLong(value.substring(1), 16) : Integer.parseInt(value));
+                } catch (NumberFormatException ignore) {
+                }
+            }
+        } catch (Exception ignore) {
+        }
     }
 
     public static int resolveAccent(Context context, TelePremiumThemePreset p, boolean chat) {

@@ -13,6 +13,7 @@ import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
@@ -43,6 +44,8 @@ import org.telegram.messenger.telepremium.media.TelePremiumPlaybackController;
 import org.telegram.messenger.telepremium.media.TelePremiumPlaylistRepository;
 import org.telegram.messenger.telepremium.media.TelePremiumRadioBrowser;
 import org.telegram.messenger.telepremium.theme.TelePremiumMediaTheme;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.ui.ActionBar.Theme;
 import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;
 
 import java.util.ArrayList;
@@ -403,8 +406,10 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
                 if (ytFeed != null && ytFeed.hasMore()) addSubChip(chip(R.drawable.tp_ic_expand, t("TP_YT_MORE", R.string.TP_YT_MORE), false, v -> loadMoreYoutube()));
                 addSubChip(chip(R.drawable.tp_ic_tune, "≤ " + org.telegram.messenger.telepremium.media.TelePremiumYouTube.getMaxQuality() + "p", false, v -> pickYoutubeQuality()));
             } else if (networkMode == NET_RADIO) {
-                String country = TelePremiumNetworkLibrary.getRadioCountryName();
-                addSubChip(chip(R.drawable.tp_ic_public, TextUtils.isEmpty(country) ? TelePremiumNetworkLibrary.getRadioCountry() : country, false, v -> pickRadioCountry()));
+                String code = TelePremiumNetworkLibrary.getRadioCountry();
+                String country = TextUtils.isEmpty(code) ? TelePremiumNetworkLibrary.getRadioCountryName()
+                        : flag(code) + " " + countryName(new TelePremiumRadioBrowser.Country(code, TelePremiumNetworkLibrary.getRadioCountryName(), 0));
+                addSubChip(chip(R.drawable.tp_ic_public, TextUtils.isEmpty(country) ? code : country, false, v -> pickRadioCountry()));
                 addSubChip(chip(R.drawable.tp_ic_star, t("TP_L10N_102", R.string.TP_L10N_102), radioFavoritesOnly, v -> { radioFavoritesOnly = !radioFavoritesOnly; rebuildChips(); loadRadio(); }));
             } else {
                 addSubChip(chip(R.drawable.tp_ic_add, t("TP_NET_ADD", R.string.TP_NET_ADD), false, v -> addIptvPlaylist()));
@@ -744,19 +749,177 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
                 Toast.makeText(this, tf("TP_NET_ERROR", R.string.TP_NET_ERROR, error == null ? "—" : error), Toast.LENGTH_LONG).show();
                 return;
             }
-            String[] names = new String[countries.size()];
-            for (int i = 0; i < names.length; i++) {
-                TelePremiumRadioBrowser.Country c = countries.get(i);
-                names[i] = flag(c.code) + "  " + c.name + "  ·  " + c.stations;
-            }
-            new AlertDialog.Builder(this).setTitle(t("TP_NET_COUNTRY", R.string.TP_NET_COUNTRY)).setItems(names, (d, which) -> {
-                TelePremiumRadioBrowser.Country c = countries.get(which);
-                TelePremiumNetworkLibrary.setRadioCountry(c.code, flag(c.code) + " " + c.name);
-                radioFavoritesOnly = false;
-                rebuildChips();
-                loadRadio();
-            }).show();
+            showCountrySheet(countries);
         });
+    }
+
+    /** Localized country name (Russian UI → «Германия», not «Germany»). */
+    private static String countryName(TelePremiumRadioBrowser.Country c) {
+        try {
+            Locale target = org.telegram.messenger.telepremium.TPStrings.isRussian() ? new Locale("ru") : Locale.getDefault();
+            String n = new Locale("", c.code.toUpperCase(Locale.ROOT)).getDisplayCountry(target);
+            if (!TextUtils.isEmpty(n) && !n.equalsIgnoreCase(c.code)) return n;
+        } catch (Exception ignore) {
+        }
+        return c.name;
+    }
+
+    private static String stationsLabel(int n) {
+        if (!org.telegram.messenger.telepremium.TPStrings.isRussian()) return n + (n == 1 ? " station" : " stations");
+        int m10 = n % 10, m100 = n % 100;
+        String word = m10 == 1 && m100 != 11 ? "станция" : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? "станции" : "станций";
+        return n + " " + word;
+    }
+
+    /**
+     * Country picker: search, «Популярные» (most stations, your country first) and the full
+     * alphabetical list with letter headers; every row shows the flag, the localized name and
+     * the number of stations.
+     */
+    private void showCountrySheet(List<TelePremiumRadioBrowser.Country> countries) {
+        boolean ru = org.telegram.messenger.telepremium.TPStrings.isRussian();
+        String current = TelePremiumNetworkLibrary.getRadioCountry();
+        String home = Locale.getDefault().getCountry();
+        java.util.ArrayList<TelePremiumRadioBrowser.Country> sorted = new java.util.ArrayList<>(countries);
+        java.text.Collator collator = java.text.Collator.getInstance(ru ? new Locale("ru") : Locale.getDefault());
+        java.util.Collections.sort(sorted, (x, y) -> collator.compare(countryName(x), countryName(y)));
+        java.util.ArrayList<TelePremiumRadioBrowser.Country> popular = new java.util.ArrayList<>(countries);
+        java.util.Collections.sort(popular, (x, y) -> y.stations - x.stations);
+        if (popular.size() > 10) popular = new java.util.ArrayList<>(popular.subList(0, 10));
+        for (TelePremiumRadioBrowser.Country c : countries) {
+            if (c.code.equalsIgnoreCase(home) || (ru && c.code.equalsIgnoreCase("RU"))) {
+                popular.remove(c);
+                popular.add(0, c);
+            }
+        }
+        final java.util.ArrayList<Object> rows = new java.util.ArrayList<>();
+        final String[] query = {""};
+        final java.util.List<TelePremiumRadioBrowser.Country> popularFinal = popular;
+        Runnable rebuild = () -> {
+            rows.clear();
+            String q = query[0].toLowerCase(Locale.ROOT);
+            if (q.isEmpty()) {
+                rows.add(ru ? "Популярные" : "Popular");
+                rows.addAll(popularFinal);
+            }
+            String letter = null;
+            for (TelePremiumRadioBrowser.Country c : sorted) {
+                String name = countryName(c);
+                if (!q.isEmpty() && !name.toLowerCase(Locale.ROOT).contains(q) && !c.name.toLowerCase(Locale.ROOT).contains(q)) continue;
+                String first = name.isEmpty() ? "#" : name.substring(0, 1).toUpperCase(Locale.ROOT);
+                if (q.isEmpty() && !first.equals(letter)) { rows.add(first); letter = first; }
+                rows.add(c);
+            }
+        };
+        rebuild.run();
+
+        int text = Theme.getColor(Theme.key_dialogTextBlack);
+        int gray = Theme.getColor(Theme.key_dialogTextGray2);
+        int accent = Theme.getColor(Theme.key_featuredStickers_addButton);
+        int tileBg = Theme.getColor(Theme.key_windowBackgroundGray);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        EditText search = new EditText(this);
+        search.setHint(ru ? "Поиск страны" : "Search country");
+        search.setSingleLine(true);
+        search.setTextColor(text);
+        search.setHintTextColor(gray);
+        search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        android.graphics.drawable.GradientDrawable sbg = new android.graphics.drawable.GradientDrawable();
+        sbg.setColor(tileBg);
+        sbg.setCornerRadius(AndroidUtilities.dp(14));
+        search.setBackground(sbg);
+        search.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(10), AndroidUtilities.dp(14), AndroidUtilities.dp(10));
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
+        slp.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        box.addView(search, slp);
+
+        android.widget.BaseAdapter adapter = new android.widget.BaseAdapter() {
+            @Override public int getCount() { return rows.size(); }
+            @Override public Object getItem(int i) { return rows.get(i); }
+            @Override public long getItemId(int i) { return i; }
+            @Override public int getViewTypeCount() { return 2; }
+            @Override public int getItemViewType(int i) { return rows.get(i) instanceof String ? 0 : 1; }
+            @Override public boolean isEnabled(int i) { return !(rows.get(i) instanceof String); }
+            @Override public View getView(int i, View convert, android.view.ViewGroup parent) {
+                Object row = rows.get(i);
+                if (row instanceof String) {
+                    TextView h = convert instanceof TextView ? (TextView) convert : new TextView(parent.getContext());
+                    h.setText((String) row);
+                    h.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+                    h.setTypeface(AndroidUtilities.bold());
+                    h.setTextColor(accent);
+                    h.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(12), AndroidUtilities.dp(22), AndroidUtilities.dp(4));
+                    return h;
+                }
+                TelePremiumRadioBrowser.Country c = (TelePremiumRadioBrowser.Country) row;
+                LinearLayout r = convert instanceof LinearLayout ? (LinearLayout) convert : null;
+                if (r == null) {
+                    r = new LinearLayout(parent.getContext());
+                    r.setGravity(Gravity.CENTER_VERTICAL);
+                    r.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+                    TextView f = new TextView(parent.getContext());
+                    f.setGravity(Gravity.CENTER);
+                    f.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24);
+                    android.graphics.drawable.GradientDrawable fbg = new android.graphics.drawable.GradientDrawable();
+                    fbg.setColor(tileBg);
+                    fbg.setCornerRadius(AndroidUtilities.dp(12));
+                    f.setBackground(fbg);
+                    r.addView(f, new LinearLayout.LayoutParams(AndroidUtilities.dp(44), AndroidUtilities.dp(44)));
+                    LinearLayout texts = new LinearLayout(parent.getContext());
+                    texts.setOrientation(LinearLayout.VERTICAL);
+                    TextView title = new TextView(parent.getContext());
+                    title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+                    title.setTextColor(text);
+                    title.setSingleLine(true);
+                    title.setEllipsize(TextUtils.TruncateAt.END);
+                    TextView sub = new TextView(parent.getContext());
+                    sub.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+                    sub.setTextColor(gray);
+                    texts.addView(title);
+                    texts.addView(sub);
+                    LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(0, -2, 1f);
+                    tlp.leftMargin = AndroidUtilities.dp(14);
+                    r.addView(texts, tlp);
+                    TextView check = new TextView(parent.getContext());
+                    check.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+                    check.setTextColor(accent);
+                    r.addView(check);
+                }
+                ((TextView) r.getChildAt(0)).setText(flag(c.code));
+                LinearLayout texts = (LinearLayout) r.getChildAt(1);
+                ((TextView) texts.getChildAt(0)).setText(countryName(c));
+                ((TextView) texts.getChildAt(1)).setText(stationsLabel(c.stations));
+                ((TextView) r.getChildAt(2)).setText(c.code.equalsIgnoreCase(current) ? "✓" : "");
+                return r;
+            }
+        };
+        android.widget.ListView list = new android.widget.ListView(this);
+        list.setAdapter(adapter);
+        list.setDivider(null);
+        list.setSelector(Theme.getSelectorDrawable(false));
+        list.setFastScrollEnabled(true);
+        box.addView(list, new LinearLayout.LayoutParams(-1, (int) (AndroidUtilities.displaySize.y * 0.66f)));
+
+        org.telegram.ui.ActionBar.BottomSheet sheet = new org.telegram.ui.ActionBar.BottomSheet(this, true, null);
+        sheet.setTitle(ru ? "Страна радиостанций" : "Radio country", true);
+        sheet.setCustomView(box);
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            Object row = rows.get(position);
+            if (!(row instanceof TelePremiumRadioBrowser.Country)) return;
+            TelePremiumRadioBrowser.Country c = (TelePremiumRadioBrowser.Country) row;
+            TelePremiumNetworkLibrary.setRadioCountry(c.code, flag(c.code) + " " + countryName(c));
+            radioFavoritesOnly = false;
+            sheet.dismiss();
+            rebuildChips();
+            loadRadio();
+        });
+        search.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable e) { query[0] = e.toString().trim(); rebuild.run(); adapter.notifyDataSetChanged(); }
+        });
+        sheet.show();
     }
 
     private static String flag(String code) {

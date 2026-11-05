@@ -297,7 +297,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/SharedConfig.java",
       "base_sha256": "25346ad03c25face9e7c1ed1fc176fd838ccc13859d87b81a8241edd22e25994",
-      "sha256": "ed921f373b3684e4b30ab8078fbe2f0b9ab5b286aa46c4ebbeff159f990f7d7b"
+      "sha256": "4c88108b6036bf72ddc08c3e043a73b23c6d811333505d1c7b2f1e08650e6ebe"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/TranslateController.java",
@@ -647,7 +647,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumRadioBrowser.java",
       "base_sha256": null,
-      "sha256": "acf1f64ae413c887d6894ea58196f30e0f8e28204e5ef965360ee9a1279e8ce8"
+      "sha256": "b16609d63548a2da4d87a5075ba98a5a624a6bcec448345607c4226f8fd2d7fd"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumStreamRecorder.java",
@@ -697,7 +697,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/theme/TelePremiumThemeResources.java",
       "base_sha256": null,
-      "sha256": "186042950eacafac49fa79fcc4cc7d950cecdf10d82168715186c1a6b928beb6"
+      "sha256": "8ef0ed36228996b8c708c1883c37e4d3f73f65de07333665d4b3406e2220bf8d"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/theme/TelePremiumThemeStore.java",
@@ -937,7 +937,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumMediaCenterActivity.java",
       "base_sha256": null,
-      "sha256": "5a5c971081aef27468cbeb8ee810c489a38c5586bf0c64f1b90424cad54a39e3"
+      "sha256": "471cce8cbbcfba6e43efdcd28a75ff08182ea70f14d482738592930ea4979917"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkCenterActivity.java",
@@ -1042,7 +1042,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/iv/TPRichTools.java",
       "base_sha256": null,
-      "sha256": "769a230a81d5968a6a72e9a81961659ad4269055a026d535bc865d724d6945ac"
+      "sha256": "ae9531a0411477370e9fcda6bf3b025e176197ab74966c1023d87caec4f78300"
     },
     {
       "path": "TMessagesProj/src/main/res/drawable/tp_cloud_accounts.xml",

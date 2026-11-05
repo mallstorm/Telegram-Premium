@@ -34,7 +34,7 @@ public final class TelePremiumRadioBrowser {
     public static final class Country {
         public final String code, name;
         public final int stations;
-        Country(String code, String name, int stations) { this.code = code; this.name = name; this.stations = stations; }
+        public Country(String code, String name, int stations) { this.code = code; this.name = name; this.stations = stations; }
     }
 
     public interface StationsCallback { void onLoaded(List<TelePremiumMediaItem> stations, String error); }
