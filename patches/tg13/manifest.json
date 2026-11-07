@@ -457,7 +457,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudPayloadRepository.java",
       "base_sha256": null,
-      "sha256": "21317a98c3dd39a211345bcd2cfe0539881a1fa29bcd6120e562b8865bcf4f27"
+      "sha256": "b5b8eb0b1a628b9f15c57457e4a01d6bc9679053a3ad07bfbd37ba214f15815a"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudRecoveryEngine.java",
@@ -897,7 +897,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
       "base_sha256": null,
-      "sha256": "b61157979d492d35c86a9e40afb5d1ab2442e8e7384ca4d52ab811d77d5c58e1"
+      "sha256": "d45e553a1a968a299dd505d24e3a7c889192b26ed22ef0a10181bc604580d311"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudDiagnosticsActivity.java",

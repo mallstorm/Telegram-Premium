@@ -506,9 +506,13 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
     private static String shortError(String error) { return TelePremiumCloudFormat.shortError(error); }
 
     private void configureAccount(int account) {
-        cloud = TelePremiumCloudManager.getInstance(account);
-        payloads = new CloudPayloadRepository(account);
-        payloads.setDedupLookup(sha256 -> cloud.findByHash(sha256));
+        TelePremiumCloudManager selectedCloud = TelePremiumCloudManager.getInstance(account);
+        // Automatic refresh must not create a second owner for an active upload.
+        if (cloud != selectedCloud || payloads == null) {
+            payloads = new CloudPayloadRepository(account);
+            payloads.setDedupLookup(selectedCloud::findByHash);
+        }
+        cloud = selectedCloud;
         attachTransferManager(account);
         // Do not resume here: Cloud bootstrap may still be decrypting its index.
     }

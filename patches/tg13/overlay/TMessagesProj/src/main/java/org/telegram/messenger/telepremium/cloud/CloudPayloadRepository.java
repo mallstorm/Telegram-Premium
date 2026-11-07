@@ -160,6 +160,8 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     public void resumePending(ImportCallback callback) {
+        // An active repository already owns its upload and reconnect timer.
+        if (pending != null) return;
         CloudTransferManager.Task task=transferManager.getTask();
         if(task==null || task.type!=CloudTransferManager.TYPE_UPLOAD) return;
         if(task.state!=CloudTransferManager.WAITING_NETWORK && task.state!=CloudTransferManager.FAILED_RETRYABLE) return;
