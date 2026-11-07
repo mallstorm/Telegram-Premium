@@ -117,7 +117,7 @@ public class TelePremiumCloudPeerManager {public interface Callback{void onReady
  public long getChannelId(){return 7;}public Object getInputPeer(){return new Object();}public Object getInputChannel(){return new Object();}public void ensure(Callback cb){cb.onReady(-7,null);}}
 """,
     'org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultKeyManager.java': r"""package org.telegram.messenger.telepremium.cloud.vault;
-public class TelePremiumVaultKeyManager {public static byte[] key;public static boolean isEnabled(android.content.Context c){return true;}public static byte[] getMasterKeyForUnlockedSession(android.content.Context c){return key.clone();}public static void markKeyUsed(android.content.Context c){}}
+public class TelePremiumVaultKeyManager {public static byte[] key;public static boolean fail;public static boolean isEnabled(android.content.Context c){return true;}public static byte[] getMasterKeyForUnlockedSession(android.content.Context c){if(fail)throw new IllegalStateException();return key.clone();}public static void markKeyUsed(android.content.Context c){}}
 """,
     'org/telegram/messenger/telepremium/cloud/vault/VaultFileOps.java': r"""package org.telegram.messenger.telepremium.cloud.vault;
 public class VaultFileOps {public static String randomFileName(String p){return p+java.util.UUID.randomUUID().toString().replace("-","")+".tpv";}}
@@ -136,7 +136,7 @@ public class IndexRuntimeTest {
  static TelePremiumVaultIndexStore reset()throws Exception {
   ApplicationLoader.applicationContext=new android.content.Context();ApplicationLoader.applicationContext.root=Files.createTempDirectory(Path.of(System.getProperty("test.root")),"index-").toFile();
   AndroidUtilities.delayed.clear();NotificationCenter.INSTANCE.listeners.clear();ConnectionsManager.history=new TLRPC.messages_Messages();ConnectionsManager.older=new TLRPC.messages_Messages();ConnectionsManager.reads=0;
-  TelePremiumVaultKeyManager.key=TelePremiumVaultCrypto.newMasterKey();SendMessagesHelper.autoAck=false;SendMessagesHelper.sends=0;FileLoader.downloads=0;loaded=null;error=null;return new TelePremiumVaultIndexStore(0);
+  TelePremiumVaultKeyManager.key=TelePremiumVaultCrypto.newMasterKey();TelePremiumVaultKeyManager.fail=false;SendMessagesHelper.autoAck=false;SendMessagesHelper.sends=0;FileLoader.downloads=0;loaded=null;error=null;return new TelePremiumVaultIndexStore(0);
  }
  static CloudSnapshot snapshot(long gen){CloudSnapshot s=new CloudSnapshot();s.generation=gen;s.ownerUserId=42;s.cloudId="test-cloud";CloudNode n=CloudNode.folder(null,"Облако");n.id="root";s.nodes.add(n);return s;}
  static TLRPC.Message index(CloudSnapshot s,byte[] key,int id)throws Exception {TLRPC.Message m=new TLRPC.Message();m.id=id;m.date=id;m.message="#TPV3I:test";m.media=new TLRPC.Media();m.media.document=new TLRPC.Document();var d=m.media.document;d.file=new File(ApplicationLoader.applicationContext.root,"remote-"+(++number)+".tpv");d.server=TelePremiumVaultCrypto.encryptBytes(s.encode().getBytes(java.nio.charset.StandardCharsets.UTF_8),key,TelePremiumVaultCrypto.Purpose.INDEX);Files.write(d.file.toPath(),d.server);return m;}
@@ -167,6 +167,7 @@ public class IndexRuntimeTest {
   check(error!=null&&latest()==0&&SendMessagesHelper.sends==0,"unreadable local catalog cannot be mistaken for a brand-new cloud");
   store=reset();var plaintext=snapshot(1);plaintext.nodes.add(CloudNode.file("root","private.jpg","image/jpeg",1,"hash"));ConnectionsManager.history.messages.add(index(plaintext,TelePremiumVaultKeyManager.key,1));load(store);
   check(error!=null&&latest()==0&&SendMessagesHelper.sends==0,"V3 refuses plaintext file references even inside an authenticated catalog");
+  store=reset();TelePremiumVaultKeyManager.fail=true;load(store);check(error!=null&&latest()==0,"provider exceptions without a message must never report a successful catalog load");var failedSave=new ArrayList<String>();store.save(snapshot(1),failedSave::add);check(failedSave.size()==1&&failedSave.get(0)!=null&&SendMessagesHelper.sends==0,"provider exceptions without a message must never report a successful encrypted save");
   store=reset();SendMessagesHelper.autoAck=true;var manager=TelePremiumCloudManager.getInstance(0);var result=new ArrayList<String>();manager.bootstrap(result::add);
   check(result.size()==1&&result.get(0)==null&&manager.isRemoteReady(),"fresh cloud bootstrap completes without V2 migration or setup");check(manager.getSnapshot()!=null&&manager.getSnapshot().nodes.size()==1&&SendMessagesHelper.sends==1,"first root-only catalog is sent as one authenticated ciphertext document");
   System.out.println("IndexRuntimeTest OK: "+checks+" checks");

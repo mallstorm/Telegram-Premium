@@ -137,8 +137,10 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                     }));
             } catch(Exception e) {
                 FileLog.e(e);
-                transferManager.failRetryable(e.getMessage());
-                AndroidUtilities.runOnUIThread(() -> callback.onComplete(null,e.getMessage()));
+                String error=e.getMessage()==null || e.getMessage().isEmpty()
+                        ? "Не удалось зашифровать и загрузить файл Vault" : e.getMessage();
+                transferManager.failRetryable(error);
+                AndroidUtilities.runOnUIThread(() -> callback.onComplete(null,error));
             }
         });
     }

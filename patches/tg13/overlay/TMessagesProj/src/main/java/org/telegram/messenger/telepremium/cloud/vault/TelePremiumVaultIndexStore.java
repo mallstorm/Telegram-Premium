@@ -76,7 +76,7 @@ public final class TelePremiumVaultIndexStore {
     public void loadGenerations(TelegramCloudMetadataStore.HistoryCallback callback) {
         final byte[] master;
         try { master = TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext); }
-        catch (Exception e) { callback.onLoaded(new ArrayList<>(), e.getMessage()); return; }
+        catch (Exception e) { callback.onLoaded(new ArrayList<>(), failure(e.getMessage(), "Не удалось открыть ключ Vault")); return; }
         peer.ensure((dialogId, error) -> {
             if (error != null || peer.getInputPeer() == null) {
                 loadLocal(master, error == null ? "Канал Vault недоступен" : error, callback);
@@ -94,7 +94,7 @@ public final class TelePremiumVaultIndexStore {
         req.offset_id = offset;
         ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
             if (error != null || !(response instanceof TLRPC.messages_Messages)) {
-                loadLocal(master, error == null ? "История Vault недоступна" : error.text, callback);
+                loadLocal(master, error == null ? "История Vault недоступна" : failure(error.text, "История Vault недоступна"), callback);
                 return;
             }
             List<TLRPC.Message> messages = ((TLRPC.messages_Messages) response).messages;
@@ -216,6 +216,10 @@ public final class TelePremiumVaultIndexStore {
             return "Индекс Vault не прошёл проверку AES-GCM: нужен исходный ключ либо неповреждённая копия";
         if (e instanceof IOException) return "Не удалось прочитать файл индекса Vault: " + e.getClass().getSimpleName();
         return "Неверный каталог Vault: " + e.getClass().getSimpleName();
+    }
+
+    private static String failure(String message, String fallback) {
+        return message == null || message.isEmpty() ? fallback : message;
     }
 
     private void validateSnapshot(CloudSnapshot snapshot) throws Exception {
@@ -351,7 +355,7 @@ public final class TelePremiumVaultIndexStore {
             if (knownCloud != null && !knownCloud.equals(snapshot.cloudId))
                 throw new SecurityException("Нельзя заменить существующий каталог другим Vault");
             master = TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
-        } catch (Exception e) { callback.onSaved(e.getMessage()); return; }
+        } catch (Exception e) { callback.onSaved(failure(e.getMessage(), "Не удалось открыть ключ или проверить каталог Vault")); return; }
         saving = true;
         final long generation = snapshot.generation;
         Utilities.globalQueue.postRunnable(() -> {
@@ -432,7 +436,7 @@ public final class TelePremiumVaultIndexStore {
         if (saving) { callback.onSaved("Синхронизация Vault уже выполняется"); return; }
         final byte[] master;
         try { master = TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext); }
-        catch (Exception e) { callback.onSaved(e.getMessage()); return; }
+        catch (Exception e) { callback.onSaved(failure(e.getMessage(), "Не удалось открыть ключ Vault")); return; }
         loadLocal(master, null, (local, warning) -> {
             CloudSnapshot snapshot = best(local);
             if (snapshot == null) { callback.onSaved("Читаемый локальный каталог Vault не найден"); return; }
