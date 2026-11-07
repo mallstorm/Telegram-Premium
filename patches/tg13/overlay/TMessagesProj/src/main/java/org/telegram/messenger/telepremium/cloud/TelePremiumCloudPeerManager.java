@@ -3,21 +3,20 @@ package org.telegram.messenger.telepremium.cloud;
 import android.content.SharedPreferences;
 
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.ConnectionsManager;
 
 import java.util.ArrayList;
 
 public final class TelePremiumCloudPeerManager implements NotificationCenter.NotificationCenterDelegate {
-    public static final String STORAGE_TITLE = "TelePremium Cloud Storage";
-    public static final String STORAGE_MARKER = "TELEPREMIUM_CLOUD_STORAGE_V2";
     public static final String VAULT_TITLE = "TelePremium Vault";
     public static final String VAULT_MARKER = "TP_VAULT_V3";
 
-    private static final TelePremiumCloudPeerManager[] INSTANCES = new TelePremiumCloudPeerManager[UserConfig.MAX_ACCOUNT_COUNT];
     private static final TelePremiumCloudPeerManager[] VAULT_INSTANCES = new TelePremiumCloudPeerManager[UserConfig.MAX_ACCOUNT_COUNT];
 
     public interface Callback {
@@ -25,36 +24,34 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
     }
 
     public static synchronized TelePremiumCloudPeerManager getInstance(int account) {
-        if (INSTANCES[account] == null) {
-            INSTANCES[account] = new TelePremiumCloudPeerManager(account,false);
-        }
-        return INSTANCES[account];
+        return getVaultInstance(account);
     }
 
     public static synchronized TelePremiumCloudPeerManager getVaultInstance(int account) {
-        if (VAULT_INSTANCES[account] == null) VAULT_INSTANCES[account] = new TelePremiumCloudPeerManager(account,true);
+        if (VAULT_INSTANCES[account] == null || VAULT_INSTANCES[account].ownerUserId != UserConfig.getInstance(account).getClientUserId())
+            VAULT_INSTANCES[account] = new TelePremiumCloudPeerManager(account);
         return VAULT_INSTANCES[account];
     }
 
-    private final boolean vaultMode;
-    private String storageTitle() { return vaultMode ? VAULT_TITLE : STORAGE_TITLE; }
-    private String storageMarker() { return vaultMode ? VAULT_MARKER : STORAGE_MARKER; }
+    private String storageTitle() { return VAULT_TITLE; }
+    private String storageMarker() { return VAULT_MARKER; }
     private final int account;
+    private final long ownerUserId;
     private long channelId;
     private long accessHash;
     private boolean creating;
     private final ArrayList<Callback> callbacks = new ArrayList<>();
 
-    private TelePremiumCloudPeerManager(int account, boolean vaultMode) {
+    private TelePremiumCloudPeerManager(int account) {
         this.account = account;
-        this.vaultMode = vaultMode;
+        this.ownerUserId = UserConfig.getInstance(account).getClientUserId();
         SharedPreferences p = prefs();
         channelId = p.getLong("channel_id", 0);
         accessHash = p.getLong("access_hash", 0);
     }
 
     private SharedPreferences prefs() {
-        return ApplicationLoader.applicationContext.getSharedPreferences((vaultMode?"telepremium_vault_peer_":"telepremium_cloud_peer_") + account, 0);
+        return ApplicationLoader.applicationContext.getSharedPreferences("telepremium_vault_peer_u" + ownerUserId, 0);
     }
 
     public long getChannelId() {
@@ -95,6 +92,44 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
             return;
         }
         creating = true;
+        // After reinstall, the channel may not yet be loaded in MessagesController.
+        // Ask Telegram before creating a replacement namespace.
+        discoverRemote(0, 0, new TLRPC.TL_inputPeerEmpty(), 0);
+    }
+
+    private void discoverRemote(int offsetDate, int offsetId, TLRPC.InputPeer offsetPeer, int page) {
+        TLRPC.TL_messages_getDialogs req = new TLRPC.TL_messages_getDialogs();
+        req.limit = 100;
+        req.exclude_pinned = page > 0;
+        req.offset_date = offsetDate;
+        req.offset_id = offsetId;
+        req.offset_peer = offsetPeer;
+        ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (error != null || !(response instanceof TLRPC.messages_Dialogs)) {
+                finish(error == null ? "Не удалось проверить существующий канал Vault" : error.text);
+                return;
+            }
+            TLRPC.messages_Dialogs result = (TLRPC.messages_Dialogs) response;
+            MessagesController.getInstance(account).putChats(result.chats, false);
+            MessagesController.getInstance(account).putUsers(result.users, false);
+            if (discoverLoadedChannel()) { finish(null); return; }
+            if (result.dialogs.size() < req.limit) { createVault(); return; }
+            TLRPC.Dialog last = result.dialogs.get(result.dialogs.size() - 1);
+            TLRPC.Message top = null;
+            for (TLRPC.Message m : result.messages) {
+                if (m.id != last.top_message || m.peer_id == null || last.peer == null) continue;
+                if (m.peer_id.channel_id == last.peer.channel_id && m.peer_id.chat_id == last.peer.chat_id
+                        && m.peer_id.user_id == last.peer.user_id) { top = m; break; }
+            }
+            if (top == null || page >= 99 || (top.date == offsetDate && top.id == offsetId)) {
+                finish("Проверка каналов Vault не завершена; повторите подключение");
+                return;
+            }
+            discoverRemote(top.date, top.id, MessagesController.getInstance(account).getInputPeer(last.peer), page + 1);
+        }));
+    }
+
+    private void createVault() {
         NotificationCenter.getInstance(account).addObserver(this, NotificationCenter.chatDidCreated);
         NotificationCenter.getInstance(account).addObserver(this, NotificationCenter.chatDidFailCreate);
         try {

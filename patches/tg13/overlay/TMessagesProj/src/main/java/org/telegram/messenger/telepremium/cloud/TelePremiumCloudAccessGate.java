@@ -13,7 +13,7 @@ public final class TelePremiumCloudAccessGate {
     public static void openCloud(LaunchActivity host, int account) {
         if (host == null) return;
         Context context = host;
-        if (TelePremiumCloudSecurityStore.requiresCloudUnlock(context)) {
+        if (requiresVaultUnlock(context)) {
             host.presentFragment(new TelePremiumCloudUnlockActivity(account, null, null));
         } else {
             TelePremiumCloudSecuritySession.touch(context);
@@ -24,7 +24,7 @@ public final class TelePremiumCloudAccessGate {
     public static void openCloud(BaseFragment host, int account) {
         if (host == null || host.getParentActivity() == null) return;
         Context context = host.getParentActivity();
-        if (TelePremiumCloudSecurityStore.requiresCloudUnlock(context)) {
+        if (requiresVaultUnlock(context)) {
             host.presentFragment(new TelePremiumCloudUnlockActivity(account, null, null));
         } else {
             TelePremiumCloudSecuritySession.touch(context);
@@ -46,6 +46,11 @@ public final class TelePremiumCloudAccessGate {
     public static boolean canExposeNode(Context context, CloudNode node) {
         return context != null && (!TelePremiumCloudSecurityStore.isNodeProtected(context, node)
                 || TelePremiumCloudSecuritySession.isUnlocked(context));
+    }
+
+    private static boolean requiresVaultUnlock(Context context) {
+        return TelePremiumCloudSecurityStore.isProtectionEnabled(context)
+                && !TelePremiumCloudSecuritySession.isUnlocked(context);
     }
 
     public static boolean canExposeCategory(Context context, String category) {

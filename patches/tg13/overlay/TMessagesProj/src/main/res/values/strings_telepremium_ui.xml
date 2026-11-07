@@ -658,4 +658,12 @@
     <string name="TP_Q_LEFT" formatted="false">"%1$s left"</string>
     <string name="TP_Q_CLEARED" formatted="false">"Upcoming items removed"</string>
     <string name="TP_Q_REMOVED" formatted="false">"Removed: %1$s"</string>
+    <string name="TP_VAULT_DEFAULT">Encrypted cloud · Vault V3</string>
+    <string name="TP_VAULT_DEFAULT_SUB">Files and folders are encrypted automatically before upload</string>
+    <string name="TP_VAULT_RECOVERY_SUB">Save a private recovery code to open your cloud on another device</string>
+    <string name="TP_VAULT_IMPORT_SUB">Open your existing cloud using a saved recovery code</string>
+    <string name="TP_VAULT_PASSWORD">Protect recovery code with a password</string>
+    <string name="TP_VAULT_PASSWORD_SUB">Optional: protect the recovery code with a password. Previously saved secret codes remain valid</string>
+    <string name="TP_VAULT_RECOVERY_SECRET">This secret code gives full access to your encrypted cloud. Save it privately outside Telegram. No password is required for this code. Without it, losing this device means losing access to the files.</string>
+    <string name="TP_VAULT_PASSWORD_HINT">Password, only for a password-protected recovery code</string>
 </resources>

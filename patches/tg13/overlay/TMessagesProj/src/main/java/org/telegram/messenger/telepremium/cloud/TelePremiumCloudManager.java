@@ -18,15 +18,15 @@ import java.util.UUID;
 public final class TelePremiumCloudManager {
     private static final TelePremiumCloudManager[] INSTANCES = new TelePremiumCloudManager[UserConfig.MAX_ACCOUNT_COUNT];
     public static synchronized TelePremiumCloudManager getInstance(int account) {
-        boolean vault=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext);
-        if (INSTANCES[account] == null || INSTANCES[account].vaultMode != vault)
+        if (INSTANCES[account] == null ||
+                INSTANCES[account].ownerUserId != UserConfig.getInstance(account).getClientUserId())
             INSTANCES[account] = new TelePremiumCloudManager(account);
         return INSTANCES[account];
     }
 
     public interface Callback { void onComplete(String error); }
     private final int account;
-    private final boolean vaultMode;
+    private final long ownerUserId;
     private final TelegramCloudMetadataStore store;
     private final TelePremiumCloudPeerManager peerManager;
     private CloudSnapshot snapshot;
@@ -41,7 +41,7 @@ public final class TelePremiumCloudManager {
     public boolean isRemoteReady() { return remoteReady; }
 
     private boolean requireWritable(Callback callback) {
-        if (vaultMode && !remoteReady) {
+        if (!remoteReady) {
             callback.onComplete("Vault offline: wait for sync before changing files");
             return false;
         }
@@ -51,9 +51,9 @@ public final class TelePremiumCloudManager {
 
     private TelePremiumCloudManager(int account) {
         this.account=account;
-        this.vaultMode=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext);
+        this.ownerUserId=UserConfig.getInstance(account).getClientUserId();
         this.store=new TelegramCloudMetadataStore(account);
-        this.peerManager=vaultMode?TelePremiumCloudPeerManager.getVaultInstance(account):TelePremiumCloudPeerManager.getInstance(account);
+        this.peerManager=TelePremiumCloudPeerManager.getVaultInstance(account);
     }
 
     public CloudSnapshot getSnapshot() { return snapshot; }
@@ -65,15 +65,8 @@ public final class TelePremiumCloudManager {
             bootstrapInFlight = true;
         }
         Callback finish = this::completeBootstrap;
-        if (vaultMode) {
-            // A dedicated V3 channel; never leak or import legacy plaintext implicitly.
-            bootstrapV2(finish);
-            return;
-        }
-        new CloudMigrationV1ToV2(account).migrateIfNeeded(migrationError -> {
-            if (migrationError != null) { finish.onComplete(migrationError); return; }
-            bootstrapV2(finish);
-        });
+        // V3 is the sole backend. Never inspect or migrate V1/V2 channels here.
+        bootstrapVault(finish);
     }
 
     private static final String MAINTENANCE_PREFS = "telepremium_cloud_maintenance";
@@ -115,7 +108,7 @@ public final class TelePremiumCloudManager {
         int days = getTrashRetentionDays();
         List<CloudNode> expired = expiredTrash(System.currentTimeMillis(), days);
         if (expired.isEmpty()) { callback.onComplete(0, null); return; }
-        if (vaultMode && !remoteReady) { callback.onComplete(0, "Vault offline"); return; }
+        if (!remoteReady) { callback.onComplete(0, "Vault offline"); return; }
         long now = System.currentTimeMillis();
         HashSet<Integer> payloadMessages = new HashSet<>();
         for (CloudNode node : expired) markDeleted(node, now, payloadMessages);
@@ -123,8 +116,8 @@ public final class TelePremiumCloudManager {
     }
 
     private void maybeAutoPurgeTrash() {
-        if (snapshot == null || getTrashRetentionDays() <= 0 || (vaultMode && !remoteReady)) return;
-        String key = "last_purge_" + account + (vaultMode ? "_v3" : "_v2");
+        if (snapshot == null || getTrashRetentionDays() <= 0 || (!remoteReady)) return;
+        String key = "last_purge_" + account + "_v3";
         long now = System.currentTimeMillis();
         if (now - maintenancePrefs().getLong(key, 0L) < DAY_MS) return;
         maintenancePrefs().edit().putLong(key, now).apply();
@@ -149,7 +142,7 @@ public final class TelePremiumCloudManager {
         });
     }
 
-    private void bootstrapV2(Callback callback) {
+    private void bootstrapVault(Callback callback) {
         store.loadGenerations((generations, error) -> {
             CloudSnapshot loaded=new CloudRecoveryEngine().recover(generations);
             if (loaded != null) {
@@ -374,7 +367,7 @@ public final class TelePremiumCloudManager {
     }
 
     private void commit(Callback callback) {
-        if (vaultMode && !remoteReady && !publishingFirstIndex) {
+        if (!remoteReady && !publishingFirstIndex) {
             callback.onComplete("Vault offline: encrypted catalog is read-only");
             return;
         }
@@ -390,7 +383,7 @@ public final class TelePremiumCloudManager {
             store.save(snapshot, saveError -> {
                 if (saveError != null && attempt < 2) commitMerged(callback, attempt + 1);
                 else {
-                    if(vaultMode) remoteReady=saveError==null;
+                    remoteReady=saveError==null;
                     callback.onComplete(saveError);
                 }
             });

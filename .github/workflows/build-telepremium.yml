@@ -9,7 +9,7 @@ on:
       - "docs/**"
   workflow_dispatch:
   pull_request:
-    branches: [ main ]
+    branches: [ main, port/tg-13.1.1 ]
 
 concurrency:
   group: build-telepremium-${{ github.ref }}
@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 240
     env:
       APK_NAME: TelePremium_13.1.1_arm64-v8a.apk
-      OUTPUT_BRANCH: build-output-tg13
+      OUTPUT_BRANCH: ${{ github.event_name == 'pull_request' && format('build-output-tg13-pr-{0}', github.event.pull_request.number) || 'build-output-tg13' }}
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_COMPILERCHECK: content
@@ -102,6 +102,12 @@ jobs:
           OUT="$RUNNER_TEMP/tp-tests"; mkdir -p "$OUT"
           javac -d "$OUT" $(python3 scripts/tests/sources.py) scripts/tests/*.java
           for t in $(cd scripts/tests && ls *Test.java | sed 's/\.java$//'); do java -cp "$OUT" "$t"; done
+
+      - name: Vault default encryption and sync regression tests
+        run: |
+          python3 scripts/test_vault_keys.py
+          python3 scripts/test_vault_runtime.py
+          python3 scripts/test_vault_peers.py
 
       - name: Inject Telegram API credentials
         id: api
