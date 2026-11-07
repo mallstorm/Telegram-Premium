@@ -114,7 +114,7 @@ public class SendMessagesHelper {public static boolean autoAck;public static int
     'org/telegram/messenger/telepremium/cloud/TelePremiumCloudPeerManager.java': r"""package org.telegram.messenger.telepremium.cloud;
 public class TelePremiumCloudPeerManager {public interface Callback{void onReady(long id,String error);}
  public static TelePremiumCloudPeerManager getVaultInstance(int a){return new TelePremiumCloudPeerManager();}public static TelePremiumCloudPeerManager getInstance(int a){return getVaultInstance(a);}
- public Object getInputPeer(){return new Object();}public Object getInputChannel(){return new Object();}public void ensure(Callback cb){cb.onReady(-7,null);}}
+ public long getChannelId(){return 7;}public Object getInputPeer(){return new Object();}public Object getInputChannel(){return new Object();}public void ensure(Callback cb){cb.onReady(-7,null);}}
 """,
     'org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultKeyManager.java': r"""package org.telegram.messenger.telepremium.cloud.vault;
 public class TelePremiumVaultKeyManager {public static byte[] key;public static boolean isEnabled(android.content.Context c){return true;}public static byte[] getMasterKeyForUnlockedSession(android.content.Context c){return key.clone();}public static void markKeyUsed(android.content.Context c){}}
@@ -159,6 +159,14 @@ public class IndexRuntimeTest {
   check(latest()==9&&error==null&&ConnectionsManager.reads==2,"index beyond the first 100 messages is found through pagination");
   store=reset();var foreign=snapshot(8);foreign.ownerUserId=43;ConnectionsManager.history.messages.add(index(foreign,TelePremiumVaultKeyManager.key,3));ConnectionsManager.history.messages.add(index(snapshot(7),TelePremiumVaultKeyManager.key,2));load(store);
   check(error!=null&&latest()==7&&SendMessagesHelper.sends==0,"foreign account catalog is rejected even with a shared encryption key");
+  store=reset();ApplicationLoader.applicationContext.getSharedPreferences("telepremium_vault_peer_0",0).edit().putLong("channel_id",7).commit();ApplicationLoader.applicationContext.getSharedPreferences("telepremium_vault_index_checkpoint_0",0).edit().putLong("generation",10).commit();ConnectionsManager.history.messages.add(index(snapshot(7),TelePremiumVaultKeyManager.key,1));load(store);
+  check(error!=null&&latest()==7&&SendMessagesHelper.sends==0,"upgrade preserves confirmed rollback checkpoint for the same rediscovered V3 channel");
+  store=reset();var payload=new TLRPC.Message();payload.id=1;payload.message="#TPV3F:test";payload.media=new TLRPC.Media();payload.media.document=new TLRPC.Document();ConnectionsManager.history.messages.add(payload);load(store);
+  check(error!=null&&latest()==0&&SendMessagesHelper.sends==0,"payload without catalog cannot initialize a replacement empty vault on a fresh device");
+  store=reset();var journal=new File(ApplicationLoader.applicationContext.root,"tpvault_journal/a0");journal.mkdirs();Files.write(new File(journal,"g9_bad.tpv").toPath(),new byte[70]);load(store);
+  check(error!=null&&latest()==0&&SendMessagesHelper.sends==0,"unreadable local catalog cannot be mistaken for a brand-new cloud");
+  store=reset();var plaintext=snapshot(1);plaintext.nodes.add(CloudNode.file("root","private.jpg","image/jpeg",1,"hash"));ConnectionsManager.history.messages.add(index(plaintext,TelePremiumVaultKeyManager.key,1));load(store);
+  check(error!=null&&latest()==0&&SendMessagesHelper.sends==0,"V3 refuses plaintext file references even inside an authenticated catalog");
   store=reset();SendMessagesHelper.autoAck=true;var manager=TelePremiumCloudManager.getInstance(0);var result=new ArrayList<String>();manager.bootstrap(result::add);
   check(result.size()==1&&result.get(0)==null&&manager.isRemoteReady(),"fresh cloud bootstrap completes without V2 migration or setup");check(manager.getSnapshot()!=null&&manager.getSnapshot().nodes.size()==1&&SendMessagesHelper.sends==1,"first root-only catalog is sent as one authenticated ciphertext document");
   System.out.println("IndexRuntimeTest OK: "+checks+" checks");

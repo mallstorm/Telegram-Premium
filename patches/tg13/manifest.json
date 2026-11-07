@@ -547,7 +547,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultIndexStore.java",
       "base_sha256": null,
-      "sha256": "8905ce13e946fc048033f58895bc1957e755927bf9d355ba938d36634960e58b"
+      "sha256": "dee47b5049c02b9b47a223c036fe17012b091662add9737fd257dba8bfe6e04c"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultKeyManager.java",

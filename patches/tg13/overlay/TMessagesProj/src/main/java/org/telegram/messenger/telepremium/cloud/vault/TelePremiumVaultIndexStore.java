@@ -45,8 +45,20 @@ public final class TelePremiumVaultIndexStore {
 
     private SharedPreferences checkpoint() {
         // Bind checkpoints to the Telegram identity, not the reusable account slot.
-        return ApplicationLoader.applicationContext.getSharedPreferences(
+        SharedPreferences current = ApplicationLoader.applicationContext.getSharedPreferences(
                 "telepremium_vault_index_checkpoint_u" + UserConfig.getInstance(account).getClientUserId(), 0);
+        if (!current.contains("generation")) {
+            // Preserve the old rollback guard only when its remembered V3 channel
+            // is the channel rediscovered for this Telegram identity.
+            SharedPreferences oldPeer = ApplicationLoader.applicationContext.getSharedPreferences("telepremium_vault_peer_" + account, 0);
+            long channel = peer.getChannelId();
+            if (channel != 0 && channel == oldPeer.getLong("channel_id", 0)) {
+                SharedPreferences old = ApplicationLoader.applicationContext.getSharedPreferences("telepremium_vault_index_checkpoint_" + account, 0);
+                long generation = old.getLong("generation", 0);
+                if (generation > 0 && !current.edit().putLong("generation", generation).commit()) return old;
+            }
+        }
+        return current;
     }
 
     public void loadLatest(TelegramCloudMetadataStore.LoadCallback callback) {
