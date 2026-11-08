@@ -35,5 +35,6 @@ jobs:
           python3 scripts/test_vault_peers.py
           python3 scripts/test_cloud_reset.py
           python3 scripts/test_media_vault_runtime.py
+          python3 scripts/test_media_playback_runtime.py
       - name: Show pinned upstream revision
         run: git -C upstream/Telegram rev-parse HEAD
