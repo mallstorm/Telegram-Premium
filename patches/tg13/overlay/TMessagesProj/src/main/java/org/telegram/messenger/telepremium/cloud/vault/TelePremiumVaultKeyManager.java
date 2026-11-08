@@ -100,6 +100,9 @@ public final class TelePremiumVaultKeyManager {
                 if (active.contains(field)) backup.putString(operation + "." + field, active.getString(field, null));
             if (!backup.putBoolean(operation + ".saved", true).commit())
                 throw new IllegalStateException("Не удалось сохранить прежний зашифрованный ключ");
+        } else if (!archive.edit().putBoolean(operation + ".saved", true).commit()) {
+            // A previous failed commit may have changed memory without reaching disk.
+            throw new IllegalStateException("Не удалось подтвердить сохранение прежнего ключа");
         }
         byte[] master = TelePremiumVaultCrypto.newMasterKey();
         try {

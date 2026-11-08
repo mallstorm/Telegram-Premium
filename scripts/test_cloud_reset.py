@@ -131,6 +131,20 @@ public class CloudResetTest {
   Files.createSymbolicLink(root.resolve("cache-link"),outside);TelePremiumCloudResetFiles.remove(root.toFile(),"cache-link");check(!Files.exists(root.resolve("cache-link"))&&Files.exists(sentinel),"unlink cache symlink without touching its target");
   Files.createSymbolicLink(root.resolve("parent-link"),outside);boolean rejected=false;try{TelePremiumCloudResetFiles.remove(root.toFile(),"parent-link/sentinel");}catch(IOException e){rejected=true;}check(rejected&&Files.exists(sentinel),"reject symbolic-link parents");
   rejected=false;try{TelePremiumCloudResetFiles.remove(root.toFile(),"../"+outside.getFileName()+"/sentinel");}catch(IOException e){rejected=true;}check(rejected&&Files.exists(sentinel),"reject path traversal before any deletion");
+  reset();context().memoryOnFailedCommit=true;context().failCommit=true;String id=java.util.UUID.randomUUID().toString();
+  try{TelePremiumCloudResetState.begin(id,"plan");throw new AssertionError("write must fail");}catch(IllegalStateException expected){}
+  check(!TelePremiumCloudResetState.pending()&&TelePremiumCloudResetState.epoch()==0,"failed begin must not expose Android in-memory epoch/phase changes");
+  context().failCommit=false;TelePremiumCloudResetState.begin(id,"plan");long before=TelePremiumCloudResetState.epoch();
+  context().failCommit=true;
+  try{TelePremiumCloudResetState.save(id,"clearing","clearing-plan",false);throw new AssertionError("write must fail");}catch(IllegalStateException expected){}
+  check(TelePremiumCloudResetState.DELETING.equals(TelePremiumCloudResetState.phase())&&"plan".equals(TelePremiumCloudResetState.plan()),"failed phase write retains the last durable plan");
+  context().failCommit=false;TelePremiumCloudResetState.save(id,"clearing","clearing-plan",false);context().failCommit=true;
+  try{TelePremiumCloudResetState.save(id,"creating","creating-plan",true);throw new AssertionError("write must fail");}catch(IllegalStateException expected){}
+  check(TelePremiumCloudResetState.CLEARING.equals(TelePremiumCloudResetState.phase())&&TelePremiumCloudResetState.epoch()==before&&!TelePremiumCloudResetState.allowed(before+1),"failed creation-phase write must never unblock new cloud work");
+  context().failCommit=false;TelePremiumCloudResetState.save(id,"creating","creating-plan",true);context().failCommit=true;
+  try{TelePremiumCloudResetState.complete(id);throw new AssertionError("write must fail");}catch(IllegalStateException expected){}
+  check(TelePremiumCloudResetState.pending()&&"creating-plan".equals(TelePremiumCloudResetState.plan()),"failed completion cannot forget the pending operation in memory");
+  context().failCommit=false;TelePremiumCloudResetState.complete(id);check(!TelePremiumCloudResetState.pending()&&TelePremiumCloudResetState.allowed(before+1),"successful retry publishes the final durable state");
   System.out.println("CloudResetTest OK: "+checks+" checks");
  }
 }

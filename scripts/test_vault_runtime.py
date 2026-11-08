@@ -22,7 +22,7 @@ public interface SharedPreferences {
     'android/content/Context.java': r"""package android.content;
 import java.io.*;import java.util.*;
 public class Context {
- public static final int MODE_PRIVATE=0;public File root;public boolean failCommit;
+ public static final int MODE_PRIVATE=0;public File root;public boolean failCommit,memoryOnFailedCommit;public String failPreferences;
  public Map<String,Object> prefs=new HashMap<>();public Context getApplicationContext(){return this;}public File getFilesDir(){return root;}public File getCacheDir(){return new File(root,"cache");}public File getExternalCacheDir(){return new File(root,"external-cache");}
  public SharedPreferences getSharedPreferences(String n,int mode){return new SharedPreferences(){
   String key(String k){return n+":"+k;}
@@ -35,7 +35,7 @@ public class Context {
    public Editor clear(){clearAll=true;return this;}
    public Editor putLong(String k,long v){changes.put(key(k),v);return this;}public Editor putInt(String k,int v){return putLong(k,v);}
    public Editor putBoolean(String k,boolean v){changes.put(key(k),v);return this;}public Editor putString(String k,String v){changes.put(key(k),v);return this;}
-   public Editor remove(String k){changes.put(key(k),null);return this;}public boolean commit(){if(failCommit)return false;if(clearAll)prefs.keySet().removeIf(k->k.startsWith(n+":"));for(var e:changes.entrySet()){if(e.getValue()==null)prefs.remove(e.getKey());else prefs.put(e.getKey(),e.getValue());}return true;}public void apply(){commit();}
+   public Editor remove(String k){changes.put(key(k),null);return this;}public boolean commit(){boolean failed=failCommit||n.equals(failPreferences);if(failed&&!memoryOnFailedCommit)return false;if(clearAll)prefs.keySet().removeIf(k->k.startsWith(n+":"));for(var e:changes.entrySet()){if(e.getValue()==null)prefs.remove(e.getKey());else prefs.put(e.getKey(),e.getValue());}return !failed;}public void apply(){commit();}
   };}
  };}
 }

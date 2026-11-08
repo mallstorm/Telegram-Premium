@@ -137,6 +137,16 @@ public class VaultKeyManagerTest {
   org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.complete(resetId);
   fails(()->TelePremiumVaultKeyManager.recoverFromCode(first,legacy,password),"old recovery code cannot overwrite the new key after new cloud use");
   fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,resetId),"completed reset cannot be reused to rotate keys");
+  String archiveId=java.util.UUID.randomUUID().toString();String keepWrapped=first.getSharedPreferences(PREF,0).getString("wrapped_local",null);
+  org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.begin(archiveId,"test");org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.save(archiveId,"clearing","test",false);
+  first.memoryOnFailedCommit=true;first.failPreferences="telepremium_vault_retired_keys_v1";
+  fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,archiveId),"archive failure after Android memory update still blocks rotation");
+  check(first.getSharedPreferences("telepremium_vault_retired_keys_v1",0).getBoolean(archiveId+".saved",false),"test models Android's visible memory after a failed commit");
+  fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,archiveId),"cached archive saved flag must be flushed successfully before rotation retry");
+  check(keepWrapped.equals(first.getSharedPreferences(PREF,0).getString("wrapped_local",null)),"failed archive retries never change the active wrapped master");
+  first.failPreferences=null;TelePremiumVaultKeyManager.rotateAfterCloudReset(first,archiveId);
+  check(!keepWrapped.equals(first.getSharedPreferences(PREF,0).getString("wrapped_local",null)),"rotation resumes only after archive persistence succeeds");
+  org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.save(archiveId,"creating","test",true);org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.complete(archiveId);
   System.out.println("VaultKeyManagerTest OK: "+checks+" checks");
  }
 }
