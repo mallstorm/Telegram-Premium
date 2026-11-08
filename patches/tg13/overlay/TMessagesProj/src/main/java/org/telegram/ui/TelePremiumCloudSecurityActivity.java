@@ -165,7 +165,7 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
     private void renderVaultControls() {
         addSection("Secure Vault V3");
         addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_VAULT_DEFAULT", org.telegram.messenger.R.string.TP_VAULT_DEFAULT), org.telegram.messenger.telepremium.TPStrings.get("TP_VAULT_DEFAULT_SUB", org.telegram.messenger.R.string.TP_VAULT_DEFAULT_SUB), () -> {});
-        addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_209", org.telegram.messenger.R.string.TP_L10N_209), org.telegram.messenger.telepremium.TPStrings.get("TP_VAULT_RECOVERY_SUB", org.telegram.messenger.R.string.TP_VAULT_RECOVERY_SUB), this::showVaultRecoveryCode);
+        addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_209", org.telegram.messenger.R.string.TP_L10N_209), org.telegram.messenger.telepremium.TPStrings.get("TP_VAULT_RECOVERY_SUB", org.telegram.messenger.R.string.TP_VAULT_RECOVERY_SUB), this::showResetRecoveryCode);
         addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_207", org.telegram.messenger.R.string.TP_L10N_207), org.telegram.messenger.telepremium.TPStrings.get("TP_VAULT_IMPORT_SUB", org.telegram.messenger.R.string.TP_VAULT_IMPORT_SUB), this::showVaultRecovery);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_VAULT_PASSWORD", org.telegram.messenger.R.string.TP_VAULT_PASSWORD), org.telegram.messenger.telepremium.TPStrings.get("TP_VAULT_PASSWORD_SUB", org.telegram.messenger.R.string.TP_VAULT_PASSWORD_SUB), this::showVaultSetup);

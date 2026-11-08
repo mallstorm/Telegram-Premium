@@ -577,7 +577,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultKeyManager.java",
       "base_sha256": null,
-      "sha256": "02a3f50b6ab70d6d2d2644135abba635a394575dc03b8486711e19320927e3dc"
+      "sha256": "5e202fb3ac12b08f3faac82ac1fa58832baaa677033dbdfd57f8197eea5873d4"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultPendingIndexStore.java",
@@ -937,7 +937,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudSecurityActivity.java",
       "base_sha256": null,
-      "sha256": "b035d3ba7640ca66e11419837d282523170b2326540cf0ce8bf5015ec23c66d3"
+      "sha256": "9fa47205fd3fc05107b344d265f2b417626db07904f9ef3cca8b628d5386e4aa"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudSpecialActivity.java",

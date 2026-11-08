@@ -148,6 +148,7 @@ public final class TelePremiumVaultKeyManager {
     /** A manually exported recovery phrase remains off Telegram/cloud messages. */
     public static synchronized void recoverOnThisDevice(Context context, char[] passphrase,
                                                          String saltB64, String envelopeB64) throws Exception {
+        if (TelePremiumCloudResetState.pending()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
         checkScreenGate(context);
         validatePassphrase(passphrase);
         byte[] salt = fromB64(saltB64);
@@ -243,6 +244,7 @@ public final class TelePremiumVaultKeyManager {
 
     /** Accept existing password-backed codes and the new standalone secret key. */
     public static synchronized void recoverFromCode(Context context, String code, char[] password) throws Exception {
+        if (TelePremiumCloudResetState.pending()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
         checkScreenGate(context);
         String[] parts = code.trim().split(":", 3);
         if (parts.length == 3 && "TPVAULT-RECOVERY-1".equals(parts[0])) {

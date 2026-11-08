@@ -128,11 +128,14 @@ public class VaultKeyManagerTest {
   check(wrappedNew.equals(first.getSharedPreferences(PREF,0).getString("wrapped_local",null)),"retry after interruption never generates a second master");
   org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.save(resetId,"creating","ready-to-create",true);
   byte[] newMaster=key(first);check(!same(original,newMaster),"newly created V3 uses a different master");
-  String newCode=TelePremiumVaultKeyManager.exportRecoveryEnvelope(first);Context restoredNew=new Context();TelePremiumVaultKeyManager.recoverFromCode(restoredNew,newCode,new char[0]);
+  String newCode=TelePremiumVaultKeyManager.exportRecoveryEnvelope(first);
+  fails(()->TelePremiumVaultKeyManager.recoverFromCode(first,legacy,password),"recovery cannot replace the reset master before creation completes");
+  Context restoredNew=new Context();org.telegram.messenger.ApplicationLoader.applicationContext=restoredNew;TelePremiumVaultKeyManager.recoverFromCode(restoredNew,newCode,new char[0]);
   check(same(newMaster,key(restoredNew)),"new recovery code restores the new cloud master");
+  org.telegram.messenger.ApplicationLoader.applicationContext=first;
   TelePremiumVaultKeyManager.markKeyUsed(first);
-  fails(()->TelePremiumVaultKeyManager.recoverFromCode(first,legacy,password),"old recovery code cannot overwrite the new key after new cloud use");
   org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.complete(resetId);
+  fails(()->TelePremiumVaultKeyManager.recoverFromCode(first,legacy,password),"old recovery code cannot overwrite the new key after new cloud use");
   fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,resetId),"completed reset cannot be reused to rotate keys");
   System.out.println("VaultKeyManagerTest OK: "+checks+" checks");
  }
