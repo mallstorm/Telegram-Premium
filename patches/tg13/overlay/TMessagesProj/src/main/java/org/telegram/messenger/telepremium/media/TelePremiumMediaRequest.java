@@ -63,7 +63,7 @@ public final class TelePremiumMediaRequest {
     }
     public static HttpURLConnection open(URL url) throws java.io.IOException {
         checkCancelled();
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection(org.telegram.messenger.telepremium.xray.XrayRuntime.mediaProxy());
         TelePremiumMediaRequest request = CURRENT.get();
         if (request != null) synchronized (request.connections) {
             if (request.cancelled) { CLOSER.execute(connection::disconnect); throw new InterruptedIOException("Media request cancelled"); }

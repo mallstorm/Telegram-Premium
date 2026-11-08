@@ -110,7 +110,7 @@ public final class TelePremiumYouTubeDownloader {
                 while (true) {
                     HttpURLConnection c = null;
                     try {
-                        c = (HttpURLConnection) new URL(url).openConnection();
+                        c = (HttpURLConnection) new URL(url).openConnection(org.telegram.messenger.telepremium.xray.XrayRuntime.mediaProxy());
                         c.setConnectTimeout(15000);
                         c.setReadTimeout(30000);
                         c.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0");

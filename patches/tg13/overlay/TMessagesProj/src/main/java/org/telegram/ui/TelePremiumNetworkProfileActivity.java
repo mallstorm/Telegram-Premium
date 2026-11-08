@@ -28,6 +28,8 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
     private final AccountNetworkController controller = AccountNetworkController.getInstance();
     private AccountNetworkProfile profile;
 
+    private boolean reloadXray;
+    @Override public void onResume() { super.onResume(); if(reloadXray){profile=controller.getEditableProfile(account);reloadXray=false;refresh();} }
     private TextCell modeCell;
     private TextCell nameCell;
     private TextCell locationCell;
@@ -70,6 +72,9 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                 ScrollView.LayoutParams.MATCH_PARENT,
                 ScrollView.LayoutParams.WRAP_CONTENT
         ));
+
+        TextCell xray = addCell(content, context, "Xray · 10 профилей", "arm64-v8a");
+        xray.setOnClickListener(v -> { reloadXray=true;presentFragment(new TelePremiumXrayProfilesActivity()); });
 
         modeCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_353", org.telegram.messenger.R.string.TP_L10N_353), "");
         modeCell.setOnClickListener(v -> chooseMode());
@@ -177,13 +182,20 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                 org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_372", org.telegram.messenger.R.string.TP_L10N_372),
                 org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_373", org.telegram.messenger.R.string.TP_L10N_373),
                 "MTProto proxy",
-                "SOCKS5 proxy"
+                "SOCKS5 proxy",
+                "Xray"
         };
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
         builder.setTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_353", org.telegram.messenger.R.string.TP_L10N_353));
         builder.setItems(items, (dialog, which) -> {
-            profile.mode = which;
-            refresh();
+            if(which==AccountNetworkProfile.MODE_XRAY){
+                try {
+                    java.util.List<org.telegram.messenger.telepremium.xray.XrayProfile> profiles=org.telegram.messenger.telepremium.xray.XrayProfileStore.profiles();
+                    if(profiles.isEmpty()){reloadXray=true;presentFragment(new TelePremiumXrayProfilesActivity());return;}
+                    String[] names=new String[profiles.size()];for(int i=0;i<names.length;i++)names[i]=profiles.get(i).name;
+                    showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle("Xray").setItems(names,(d,w)->{profile.mode=AccountNetworkProfile.MODE_XRAY;profile.xrayProfileId=profiles.get(w).id;profile.displayName=profiles.get(w).name;refresh();}).create());
+                }catch(Exception e){android.widget.Toast.makeText(getParentActivity(),"Не удалось открыть профили",android.widget.Toast.LENGTH_LONG).show();}
+            }else {profile.mode = which;refresh();}
         });
         showDialog(builder.create());
     }
@@ -234,6 +246,9 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
     }
 
     private void testConnection() {
+        if(profile.mode==AccountNetworkProfile.MODE_XRAY){AccountNetworkProfile saved=controller.getProfile(account);
+            if(saved==null||saved.mode!=profile.mode||!saved.xrayProfileId.equals(profile.xrayProfileId)){testCell.setTextAndValue("Xray","Сначала сохраните профиль",true);return;}}
+
         testCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_364", org.telegram.messenger.R.string.TP_L10N_364), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_374", org.telegram.messenger.R.string.TP_L10N_374), true);
         controller.checkProfile(account, profile, time -> AndroidUtilities.runOnUIThread(() -> {
             if (time < 0) {

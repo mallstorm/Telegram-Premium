@@ -22,7 +22,9 @@ public final class TelePremiumQueueManager {
     private int repeatMode = REPEAT_OFF;
     private boolean shuffle;
 
-    private TelePremiumQueueManager() {}
+    private android.content.SharedPreferences preferences(){return org.telegram.messenger.ApplicationLoader.applicationContext.getSharedPreferences("telepremium_queue",0);}
+    private TelePremiumQueueManager() { reloadPreferences(); }
+    public synchronized void reloadPreferences(){android.content.SharedPreferences p=preferences();shuffle=p.getBoolean("shuffle",false);repeatMode=Math.max(REPEAT_OFF,Math.min(REPEAT_ALL,p.getInt("repeat",REPEAT_OFF)));notifyChanged();}
 
     public synchronized List<TelePremiumMediaItem> snapshot() { return new ArrayList<>(items); }
     public synchronized int getCurrentIndex() { return currentIndex; }
@@ -164,9 +166,10 @@ public final class TelePremiumQueueManager {
         return items.get(currentIndex);
     }
 
-    public synchronized void setShuffle(boolean value) { shuffle = value; notifyChanged(); }
+    public synchronized void setShuffle(boolean value) { shuffle = value; preferences().edit().putBoolean("shuffle",value).apply(); notifyChanged(); }
     public synchronized void setRepeatMode(int mode) {
         repeatMode = mode < REPEAT_OFF || mode > REPEAT_ALL ? REPEAT_OFF : mode;
+        preferences().edit().putInt("repeat",repeatMode).apply();
         notifyChanged();
     }
 

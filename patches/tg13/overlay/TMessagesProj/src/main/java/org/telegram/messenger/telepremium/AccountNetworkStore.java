@@ -15,15 +15,33 @@ public class AccountNetworkStore {
         return INSTANCE;
     }
 
+    private SharedPreferences targetPrefs(int account) {
+        long uid = UserConfig.getInstance(account).getClientUserId();
+        return ApplicationLoader.applicationContext.getSharedPreferences(PREFIX + (uid > 0 ? "u" + uid : "pending_" + account), Context.MODE_PRIVATE);
+    }
     private SharedPreferences prefs(int account) {
-        return ApplicationLoader.applicationContext.getSharedPreferences(
-                PREFIX + account,
-                Context.MODE_PRIVATE
-        );
+        SharedPreferences target = targetPrefs(account);
+        if (!target.getBoolean("configured", false)) {
+            long uid = UserConfig.getInstance(account).getClientUserId();
+            SharedPreferences legacy = ApplicationLoader.applicationContext.getSharedPreferences(PREFIX + account, Context.MODE_PRIVATE);
+            if (uid > 0 && legacy.getLong("bound_user_id", 0) == uid && legacy.getBoolean("configured", false)) {
+                SharedPreferences.Editor copy = target.edit();
+                for (java.util.Map.Entry<String, ?> entry : legacy.getAll().entrySet()) {
+                    Object value = entry.getValue(); String key = entry.getKey();
+                    if (value instanceof String) copy.putString(key, (String)value);
+                    else if (value instanceof Boolean) copy.putBoolean(key, (Boolean)value);
+                    else if (value instanceof Integer) copy.putInt(key, (Integer)value);
+                    else if (value instanceof Long) copy.putLong(key, (Long)value);
+                }
+                if (copy.commit()) return target;
+                return legacy;
+            }
+        }
+        return target;
     }
 
     public boolean hasProfile(int account) {
-        return prefs(account).getBoolean("configured", false);
+        return load(account) != null;
     }
 
     public AccountNetworkProfile load(int account) {
@@ -35,12 +53,12 @@ public class AccountNetworkStore {
         long currentUserId = UserConfig.getInstance(account).getClientUserId();
         long boundUserId = p.getLong("bound_user_id", 0);
         if (boundUserId != 0 && currentUserId != 0 && boundUserId != currentUserId) {
-            p.edit().clear().apply();
             return null;
         }
 
         AccountNetworkProfile profile = new AccountNetworkProfile();
         profile.mode = p.getInt("mode", AccountNetworkProfile.MODE_INHERIT);
+        profile.xrayProfileId = p.getString("xray_profile_id", "");
         profile.displayName = p.getString("display_name", "");
         profile.locationName = p.getString("location_name", "");
         profile.address = p.getString("address", "");
@@ -60,10 +78,11 @@ public class AccountNetworkStore {
 
     public void save(int account, AccountNetworkProfile profile) {
         long currentUserId = UserConfig.getInstance(account).getClientUserId();
-        prefs(account).edit()
+        targetPrefs(account).edit()
                 .putBoolean("configured", true)
                 .putLong("bound_user_id", currentUserId)
                 .putInt("mode", profile.mode)
+                .putString("xray_profile_id", safe(profile.xrayProfileId))
                 .putString("display_name", safe(profile.displayName))
                 .putString("location_name", safe(profile.locationName))
                 .putString("address", safe(profile.address))
@@ -77,7 +96,9 @@ public class AccountNetworkStore {
     }
 
     public void clear(int account) {
-        prefs(account).edit().clear().apply();
+        targetPrefs(account).edit().clear().apply();
+        SharedPreferences legacy = ApplicationLoader.applicationContext.getSharedPreferences(PREFIX + account, Context.MODE_PRIVATE);
+        if (legacy.getLong("bound_user_id", 0) == UserConfig.getInstance(account).getClientUserId()) legacy.edit().clear().apply();
     }
 
     private static String safe(String value) {

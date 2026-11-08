@@ -229,6 +229,7 @@
                 <data android:mimeType="application/x-matroska" />
             </intent-filter>
         </activity>
+        <activity android:name="org.telegram.ui.TelePremiumCloudGalleryActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" android:theme="@android:style/Theme.Material.NoActionBar" />
         <activity
             android:name="org.telegram.ui.TelePremiumMediaCenterActivity"
             android:theme="@style/Theme.TMessages"

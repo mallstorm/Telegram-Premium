@@ -54,8 +54,11 @@ public final class TelePremiumPlaybackController {
         default void onError(String message) {}
     }
 
-    private static final TelePremiumPlaybackController INSTANCE = new TelePremiumPlaybackController();
-    public static TelePremiumPlaybackController getInstance() { return INSTANCE; }
+    private static volatile TelePremiumPlaybackController activeInstance;
+    private static final class Holder { static final TelePremiumPlaybackController INSTANCE = new TelePremiumPlaybackController(); }
+    public static TelePremiumPlaybackController getInstance() { return Holder.INSTANCE; }
+    public static TelePremiumPlaybackController peekInstance() { return activeInstance; }
+    public static void networkRouteChanged() { TelePremiumPlaybackController live=activeInstance; if(live!=null)live.onNetworkRouteChanged(); }
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final CopyOnWriteArrayList<Listener> listeners = new CopyOnWriteArrayList<>();
@@ -102,7 +105,7 @@ public final class TelePremiumPlaybackController {
         }
     };
 
-    private TelePremiumPlaybackController() { handler.post(ticker); }
+    private TelePremiumPlaybackController() { handler.post(ticker); activeInstance=this; }
 
     public TelePremiumQueueManager getQueue() { return queue; }
     public TelePremiumMediaItem getCurrent() { return current; }
@@ -174,6 +177,21 @@ public final class TelePremiumPlaybackController {
     public void previous() {
         TelePremiumMediaItem item = queue.previous();
         if (item != null) playInternal(item);
+    }
+
+    public void onNetworkRouteChanged() {
+        if (current == null || current.sourceType != TelePremiumMediaItem.SOURCE_NETWORK) return;
+        boolean playing = isPlaying() || state == STATE_RESOLVING || state == STATE_BUFFERING;
+        long position = getPosition();
+        TelePremiumMediaItem item = current;
+        if (!item.live) item.resumePosition = position;
+        if (playing) playInternal(item);
+        else {
+            if (item.isVideo()) resumePrefs.edit().putLong(item.id, position).apply();
+            generation++;
+            if (playbackRequest != null) { playbackRequest.cancel(); playbackRequest = null; }
+            releasePlayer(); setState(STATE_PAUSED);
+        }
     }
 
     public void toggle() {
@@ -412,6 +430,7 @@ public final class TelePremiumPlaybackController {
         if (cloudStreamUri != null && !cloudStreamUri.equals(uri)) releaseCloudStream();
         releasePlayerOnly();
         player = new VideoPlayer(true, false);
+        player.setExternalHttpDataSourceFactory(org.telegram.messenger.telepremium.xray.XrayMediaHttp.factory());
         player.extraAudioProcessors = TelePremiumBalanceAudioProcessor.chain();
         if (outputSurface != null) player.setSurface(outputSurface);
         else if (surfaceView != null) player.setSurfaceView(surfaceView);

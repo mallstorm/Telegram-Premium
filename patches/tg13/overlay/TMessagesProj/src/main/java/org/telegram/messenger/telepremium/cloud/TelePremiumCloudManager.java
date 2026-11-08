@@ -372,6 +372,14 @@ public final class TelePremiumCloudManager {
         });
     }
 
+    /** Persist settings inside the same authenticated V3 index, merged with file operations. */
+    public void updateMediaLibrary(org.json.JSONArray records, Callback callback) {
+        if (!requireWritable(callback)) return;
+        if (snapshot == null) { callback.onComplete("Vault catalog is not ready"); return; }
+        snapshot.mediaLibrary = CloudSnapshot.mergeMediaLibrary(snapshot.mediaLibrary, records);
+        commit(callback);
+    }
+
     private void commit(Callback callback) {
         if (!active()) { callback.onComplete(TelePremiumCloudResetState.MESSAGE); return; }
         if (!remoteReady && !publishingFirstIndex) {

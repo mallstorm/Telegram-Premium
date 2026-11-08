@@ -28,20 +28,12 @@ public final class TelePremiumPlaylistRepository {
         public final ArrayList<TelePremiumMediaItem> items = new ArrayList<>();
     }
 
-    private final SharedPreferences prefs;
-
-    private TelePremiumPlaylistRepository() {
-        Context context = ApplicationLoader.applicationContext;
-        prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-    }
+    private TelePremiumPlaylistRepository() {}
 
     public synchronized List<Playlist> getAll() {
         ArrayList<Playlist> out = new ArrayList<>();
-        String raw = prefs.getString(KEY, "[]");
-        try {
-            JSONArray array = new JSONArray(raw);
-            for (int i = 0; i < array.length(); i++) out.add(fromJson(array.getJSONObject(i)));
-        } catch (Throwable tpError) { org.telegram.messenger.FileLog.e(tpError); }
+        for (JSONObject row : TelePremiumMediaLibraryStore.values("playlist")) try { out.add(fromJson(row)); }
+        catch (Exception e) { TelePremiumMediaLibrarySync.localError("Не удалось прочитать плейлист"); }
         return out;
     }
 
@@ -56,6 +48,7 @@ public final class TelePremiumPlaylistRepository {
         Playlist target = null;
         for (Playlist p : all) if (!TextUtils.isEmpty(id) && id.equals(p.id)) { target = p; break; }
         if (target == null) {
+            if (!TextUtils.isEmpty(id)) throw new IllegalStateException("Плейлист уже удалён");
             target = new Playlist();
             if (!TextUtils.isEmpty(id)) target.id = id;
             all.add(target);
@@ -64,29 +57,28 @@ public final class TelePremiumPlaylistRepository {
         target.items.clear();
         if (items != null) target.items.addAll(items);
         target.updatedAt = System.currentTimeMillis();
-        persist(all);
+        try { if (!TelePremiumMediaLibraryStore.put("playlist", target.id, toJson(target), TextUtils.isEmpty(id))) throw new IllegalStateException("Запись не сохранена"); } catch (Exception e) { throw new IllegalStateException("Не удалось сохранить плейлист", e); }
         return target;
     }
 
-    public synchronized void delete(String id) {
-        ArrayList<Playlist> all = new ArrayList<>(getAll());
-        for (int i = all.size() - 1; i >= 0; i--) if (id != null && id.equals(all.get(i).id)) all.remove(i);
-        persist(all);
-    }
-
-    private void persist(List<Playlist> all) {
-        JSONArray array = new JSONArray();
-        try {
-            for (Playlist p : all) array.put(toJson(p));
-        } catch (Throwable tpError) { org.telegram.messenger.FileLog.e(tpError); }
-        prefs.edit().putString(KEY, array.toString()).apply();
-    }
+    public synchronized void delete(String id) { TelePremiumMediaLibraryStore.remove("playlist", id); }
 
     private static JSONObject toJson(Playlist p) throws Exception {
         JSONObject o = new JSONObject();
         o.put("id", p.id).put("name", p.name).put("createdAt", p.createdAt).put("updatedAt", p.updatedAt).put("cover", p.cover);
         JSONArray items = new JSONArray();
-        for (TelePremiumMediaItem item : p.items) items.put(item.toJson());
+        for (TelePremiumMediaItem item : p.items) {
+            JSONObject row=item.toJson();
+            if(item.sourceType==TelePremiumMediaItem.SOURCE_CLOUD) {
+                long owner=item.cloudUserId;
+                if(owner==0 && item.cloudAccount>=0 && item.cloudAccount<org.telegram.messenger.UserConfig.MAX_ACCOUNT_COUNT)
+                    owner=org.telegram.messenger.UserConfig.getInstance(item.cloudAccount).getClientUserId();
+                row.put("cloudUserId",owner).put("cloudAccount",-1).put("cloudEpoch",-1);
+            } else if(item.sourceType==TelePremiumMediaItem.SOURCE_DEVICE) {
+                TelePremiumMediaLibraryStore.bindDevice(item.id,item.uri);row.put("uri",JSONObject.NULL);
+            }
+            items.put(row);
+        }
         o.put("items", items);
         return o;
     }
@@ -99,7 +91,15 @@ public final class TelePremiumPlaylistRepository {
         p.updatedAt = o.optLong("updatedAt", p.createdAt);
         p.cover = o.optString("cover", null);
         JSONArray items = o.optJSONArray("items");
-        if (items != null) for (int i = 0; i < items.length(); i++) p.items.add(TelePremiumMediaItem.fromJson(items.getJSONObject(i)));
+        if (items != null) for (int i = 0; i < items.length(); i++) {
+            TelePremiumMediaItem item=TelePremiumMediaItem.fromJson(items.getJSONObject(i));
+            if(item.sourceType==TelePremiumMediaItem.SOURCE_CLOUD) {
+                item.cloudAccount=-1;item.cloudEpoch=-1;
+                for(int a=0;a<org.telegram.messenger.UserConfig.MAX_ACCOUNT_COUNT;a++)if(org.telegram.messenger.UserConfig.getInstance(a).isClientActivated()
+                        && item.cloudUserId>0 && org.telegram.messenger.UserConfig.getInstance(a).getClientUserId()==item.cloudUserId)item.cloudAccount=a;
+            } else if(item.sourceType==TelePremiumMediaItem.SOURCE_DEVICE) item.uri=TelePremiumMediaLibraryStore.deviceUri(item);
+            p.items.add(item);
+        }
         return p;
     }
 }

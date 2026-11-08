@@ -8,6 +8,7 @@ import java.util.Map;
  * methods TelePremium uses: put(name, null) removes the mapping, opt* return fallbacks.
  */
 public class JSONObject {
+    public static final Object NULL = new Object();
     private final Map<String, Object> map = new LinkedHashMap<>();
 
     public JSONObject() {}
@@ -30,6 +31,7 @@ public class JSONObject {
     public JSONObject put(String name, boolean value) throws JSONException { return put(name, (Object) value); }
     public JSONObject put(String name, double value) throws JSONException { return put(name, (Object) value); }
 
+    public java.util.Iterator<String> keys() {return map.keySet().iterator();}
     public boolean has(String name) { return map.containsKey(name); }
     public Object opt(String name) { return map.get(name); }
 
@@ -72,6 +74,7 @@ public class JSONObject {
         Object v = map.get(name);
         return v instanceof JSONArray ? (JSONArray) v : null;
     }
+    public JSONObject getJSONObject(String name) throws JSONException {JSONObject value=optJSONObject(name);if(value==null)throw new JSONException("Not an object: "+name);return value;}
     public JSONObject optJSONObject(String name) {
         Object v = map.get(name);
         return v instanceof JSONObject ? (JSONObject) v : null;
@@ -91,7 +94,7 @@ public class JSONObject {
     }
 
     static void write(StringBuilder sb, Object v) {
-        if (v == null) { sb.append("null"); return; }
+        if (v == null || v == NULL) { sb.append("null"); return; }
         if (v instanceof Number || v instanceof Boolean || v instanceof JSONObject || v instanceof JSONArray) { sb.append(v); return; }
         String s = String.valueOf(v);
         sb.append('"');

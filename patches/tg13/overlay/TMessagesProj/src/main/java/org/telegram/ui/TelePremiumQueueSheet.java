@@ -244,7 +244,7 @@ final class TelePremiumQueueSheet implements TelePremiumQueueManager.Listener {
         new android.app.AlertDialog.Builder(activity).setTitle(t("TP_L10N_337", R.string.TP_L10N_337)).setView(box)
                 .setPositiveButton(t("TP_L10N_137", R.string.TP_L10N_137), (d, w) -> {
                     String title = name.getText().toString().trim();
-                    TelePremiumPlaylistRepository.getInstance().save(null, TextUtils.isEmpty(title) ? t("TP_L10N_338", R.string.TP_L10N_338) : title, new ArrayList<>(items));
+                    try { TelePremiumPlaylistRepository.getInstance().save(null, TextUtils.isEmpty(title) ? t("TP_L10N_338", R.string.TP_L10N_338) : title, new ArrayList<>(items)); } catch (Exception e) { Toast.makeText(activity, "Не удалось сохранить плейлист", Toast.LENGTH_LONG).show(); return; }
                     Toast.makeText(activity, t("TP_L10N_339", R.string.TP_L10N_339), Toast.LENGTH_SHORT).show();
                 }).setNegativeButton(t("TP_L10N_135", R.string.TP_L10N_135), null).show();
     }

@@ -1,140 +1,45 @@
 package org.telegram.messenger.telepremium.media;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.text.TextUtils;
-
-import org.json.JSONArray;
 import org.json.JSONObject;
-import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.FileLog;
+import java.util.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-/** Saved IPTV playlists, radio favorites and the chosen radio country. */
+/** All entries are per-library-owner records in the encrypted V3 settings catalog. */
 public final class TelePremiumNetworkLibrary {
-    private static final String PREFS = "telepremium_network_library";
-
     public static final class IptvPlaylist {
-        public final String name, url;
-        IptvPlaylist(String name, String url) { this.name = name; this.url = url; }
+        public final String name,url;
+        IptvPlaylist(String name,String url){this.name=name;this.url=url;}
     }
-
-    private TelePremiumNetworkLibrary() {}
-
-    private static SharedPreferences prefs() {
-        return ApplicationLoader.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    private TelePremiumNetworkLibrary(){}
+    private static List<IptvPlaylist> list(String kind){ArrayList<IptvPlaylist> out=new ArrayList<>();for(JSONObject row:TelePremiumMediaLibraryStore.values(kind))out.add(new IptvPlaylist(row.optString("name"),row.optString("url")));return out;}
+    public static List<IptvPlaylist> getIptvPlaylists(){return list("iptv");}
+    public static List<IptvPlaylist> getYoutubeChannels(){return list("youtube");}
+    private static void add(String kind,String name,String url){try{TelePremiumMediaLibraryStore.readd(kind,url,new JSONObject().put("name",TextUtils.isEmpty(name)?url:name).put("url",url));}catch(Exception e){TelePremiumMediaLibrarySync.localError("Не удалось сохранить источник");}}
+    public static void addYoutubeChannel(String name,String url){add("youtube",name,url);}
+    public static void removeYoutubeChannel(String url){TelePremiumMediaLibraryStore.remove("youtube",url);}
+    public static void addIptvPlaylist(String name,String url){add("iptv",name,url);}
+    public static void addIptvFile(String name,String url,String text)throws Exception {
+        java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
+        try(java.util.zip.GZIPOutputStream gzip=new java.util.zip.GZIPOutputStream(bytes)){gzip.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+        TelePremiumMediaLibraryStore.readd("iptv",url,new JSONObject().put("name",name).put("url",url).put("inlineGzip",android.util.Base64.encodeToString(bytes.toByteArray(),android.util.Base64.NO_WRAP)));
     }
-
-    public static List<IptvPlaylist> getIptvPlaylists() { return getList("iptv"); }
-
-    /** Saved YouTube channels / playlists (name + link). */
-    public static List<IptvPlaylist> getYoutubeChannels() { return getList("youtube"); }
-
-    public static void addYoutubeChannel(String name, String url) {
-        List<IptvPlaylist> list = getYoutubeChannels();
-        for (int i = list.size() - 1; i >= 0; i--) if (list.get(i).url.equals(url)) list.remove(i);
-        list.add(0, new IptvPlaylist(TextUtils.isEmpty(name) ? url : name, url));
-        saveList("youtube", list);
-    }
-
-    public static void removeYoutubeChannel(String url) {
-        List<IptvPlaylist> list = getYoutubeChannels();
-        for (int i = list.size() - 1; i >= 0; i--) if (list.get(i).url.equals(url)) list.remove(i);
-        saveList("youtube", list);
-    }
-
-    private static List<IptvPlaylist> getList(String key) {
-        ArrayList<IptvPlaylist> out = new ArrayList<>();
-        try {
-            JSONArray arr = new JSONArray(prefs().getString(key, "[]"));
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject o = arr.getJSONObject(i);
-                out.add(new IptvPlaylist(o.optString("name"), o.optString("url")));
+    public static String inlinePlaylist(String url)throws Exception {
+        for(JSONObject row:TelePremiumMediaLibraryStore.values("iptv"))if(url.equals(row.optString("url"))&&row.has("inlineGzip")){
+            byte[] compressed=android.util.Base64.decode(row.getString("inlineGzip"),android.util.Base64.NO_WRAP);
+            try(java.util.zip.GZIPInputStream input=new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(compressed));java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){
+                byte[] buffer=new byte[8192];int n;while((n=input.read(buffer))!=-1){if(out.size()+n>4*1024*1024)throw new java.io.IOException("Плейлист слишком большой");out.write(buffer,0,n);}return new String(out.toByteArray(),java.nio.charset.StandardCharsets.UTF_8);
             }
-        } catch (Exception e) {
-            FileLog.e(e);
         }
-        return out;
+        return null;
     }
-
-    public static void addIptvPlaylist(String name, String url) {
-        List<IptvPlaylist> list = getIptvPlaylists();
-        for (int i = list.size() - 1; i >= 0; i--) if (list.get(i).url.equals(url)) list.remove(i);
-        list.add(0, new IptvPlaylist(TextUtils.isEmpty(name) ? url : name, url));
-        saveIptv(list);
-    }
-
-    public static void removeIptvPlaylist(String url) {
-        List<IptvPlaylist> list = getIptvPlaylists();
-        for (int i = list.size() - 1; i >= 0; i--) if (list.get(i).url.equals(url)) list.remove(i);
-        saveIptv(list);
-    }
-
-    private static void saveIptv(List<IptvPlaylist> list) { saveList("iptv", list); }
-
-    private static void saveList(String key, List<IptvPlaylist> list) {
-        JSONArray arr = new JSONArray();
-        try {
-            for (IptvPlaylist p : list) arr.put(new JSONObject().put("name", p.name).put("url", p.url));
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-        prefs().edit().putString(key, arr.toString()).apply();
-    }
-
-    public static List<TelePremiumMediaItem> getRadioFavorites() {
-        ArrayList<TelePremiumMediaItem> out = new ArrayList<>();
-        try {
-            JSONArray arr = new JSONArray(prefs().getString("radio_fav", "[]"));
-            for (int i = 0; i < arr.length(); i++) {
-                TelePremiumMediaItem item = TelePremiumMediaItem.fromJson(arr.getJSONObject(i));
-                item.mediaType = TelePremiumMediaItem.TYPE_STREAM;
-                item.live = true;
-                out.add(item);
-            }
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-        return out;
-    }
-
-    public static boolean isRadioFavorite(TelePremiumMediaItem item) {
-        for (TelePremiumMediaItem f : getRadioFavorites()) if (f.uri != null && f.uri.equals(item.uri)) return true;
-        return false;
-    }
-
-    public static void toggleRadioFavorite(TelePremiumMediaItem item) {
-        List<TelePremiumMediaItem> list = getRadioFavorites();
-        boolean removed = false;
-        for (int i = list.size() - 1; i >= 0; i--) {
-            if (list.get(i).uri != null && list.get(i).uri.equals(item.uri)) { list.remove(i); removed = true; }
-        }
-        if (!removed) list.add(0, item);
-        JSONArray arr = new JSONArray();
-        try {
-            for (TelePremiumMediaItem f : list) {
-                JSONObject o = f.toJson();
-                o.put("artworkUri", f.artworkUri);
-                arr.put(o);
-            }
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-        prefs().edit().putString("radio_fav", arr.toString()).apply();
-    }
-
-    /** Defaults to the device country, then RU. */
-    public static String getRadioCountry() {
-        String fallback = Locale.getDefault().getCountry();
-        return prefs().getString("radio_country", TextUtils.isEmpty(fallback) ? "RU" : fallback.toUpperCase(Locale.ROOT));
-    }
-
-    public static String getRadioCountryName() { return prefs().getString("radio_country_name", null); }
-
-    public static void setRadioCountry(String code, String name) {
-        prefs().edit().putString("radio_country", code).putString("radio_country_name", name).apply();
-    }
+    public static void removeIptvPlaylist(String url){TelePremiumMediaLibraryStore.remove("iptv",url);}
+    public static void updateYoutubeTitle(String url,String name){for(JSONObject row:TelePremiumMediaLibraryStore.values("youtube"))if(url.equals(row.optString("url"))&&!row.optBoolean("customName")){try{row.put("name",name);TelePremiumMediaLibraryStore.put("youtube",url,row,false);}catch(Exception ignored){}return;}}
+    public static void renameYoutube(String url,String name){for(JSONObject row:TelePremiumMediaLibraryStore.values("youtube"))if(url.equals(row.optString("url"))){try{row.put("name",name).put("customName",true);TelePremiumMediaLibraryStore.put("youtube",url,row,false);}catch(Exception ignored){}return;}}
+    public static String youtubeName(String url,String fallback){for(IptvPlaylist p:getYoutubeChannels())if(p.url.equals(url))return p.name;return fallback;}
+    public static List<TelePremiumMediaItem> getRadioFavorites(){ArrayList<TelePremiumMediaItem> out=new ArrayList<>();for(JSONObject row:TelePremiumMediaLibraryStore.values("radio"))try{TelePremiumMediaItem item=TelePremiumMediaItem.fromJson(row);item.mediaType=TelePremiumMediaItem.TYPE_STREAM;item.live=true;out.add(item);}catch(Exception ignored){}return out;}
+    public static boolean isRadioFavorite(TelePremiumMediaItem item){for(TelePremiumMediaItem f:getRadioFavorites())if(f.uri!=null&&f.uri.equals(item.uri))return true;return false;}
+    public static void toggleRadioFavorite(TelePremiumMediaItem item){if(isRadioFavorite(item))TelePremiumMediaLibraryStore.remove("radio",item.uri);else try{TelePremiumMediaLibraryStore.put("radio",item.uri,item.toJson(),true);}catch(Exception ignored){}}
+    public static String getRadioCountry(){for(JSONObject row:TelePremiumMediaLibraryStore.values("preferences"))if(row.has("code"))return row.optString("code","RU");String code=Locale.getDefault().getCountry();return TextUtils.isEmpty(code)?"RU":code.toUpperCase(Locale.ROOT);}
+    public static String getRadioCountryName(){for(JSONObject row:TelePremiumMediaLibraryStore.values("preferences"))if(row.has("code"))return row.optString("name",null);return null;}
+    public static void setRadioCountry(String code,String name){try{TelePremiumMediaLibraryStore.put("preferences","radio",new JSONObject().put("code",code).put("name",name),true);}catch(Exception ignored){}}
 }
