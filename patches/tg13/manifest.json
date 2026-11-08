@@ -797,7 +797,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/xray/XrayProfileStore.java",
       "base_sha256": null,
-      "sha256": "0cbd19cc917bdf666e775e996513008d763d540969720eaadc80e2dce97dad23"
+      "sha256": "7a23e94ae792bea88ec753b2ac97a52b2301805c65c661adfe34b7a4962063e3"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/xray/XrayRuntime.java",
@@ -1142,7 +1142,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumXrayProfilesActivity.java",
       "base_sha256": null,
-      "sha256": "0285277893f40b3196ac3fee7b31a0a78d6a5a08476fe72755f842a23742a729"
+      "sha256": "e450ecf8e46bf373c1c29303676c28c10d69a6e9c356d56b814a73eca60fad1c"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumYoutubeChannelsDialog.java",

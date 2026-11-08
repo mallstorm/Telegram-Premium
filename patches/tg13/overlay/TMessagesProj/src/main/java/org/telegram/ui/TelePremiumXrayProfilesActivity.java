@@ -45,9 +45,21 @@ public final class TelePremiumXrayProfilesActivity extends BaseFragment {
             label(t("Media route","Маршрут медиатеки"));
             String route=XrayProfileStore.mediaRoute();cell(t("YouTube, radio and IPTV","YouTube, радио и IPTV"),route.isEmpty()?t("Direct","Напрямую"):route.equals("account")?t("Current account Xray","Xray текущего аккаунта"):profileName(route),()->chooseMedia());
             label(t("Cloud transfers follow each Telegram account. Media can use a separate profile. All proxy listeners are local; an unavailable chosen profile stops the connection instead of switching to direct.","Передача файлов облака идёт по маршруту соответствующего Telegram-аккаунта. Для медиатеки можно выбрать отдельный профиль. При недоступности выбранного профиля соединение останавливается."));
-        }catch(Exception e){label(t("Cannot read encrypted profiles. Import them again after restoring device storage.","Не удалось прочитать зашифрованные профили. Сохранённые данные не удалены."));}
+        }catch(Exception e){
+            label(t("The device key cannot open the restored profiles. Reset this local list, then import your profile links again.","Ключ устройства не открывает восстановленные профили. Сбросьте локальный список, затем импортируйте ссылки профилей заново."));
+            cell(t("Reset unreadable Xray profiles","Сбросить нечитаемые профили Xray"),"",this::resetUnreadable);
+        }
     }
     private String profileName(String id)throws Exception{XrayProfile p=XrayProfileStore.find(id);return p==null?t("Unavailable","Недоступен"):p.name;}
+    private void resetUnreadable(){
+        showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider())
+                .setTitle(t("Reset local Xray profiles?","Сбросить локальные профили Xray?"))
+                .setMessage(t("Only this device's proxy list is reset. Vault keys and the media library are preserved. Media will use Direct; accounts assigned to missing profiles remain offline until you choose new routes.","Сбрасывается только локальный список прокси. Ключи Vault и медиатека сохраняются. Медиатека перейдёт на прямое соединение; аккаунты со старыми профилями останутся без соединения, пока вы не назначите новые маршруты."))
+                .setPositiveButton(t("Reset profiles","Сбросить профили"),(d,w)->{
+                    try{XrayProfileStore.resetAfterKeyLoss();XrayRuntime.refresh();org.telegram.messenger.telepremium.media.TelePremiumPlaybackController.networkRouteChanged();render();}
+                    catch(Exception e){error(t("Could not reset profiles","Не удалось сбросить профили"));}
+                }).setNegativeButton(t("Cancel","Отмена"),null).create());
+    }
     private void importDialog(){
         EditText input=new EditText(getParentActivity());input.setHint("vless://… · vmess://… · trojan://… · ss://… · Xray JSON");input.setMinLines(4);input.setMaxLines(12);input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(262144)});

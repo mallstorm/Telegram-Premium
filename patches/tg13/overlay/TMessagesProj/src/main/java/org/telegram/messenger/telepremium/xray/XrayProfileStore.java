@@ -67,6 +67,13 @@ public final class XrayProfileStore {
         cached=new JSONObject(state.toString());
     }
 
+    /** Explicit user recovery after OS backup loses the device Keystore key. Never delete key aliases. */
+    public static synchronized void resetAfterKeyLoss() throws Exception {
+        String previous=prefs().getString("payload",null);
+        if(previous!=null)commitEncrypted(prefs(),"unreadable_archive",previous);
+        write(new JSONObject().put("profiles",new JSONArray()).put("mediaRoute",""));
+    }
+
     public static synchronized List<XrayProfile> profiles() throws Exception {
         JSONArray a=read().getJSONArray("profiles");ArrayList<XrayProfile> out=new ArrayList<>();
         if(a.length()>XrayConfig.MAX_PROFILES)throw new IllegalStateException("Too many stored profiles");
