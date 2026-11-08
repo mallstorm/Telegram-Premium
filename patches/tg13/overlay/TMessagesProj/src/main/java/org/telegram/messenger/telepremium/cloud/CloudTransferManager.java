@@ -66,10 +66,11 @@ public final class CloudTransferManager {
     }
 
     public static synchronized CloudTransferManager getInstance(int account) {
-        if (INSTANCES[account] == null) INSTANCES[account] = new CloudTransferManager(account);
+        if (INSTANCES[account] == null || INSTANCES[account].epoch != TelePremiumCloudResetState.epoch()) INSTANCES[account] = new CloudTransferManager(account);
         return INSTANCES[account];
     }
 
+    private final long epoch = TelePremiumCloudResetState.epoch();
     private final int account;
     private final SharedPreferences prefs;
     private final ArrayList<Listener> listeners = new ArrayList<>();
@@ -253,14 +254,17 @@ public final class CloudTransferManager {
     }
 
     private void notifyListeners() {
+        if (!TelePremiumCloudResetState.allowed(epoch)) return;
         Task snapshot = task == null ? null : task.copy();
         ArrayList<Listener> copy = new ArrayList<>(listeners);
         AndroidUtilities.runOnUIThread(() -> {
+            if (!TelePremiumCloudResetState.allowed(epoch)) return;
             for (Listener listener : copy) listener.onTransferChanged(snapshot == null ? null : snapshot.copy());
         });
     }
 
     private void persist() {
+        if (!TelePremiumCloudResetState.allowed(epoch)) return;
         if (task == null) {
             prefs.edit().clear().apply();
             return;

@@ -8,6 +8,7 @@ import android.security.keystore.KeyProperties;
 import android.util.Base64;
 
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudSecuritySession;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudSecurityStore;
 
 import java.nio.charset.StandardCharsets;
@@ -81,6 +82,33 @@ public final class TelePremiumVaultKeyManager {
     public static synchronized void markKeyUsed(Context context) throws Exception {
         if (!prefs(context).edit().putBoolean(KEY_USED, true).commit())
             throw new IllegalStateException("Не удалось сохранить состояние ключа Vault");
+    }
+
+    /** Only the explicit, persisted all-account reset may rotate an existing key. Idempotent after a crash. */
+    public static synchronized void rotateAfterCloudReset(Context context, String operation) throws Exception {
+        if (!TelePremiumCloudResetState.mayRotate(operation)) throw new IllegalStateException("Reset is not ready for key rotation");
+        checkScreenOnly(context);
+        SharedPreferences active = prefs(context);
+        if (operation.equals(active.getString("last_reset_id", null))) {
+            if (!active.edit().putString("last_reset_id", operation).commit()) throw new IllegalStateException("Не удалось подтвердить сохранение нового ключа");
+            return;
+        }
+        SharedPreferences archive = context.getSharedPreferences("telepremium_vault_retired_keys_v1", 0);
+        if (!archive.getBoolean(operation + ".saved", false)) {
+            SharedPreferences.Editor backup = archive.edit();
+            for (String field : new String[]{WRAPPED_LOCAL, WRAPPED_RECOVERY, RECOVERY_SALT, KEY_ID})
+                if (active.contains(field)) backup.putString(operation + "." + field, active.getString(field, null));
+            if (!backup.putBoolean(operation + ".saved", true).commit())
+                throw new IllegalStateException("Не удалось сохранить прежний зашифрованный ключ");
+        }
+        byte[] master = TelePremiumVaultCrypto.newMasterKey();
+        try {
+            if (!active.edit().putString(WRAPPED_LOCAL, b64(wrap(getOrCreateKey(), master)))
+                    .putString(KEY_ID, fingerprint(master)).putString("last_reset_id", operation)
+                    .remove(WRAPPED_RECOVERY).remove(RECOVERY_SALT)
+                    .putBoolean(KEY_USED, false).putBoolean(RECOVERY_CONFIRMED, false).commit())
+                throw new IllegalStateException("Не удалось сохранить новый ключ Vault");
+        } finally { Arrays.fill(master, (byte) 0); }
     }
 
     /** Optional password backup of the same automatically provisioned key. */
@@ -197,6 +225,12 @@ public final class TelePremiumVaultKeyManager {
     }
 
     private static void checkScreenGate(Context context) {
+        if (!TelePremiumCloudResetState.allowed(TelePremiumCloudResetState.epoch()))
+            throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
+        checkScreenOnly(context);
+    }
+
+    private static void checkScreenOnly(Context context) {
         if (TelePremiumCloudSecurityStore.isProtectionEnabled(context)
                 && !TelePremiumCloudSecuritySession.isUnlocked(context))
             throw new IllegalStateException("Unlock protected CloudGram before accessing the Vault master key");

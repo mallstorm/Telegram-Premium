@@ -38,6 +38,17 @@ public class JSONObject {
         if (v == null) throw new JSONException("No value for " + name);
         return String.valueOf(v);
     }
+    public int getInt(String name) throws JSONException { return (int) getLong(name); }
+    public long getLong(String name) throws JSONException {
+        if (!map.containsKey(name)) throw new JSONException("Missing " + name);
+        Object v = map.get(name);
+        try { return v instanceof Number ? ((Number) v).longValue() : Long.parseLong(String.valueOf(v)); }
+        catch (RuntimeException e) { throw new JSONException("Not a number " + name); }
+    }
+    public JSONArray getJSONArray(String name) throws JSONException {
+        Object v = map.get(name); if (v instanceof JSONArray) return (JSONArray) v;
+        throw new JSONException("Not an array " + name);
+    }
     public String optString(String name) { return optString(name, ""); }
     public String optString(String name, String fallback) {
         Object v = map.get(name);

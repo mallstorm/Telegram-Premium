@@ -666,4 +666,17 @@
     <string name="TP_VAULT_PASSWORD_SUB">Optional: protect the recovery code with a password. Previously saved secret codes remain valid</string>
     <string name="TP_VAULT_RECOVERY_SECRET">This secret code gives full access to your encrypted cloud. Save it privately outside Telegram. No password is required for this code. Without it, losing this device means losing access to the files.</string>
     <string name="TP_VAULT_PASSWORD_HINT">Password, only for a password-protected recovery code</string>
+    <string name="TP_RESET_TITLE">Recreate clouds for all accounts</string>
+    <string name="TP_RESET_RESUME">Continue recreating clouds</string>
+    <string name="TP_RESET_SUB">Review and permanently delete old service clouds, then create fresh encrypted V3 clouds</string>
+    <string name="TP_RESET_WARNING">All files in the service channels listed below will be permanently deleted. Only these channels will be deleted; ordinary chats, groups and Saved Messages are kept. A new shared encryption key will be created for all connected accounts. Old recovery codes will not open the new clouds. Continue only if you accept losing the old cloud files.</string>
+    <string name="TP_RESET_CONFIRM">Delete listed clouds and recreate</string>
+    <string name="TP_RESET_SCANNING">Checking service channels in all connected accounts…</string>
+    <string name="TP_RESET_WORKING">Recreating clouds… Keep the app open.</string>
+    <string name="TP_RESET_GONE">deletion or absence already confirmed</string>
+    <string name="TP_RESET_EMPTY">No old service channels found; a new V3 cloud will be created.</string>
+    <string name="TP_RESET_PAUSED">Cloud reset paused</string>
+    <string name="TP_RESET_RETRY">Completed deletions are saved. Use Continue recreating clouds to retry. Do not clear app data.</string>
+    <string name="TP_RESET_DONE">New V3 clouds are ready</string>
+    <string name="TP_RESET_NEW_KEY">Encrypted clouds have been created and synchronized for all connected accounts. Save the NEW recovery code outside Telegram. Old codes do not open these clouds.</string>
 </resources>

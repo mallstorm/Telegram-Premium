@@ -1,6 +1,7 @@
 package org.telegram.messenger.telepremium.cloud.vault;
 
 import android.content.SharedPreferences;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -34,12 +35,21 @@ import java.util.List;
 /** Authenticated V3 catalogs only. A failed read never creates an empty replacement. */
 public final class TelePremiumVaultIndexStore {
     public static final String CAPTION = "#TPV3I";
+    private final long ownerUserId;
+    private final long epoch = TelePremiumCloudResetState.epoch();
+    private boolean active() { return TelePremiumCloudResetState.allowed(epoch) && ownerUserId == org.telegram.messenger.UserConfig.getInstance(account).getClientUserId(); }
+    private boolean stopped(byte[] master, TelegramCloudMetadataStore.HistoryCallback callback) {
+        if (active()) return false;
+        if (master != null) Arrays.fill(master, (byte) 0);
+        callback.onLoaded(new ArrayList<>(), TelePremiumCloudResetState.MESSAGE); return true;
+    }
     private final int account;
     private final TelePremiumCloudPeerManager peer;
     private boolean saving;
 
     public TelePremiumVaultIndexStore(int account) {
         this.account = account;
+        this.ownerUserId=UserConfig.getInstance(account).getClientUserId();
         peer = TelePremiumCloudPeerManager.getVaultInstance(account);
     }
 
@@ -74,10 +84,12 @@ public final class TelePremiumVaultIndexStore {
     }
 
     public void loadGenerations(TelegramCloudMetadataStore.HistoryCallback callback) {
+        if (stopped(null, callback)) return;
         final byte[] master;
         try { master = TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext); }
         catch (Exception e) { callback.onLoaded(new ArrayList<>(), failure(e.getMessage(), "Не удалось открыть ключ Vault")); return; }
         peer.ensure((dialogId, error) -> {
+            if (stopped(master, callback)) return;
             if (error != null || peer.getInputPeer() == null) {
                 loadLocal(master, error == null ? "Канал Vault недоступен" : error, callback);
                 return;
@@ -88,11 +100,13 @@ public final class TelePremiumVaultIndexStore {
 
     private void findIndexes(byte[] master, int offset, int page, boolean seenPayload,
                              ArrayList<TLRPC.Message> indexes, TelegramCloudMetadataStore.HistoryCallback callback) {
+        if (stopped(master, callback)) return;
         TLRPC.TL_messages_getHistory req = new TLRPC.TL_messages_getHistory();
         req.peer = peer.getInputPeer();
         req.limit = 100;
         req.offset_id = offset;
         ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (stopped(master, callback)) return;
             if (error != null || !(response instanceof TLRPC.messages_Messages)) {
                 loadLocal(master, error == null ? "История Vault недоступна" : failure(error.text, "История Vault недоступна"), callback);
                 return;
@@ -130,6 +144,7 @@ public final class TelePremiumVaultIndexStore {
 
     private void loadNext(List<TLRPC.Message> messages, int index, ArrayList<CloudSnapshot> decoded,
                           byte[] master, String newerFailure, TelegramCloudMetadataStore.HistoryCallback callback) {
+        if (stopped(master, callback)) return;
         if (index == messages.size()) {
             CloudSnapshot remote = best(decoded);
             if (newerFailure != null) {
@@ -177,12 +192,14 @@ public final class TelePremiumVaultIndexStore {
                                TelegramCloudMetadataStore.HistoryCallback callback) {
         TLRPC.Message message = messages.get(index);
         fetchDocument(message, refreshed, (file, error) -> {
+            if (stopped(master, callback)) return;
             if (error != null) {
                 String failure = decoded.isEmpty() && newerFailure == null ? error : newerFailure;
                 loadNext(messages, index + 1, decoded, master, failure, callback);
                 return;
             }
             Utilities.globalQueue.postRunnable(() -> {
+                if (!active()) { AndroidUtilities.runOnUIThread(() -> stopped(master, callback)); return; }
                 CloudSnapshot snapshot;
                 try (FileInputStream in = new FileInputStream(file); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                     TelePremiumVaultCrypto.decrypt(in, out, master, TelePremiumVaultCrypto.Purpose.INDEX);
@@ -236,6 +253,7 @@ public final class TelePremiumVaultIndexStore {
     /** Only pending local changes ahead of a verified server checkpoint may be auto-published. */
     private void reconcile(ArrayList<CloudSnapshot> remote, List<CloudSnapshot> local, String warning,
                            TelegramCloudMetadataStore.HistoryCallback callback) {
+        if (stopped(null, callback)) return;
         if (warning != null) { local.addAll(remote); callback.onLoaded(local, warning); return; }
         CloudSnapshot server = best(remote), pending = best(local);
         if (pending == null || (server != null && pending.generation <= server.generation)) {
@@ -259,6 +277,7 @@ public final class TelePremiumVaultIndexStore {
 
     private void loadLocal(byte[] master, String warning, TelegramCloudMetadataStore.HistoryCallback callback) {
         Utilities.globalQueue.postRunnable(() -> {
+            if (!active()) { AndroidUtilities.runOnUIThread(() -> stopped(master, callback)); return; }
             ArrayList<CloudSnapshot> snapshots = new ArrayList<>();
             File[] journals = journals();
             for (int i = 0; i < Math.min(journals.length, 10); i++) {
@@ -272,7 +291,7 @@ public final class TelePremiumVaultIndexStore {
             Arrays.fill(master, (byte) 0);
             String resultWarning = snapshots.isEmpty() && journals.length > 0 && warning == null
                     ? "Локальный каталог Vault не читается; восстановите исходный ключ или резервную копию" : warning;
-            AndroidUtilities.runOnUIThread(() -> callback.onLoaded(snapshots, resultWarning));
+            AndroidUtilities.runOnUIThread(() -> { if (!stopped(null, callback)) callback.onLoaded(snapshots, resultWarning); });
         });
     }
 
@@ -291,6 +310,7 @@ public final class TelePremiumVaultIndexStore {
     }
 
     private void cacheVerifiedIndex(File file, CloudSnapshot snapshot) throws Exception {
+        if (!active()) return;
         TelePremiumVaultKeyManager.markKeyUsed(ApplicationLoader.applicationContext);
         // Cache a received catalog as well, so a second device can subsequently work offline.
         File target = new File(journalDirectory(), "g" + snapshot.generation + "_remote.tpv");
@@ -347,6 +367,7 @@ public final class TelePremiumVaultIndexStore {
     }
 
     public void save(CloudSnapshot snapshot, TelegramCloudMetadataStore.SaveCallback callback) {
+        if (!active()) { callback.onSaved(TelePremiumCloudResetState.MESSAGE); return; }
         if (saving) { callback.onSaved("Синхронизация Vault уже выполняется"); return; }
         final byte[] master;
         try {
@@ -361,6 +382,7 @@ public final class TelePremiumVaultIndexStore {
         Utilities.globalQueue.postRunnable(() -> {
             File partial = null;
             try {
+                if (!active()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
                 TelePremiumVaultKeyManager.markKeyUsed(ApplicationLoader.applicationContext);
                 byte[] raw = snapshot.encode().getBytes(StandardCharsets.UTF_8);
                 File journal = new File(journalDirectory(), "g" + generation + "_" + VaultFileOps.randomFileName("idx_"));
@@ -371,6 +393,7 @@ public final class TelePremiumVaultIndexStore {
                 } finally { Arrays.fill(raw, (byte) 0); }
                 if (!partial.renameTo(journal)) throw new IOException("Cannot commit Vault journal");
                 AndroidUtilities.runOnUIThread(() -> peer.ensure((dialogId, error) -> {
+                    if (!active()) { saving = false; callback.onSaved(TelePremiumCloudResetState.MESSAGE); return; }
                     if (error != null || dialogId == 0) { saving = false; callback.onSaved(error == null ? "Канал Vault недоступен" : error); return; }
                     sendEncryptedIndex(journal, generation, snapshot.cloudId, dialogId, callback);
                 }));
@@ -389,6 +412,7 @@ public final class TelePremiumVaultIndexStore {
     }
 
     private void sendEncryptedIndex(File encrypted, long generation, String cloudId, long dialogId, TelegramCloudMetadataStore.SaveCallback callback) {
+        if (!active()) { saving = false; callback.onSaved(TelePremiumCloudResetState.MESSAGE); return; }
         final File upload;
         try { upload = VaultTransportStaging.stageEncryptedIndex(ApplicationLoader.applicationContext, encrypted); }
         catch (Exception e) { saving = false; callback.onSaved("Не удалось подготовить индекс Vault к отправке"); return; }
@@ -401,6 +425,7 @@ public final class TelePremiumVaultIndexStore {
                 nc.removeObserver(this, NotificationCenter.messageReceivedByServer);
                 AndroidUtilities.cancelRunOnUIThread(this);
                 upload.delete();
+                if (!active()) { callback.onSaved(TelePremiumCloudResetState.MESSAGE); return; }
                 if (error == null) {
                     if (!checkpoint().edit().putLong("generation", Math.max(generation, checkpoint().getLong("generation", 0)))
                             .putString("cloud_id", cloudId).commit()) {
@@ -433,6 +458,7 @@ public final class TelePremiumVaultIndexStore {
     }
 
     public void restoreLatestLocalIndex(TelegramCloudMetadataStore.SaveCallback callback) {
+        if (!active()) { callback.onSaved(TelePremiumCloudResetState.MESSAGE); return; }
         if (saving) { callback.onSaved("Синхронизация Vault уже выполняется"); return; }
         final byte[] master;
         try { master = TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext); }
@@ -447,6 +473,7 @@ public final class TelePremiumVaultIndexStore {
     }
 
     private void pruneJournal() {
+        if (!active()) return;
         File[] files = journals();
         for (int i = 10; i < files.length; i++) files[i].delete();
     }

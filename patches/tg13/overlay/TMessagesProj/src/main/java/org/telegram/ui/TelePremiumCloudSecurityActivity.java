@@ -10,6 +10,9 @@ import android.os.CancellationSignal;
 import android.text.InputType;
 import android.widget.EditText;
 import org.telegram.messenger.Utilities;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetPlan;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetCoordinator;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultIndexStore;
 import org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultKeyManager;
@@ -40,6 +43,7 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
     private TelePremiumThemePreset theme;
     private TelePremiumSettingsUi ui;
     private CancellationSignal biometricCancellation;
+    private boolean resetReviewInFlight;
 
     @Override
     public View createView(Context context) {
@@ -168,7 +172,69 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             if (TelePremiumVaultKeyManager.hasPasswordRecovery(context))
                 addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_212", org.telegram.messenger.R.string.TP_L10N_212), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_213", org.telegram.messenger.R.string.TP_L10N_213), this::showVaultPassphraseCheck);
         }
+        addAction(TelePremiumCloudResetState.pending() ? resetText("TP_RESET_RESUME", R.string.TP_RESET_RESUME) : resetText("TP_RESET_TITLE", R.string.TP_RESET_TITLE),
+                resetText("TP_RESET_SUB", R.string.TP_RESET_SUB), this::reviewCloudReset);
         addAction(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_219", org.telegram.messenger.R.string.TP_L10N_219), org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_220", org.telegram.messenger.R.string.TP_L10N_220), this::confirmVaultJournalRecovery);
+    }
+
+    private String resetText(String key, int fallback) {
+        return org.telegram.messenger.telepremium.TPStrings.get(key, fallback);
+    }
+
+    private void reviewCloudReset() {
+        if (resetReviewInFlight || TelePremiumCloudResetCoordinator.isRunning()) {
+            toastStatus(resetText("TP_RESET_WORKING", R.string.TP_RESET_WORKING)); return;
+        }
+        if (TelePremiumCloudSecurityStore.isProtectionEnabled(context) && !TelePremiumCloudSecuritySession.isUnlocked(context)) {
+            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_224", R.string.TP_L10N_224)); return;
+        }
+        resetReviewInFlight = true;
+        toastStatus(resetText("TP_RESET_SCANNING", R.string.TP_RESET_SCANNING));
+        TelePremiumCloudResetCoordinator.review((plan, error) -> {
+            resetReviewInFlight = false;
+            if (error != null) { toastStatus(error); return; }
+            if (getParentActivity() == null) return;
+            StringBuilder preview = new StringBuilder(resetText("TP_RESET_WARNING", R.string.TP_RESET_WARNING));
+            java.util.Set<Long> users = new java.util.HashSet<>();
+            for (TelePremiumCloudResetPlan.Account account : plan.accounts) {
+                if (!users.add(account.userId)) continue;
+                preview.append("\n\n").append(account.name).append(" · ID ").append(account.userId);
+                boolean any = false;
+                for (TelePremiumCloudResetPlan.Target target : plan.targets) if (target.userId == account.userId) {
+                    any = true;
+                    preview.append("\n• ").append(target.title).append(" · ID ").append(target.channelId);
+                    if (target.state != TelePremiumCloudResetPlan.PENDING)
+                        preview.append(" (").append(resetText("TP_RESET_GONE", R.string.TP_RESET_GONE)).append(")");
+                }
+                if (!any) preview.append("\n").append(resetText("TP_RESET_EMPTY", R.string.TP_RESET_EMPTY));
+            }
+            String confirm = TelePremiumCloudResetState.CREATING.equals(plan.phase)
+                    ? resetText("TP_RESET_RESUME", R.string.TP_RESET_RESUME) : resetText("TP_RESET_CONFIRM", R.string.TP_RESET_CONFIRM);
+            new AlertDialog.Builder(context).setTitle(resetText("TP_RESET_TITLE", R.string.TP_RESET_TITLE))
+                    .setMessage(preview.toString()).setPositiveButton(confirm, (d, w) -> executeCloudReset(plan))
+                    .setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", R.string.TP_L10N_135), null).show();
+        });
+    }
+
+    private void executeCloudReset(TelePremiumCloudResetPlan plan) {
+        AlertDialog progress = new AlertDialog(context, AlertDialog.ALERT_TYPE_SPINNER);
+        progress.setMessage(resetText("TP_RESET_WORKING", R.string.TP_RESET_WORKING));
+        progress.setCanCancel(false); progress.setCancelable(false); progress.show();
+        TelePremiumCloudResetCoordinator.startReviewed(plan, error -> {
+            progress.dismiss();
+            if (getParentActivity() == null) return;
+            render();
+            if (error != null) {
+                new AlertDialog.Builder(context).setTitle(resetText("TP_RESET_PAUSED", R.string.TP_RESET_PAUSED))
+                        .setMessage(error + "\n\n" + resetText("TP_RESET_RETRY", R.string.TP_RESET_RETRY))
+                        .setPositiveButton("OK", null).show();
+            } else {
+                new AlertDialog.Builder(context).setTitle(resetText("TP_RESET_DONE", R.string.TP_RESET_DONE))
+                        .setMessage(resetText("TP_RESET_NEW_KEY", R.string.TP_RESET_NEW_KEY))
+                        .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_209", R.string.TP_L10N_209), (d, w) -> showVaultRecoveryCode())
+                        .setNegativeButton("OK", null).show();
+            }
+        });
     }
 
     private void showVaultSetup() {
