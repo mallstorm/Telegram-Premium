@@ -1,0 +1,24 @@
+{
+  "package": "com.telepremium.messenger",
+  "version": "13.1.1",
+  "version_code": 723729,
+  "file": "TelePremium_13.1.1_VaultReset_723729.apk",
+  "bytes": 40587835,
+  "sha256": "d3d6a5452e3555c416ba9e1be07e506dfda1acc488b8024b82d9cf0f9e32ab0e",
+  "certificate_sha256": "a08d7dc323ddf71ef3201944397e0d3cce7d40847263e11f328b68bbe19229ab",
+  "native_libraries_unchanged": [
+    "lib/arm64-v8a/liblanguage_id_l2c_jni.so",
+    "lib/arm64-v8a/libtmessages.49.so"
+  ],
+  "host_checks": 234,
+  "device_tested": false,
+  "source_sha": "6c8ab7084f06824717f601a2136c7ca9575d10fb",
+  "source_tree": "c75e6d2f7dcf472e6f23ee496524feb9975a7f06",
+  "pr": 6,
+  "api_configuration_matches_previous_apk": true,
+  "apk_alignment_verified": true,
+  "android_release_build_passed": true,
+  "native_repack_verified": true,
+  "github_actions_blocker": "jobs were not started: failed payments or spending limit",
+  "built_locally": true
+}
