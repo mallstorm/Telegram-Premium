@@ -436,7 +436,7 @@ public final class TelePremiumPlaybackController {
 
             @Override public void onError(VideoPlayer videoPlayer, Exception e) {
                 if (token != generation) return;
-                if (authenticationFailure(e)) { fail("Не удалось проверить подлинность файла Vault"); return; }
+                if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD && item.encryptionVersion == 1 && authenticationFailure(e)) { fail("Не удалось проверить подлинность файла Vault"); return; }
                 if (tryReconnect(item, token, e)) return;
                 if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD && !fallbackAttempted) startFullDownloadFallback(item, token, "Поток прерван");
                 else fail(isNetworkError(e) ? "Не удалось подключиться к источнику после повторных попыток" : "Декодер устройства не поддерживает этот формат");
