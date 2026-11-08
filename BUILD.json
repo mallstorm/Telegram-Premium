@@ -1,0 +1,25 @@
+{
+  "package": "com.telepremium.messenger",
+  "version": "13.1.1",
+  "version_code": 723739,
+  "file": "TelePremium_13.1.1_MediaVault_723739.apk",
+  "bytes": 40600123,
+  "sha256": "8556b77de21a0461d1ffba569fd456a170721632db0189087fccd9b8cd8a4e8d",
+  "certificate_sha256": "a08d7dc323ddf71ef3201944397e0d3cce7d40847263e11f328b68bbe19229ab",
+  "native_libraries_unchanged": [
+    "lib/arm64-v8a/liblanguage_id_l2c_jni.so",
+    "lib/arm64-v8a/libtmessages.49.so"
+  ],
+  "host_checks": 290,
+  "device_tested": false,
+  "source_commit": "49e98a45a26e8f25dd5c34a89ce4c92d8d905cc3",
+  "documentation_commit": "3da287b86d1bbd2a620f976843c2bfead8a6cbcb",
+  "blob_sha": "ac79da91f4a2c65c4ddaeff7c4f333d05a49d73e",
+  "telegram_api_configuration_matches_previous_apk": true,
+  "android_build": "BUILD SUCCESSFUL in 18m 3s",
+  "github_actions": "Billing/spending limit blocked runner allocation before steps; user-requested rerun also failed",
+  "youtube_live_test": "Not executed: automatic approval review failed due usage limit",
+  "newpipe": "0.27.0",
+  "java_syntax_files": 161,
+  "overlay_files": 306
+}

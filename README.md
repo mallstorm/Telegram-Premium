@@ -1,83 +1,19 @@
-# Telegram-Premium
+# TelePremium 13.1.1 — Media / Vault V3 (723739)
 
-TelePremium extends Telegram Android with multi-account tooling, encrypted Cloud V3, per-account network profiles, themes and privacy controls.
+APK обновляет существующую установку `com.telepremium.messenger`; удалять приложение не требуется. Существующие ключи и облака сохраняются. Повторный сброс облаков не нужен.
 
-## Encrypted cloud by default
+После установки: **Медиа → Облако → Все аккаунты**; при запросе разблокировать существующим графическим ключом или биометрией. Отдельно проверить вкладки музыки и видео. Кнопка обновления повторно читает каталог, фильтры аккаунтов показывают каждый источник отдельно.
 
-The Telegram 13.1.1 product line uses **Vault V3 for every cloud account**, with no V2 switch and no encryption setup screen. A random 256-bit master key is created automatically and wrapped by AndroidKeyStore. Files, multipart files and folder catalogs are encrypted locally with authenticated AES-256-GCM before Telegram receives them.
+Исправлены чтение общего V3-каталога, отсутствие разблокировки в медиатеке, устаревшие результаты/плейлисты, задержка остановки прежнего источника и зацикливание поиска радио по одной букве. Обновлён NewPipe Extractor до 0.27.0. Ограничения YouTube для отдельных сетей/VPN или роликов могут сохраняться.
 
-Each Telegram account has its own private `TelePremium Vault` service channel (`TP_VAULT_V3`). Catalog documents use `#TPV3I`; ordinary encrypted payloads use `#TPV3F`. No filenames or folder JSON are sent as plaintext metadata. Existing V3 keys and password-protected recovery codes remain compatible.
+Проверки: 290 host checks, синтаксис 161 Java-файла; Android release-сборка и подпись проверяются перед публикацией. Проверка воспроизведения на телефоне ещё не выполнена. Сетевая проба YouTube не выполнена: автоматическая проверка разрешений остановилась из-за лимита использования.
 
-Screen protection (pattern/biometrics) is optional and separate from encryption. Save a private recovery code from Cloud protection settings to open the same encrypted cloud after losing this device or on another device. New standalone secret codes need no password; adding password protection is optional and keeps the same master key. Previously exported standalone codes remain valid.
+Java/Kotlin, ресурсы и DEX собираются из новых исходников. Нативные библиотеки без изменений взяты из предыдущего APK 723719; нативный код в этой задаче не менялся. Сертификат подписи совпадает с предыдущими сборками.
 
-V1/V2 channels are neither accessed nor migrated by the active cloud flow. Their existing data is not modified. See [Vault V3 behavior and validation](docs/VAULT_V3_DEFAULT.md).
+Исходники и отчёт: https://github.com/mallstorm/Telegram-Premium/pull/7
 
-## Cloud transfers
+APK: **TelePremium_13.1.1_MediaVault_723739.apk**
 
-Uploads and downloads expose persistent transfer state per Telegram account:
+SHA-256: `8556b77de21a0461d1ffba569fd456a170721632db0189087fccd9b8cd8a4e8d`
 
-- file name, progress, transferred bytes and current speed
-- upload/download progress from Telegram runtime notifications
-- waiting-for-network state on connectivity loss
-- automatic retry after reconnect
-- persisted transfer metadata for process/screen recreation
-- resumable partial downloads through Telegram `FileLoader` where supported
-- upload restart from the persisted content URI when an in-place resume is unavailable
-
-## Cloud security
-
-The cloud is always encrypted. Optional screen access protection is independent of the normal Telegram UI.
-
-- pattern lock with salted hashing
-- optional biometric unlock
-- auto-lock timeout
-- whole-Cloud lock mode
-- per-category protection for photos, video, documents, audio, archives, APK, favorites and trash
-- temporary lockout after repeated failed pattern attempts
-- session unlock state isolated from the visual theme system
-
-## Themes V2
-
-TelePremium includes ten global presets integrated through Telegram theme keys rather than isolated screen-only colors:
-
-- `dark_graphite`
-- `silver_gray`
-- `soft_green`
-- `frost_morning`
-- `warm_beige`
-- `lavender_twilight`
-- `sea_turquoise`
-- `pink_sand`
-- `graphite_ice`
-- `sunset_peach`
-
-The Drawer day/night control is replaced by the current-theme pictogram and a compact quick selector. Long press opens the full Appearance screen. Drawer profile headers and Cloud use lightweight runtime artwork so the selected theme affects both color tokens and the surrounding visual atmosphere without large bitmap bundles.
-
-## Telegram 13.1.1 port
-
-Branch `port/tg-13.1.1`: TelePremium on Telegram Android 13.1.1 as one SHA-checked overlay (`patches/tg13`). See `docs/TG13_PORT.md`.
-
-## Secure Vault and Player (V11 offline pass)
-
-Secure Vault V3.5 Quiet Preview, Player V3.6 and the SDK 36 build environment are applied by `scripts/apply_offline_v11_overlay.py` from `patches/v11-offline`. See `docs/V11_OFFLINE_PASS.md`.
-
-## Build pipeline
-
-GitHub Actions applies the TelePremium patch set to the pinned Telegram upstream revision, validates source invariants, runs the Vault crypto self-test, compiles Java/resources and then builds the release APK for arm64-v8a only.
-
-Key verification scripts include:
-
-- `scripts/verify_themes_cloud_v2.py`
-- `scripts/verify_visual_transfer_v3.py`
-- `scripts/verify_theme_isolation_cloud_security_v4.py`
-- `scripts/cloud_v2_verify_compat.py`
-
-## Architecture notes
-
-Detailed implementation notes are available in:
-
-- `docs/THEMES_CLOUD_V2_IMPLEMENTATION.md`
-- `docs/CONCEPT5_IMPLEMENTATION.md`
-- `docs/PASS_HISTORY.md`
-
-The `patches/concept5` tree contains the TelePremium product layer that is applied to the pinned upstream Telegram Android source during CI builds.
+Исходный коммит кода: `49e98a45a26e8f25dd5c34a89ce4c92d8d905cc3`; отчёт о сборке: `3da287b86d1bbd2a620f976843c2bfead8a6cbcb`.
