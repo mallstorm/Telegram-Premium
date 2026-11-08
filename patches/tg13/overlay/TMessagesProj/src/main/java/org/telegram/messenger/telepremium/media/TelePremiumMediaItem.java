@@ -30,6 +30,8 @@ public final class TelePremiumMediaItem {
     public String artworkUri;
     public String cloudNodeId;
     public int cloudAccount = -1;
+    public long cloudUserId;
+    public long cloudEpoch = -1;
     public long telegramMessageId;
     public long telegramDocumentId;
     public long duration;
@@ -128,7 +130,7 @@ public final class TelePremiumMediaItem {
         o.put("id", id).put("sourceType", sourceType).put("mediaType", mediaType)
                 .put("title", title).put("artist", artist).put("album", album).put("mimeType", mimeType)
                 .put("uri", uri).put("artworkUri", artworkUri).put("cloudNodeId", cloudNodeId)
-                .put("cloudAccount", cloudAccount).put("telegramMessageId", telegramMessageId)
+                .put("cloudAccount", cloudAccount).put("cloudUserId", cloudUserId).put("cloudEpoch", cloudEpoch).put("telegramMessageId", telegramMessageId)
                 .put("telegramDocumentId", telegramDocumentId).put("duration", duration).put("size", size)
                 .put("live", live).put("favorite", favorite).put("resumePosition", resumePosition)
                 .put("encryptionVersion",encryptionVersion).put("sha256",sha256).put("localBackupId",localBackupId);
@@ -152,6 +154,8 @@ public final class TelePremiumMediaItem {
         item.artworkUri = nullable(o.optString("artworkUri", null));
         item.cloudNodeId = nullable(o.optString("cloudNodeId", null));
         item.cloudAccount = o.optInt("cloudAccount", -1);
+        item.cloudUserId = o.optLong("cloudUserId");
+        item.cloudEpoch = o.optLong("cloudEpoch", -1);
         item.telegramMessageId = o.optLong("telegramMessageId");
         item.telegramDocumentId = o.optLong("telegramDocumentId");
         item.duration = o.optLong("duration");

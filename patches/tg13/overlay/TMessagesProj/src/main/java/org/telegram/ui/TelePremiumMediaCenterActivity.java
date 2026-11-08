@@ -34,6 +34,9 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.telepremium.TPStrings;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudFormat;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudSecuritySession;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState;
+import org.telegram.messenger.telepremium.media.TelePremiumMediaRequest;
 import org.telegram.messenger.telepremium.media.TelePremiumArtworkLoader;
 import org.telegram.messenger.telepremium.media.TelePremiumCloudMediaRepository;
 import org.telegram.messenger.telepremium.media.TelePremiumMediaItem;
@@ -98,6 +101,22 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     private boolean ytLoading;
     private String sourceLabelText = "";
     private int loadGeneration;
+    private long cloudUserFilter;
+    private long cloudCatalogEpoch = -1;
+    private TelePremiumMediaRequest sourceRequest;
+    private TelePremiumMediaRequest auxiliaryRequest;
+    private TelePremiumMediaVaultUnlock vaultUnlock;
+    private final Runnable vaultLockCheck = new Runnable() {
+        @Override public void run() {
+            if (currentSource == TelePremiumMediaItem.SOURCE_CLOUD && !sourceItems.isEmpty()
+                    && (!TelePremiumCloudSecuritySession.isUnlocked(TelePremiumMediaCenterActivity.this)
+                    || !TelePremiumCloudResetState.allowed(cloudCatalogEpoch))) {
+                ++loadGeneration;
+                setSource(Collections.emptyList(), t("TP_L10N_069", R.string.TP_L10N_069), t("TP_MEDIA_VAULT_LOCKED", R.string.TP_MEDIA_VAULT_LOCKED));
+            }
+            handler.postDelayed(this, 1000);
+        }
+    };
     private final Runnable radioSearch = this::runRadioSearch;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -119,10 +138,24 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         super.onResume();
         if (mediaTheme == null) return;
         String currentId = TelePremiumThemeController.getCurrent(this).id;
-        if (!mediaTheme.preset.id.equals(currentId)) recreate();
+        if (!mediaTheme.preset.id.equals(currentId)) { recreate(); return; }
+        handler.removeCallbacks(vaultLockCheck); handler.post(vaultLockCheck);
+        if (currentSource == TelePremiumMediaItem.SOURCE_CLOUD) loadCloud();
+    }
+
+    @Override protected void onPause() {
+        handler.removeCallbacks(vaultLockCheck);
+        if (currentSource == TelePremiumMediaItem.SOURCE_CLOUD) {
+            ++loadGeneration;
+            setSource(Collections.emptyList(), t("TP_L10N_069", R.string.TP_L10N_069), null);
+        }
+        super.onPause();
     }
 
     @Override protected void onDestroy() {
+        ++loadGeneration;
+        cancelSourceRequest();
+        if (vaultUnlock != null) vaultUnlock.close();
         handler.removeCallbacksAndMessages(null);
         controller.removeListener(this);
         super.onDestroy();
@@ -390,7 +423,16 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         subChipsRow.removeAllViews();
         subChipsScroll.scrollTo(0, 0);
         boolean network = currentSource == TelePremiumMediaItem.SOURCE_NETWORK;
-        subChipsScroll.setVisibility(network ? View.VISIBLE : View.GONE);
+        boolean cloudSource = currentSource == TelePremiumMediaItem.SOURCE_CLOUD;
+        subChipsScroll.setVisibility(network || cloudSource ? View.VISIBLE : View.GONE);
+        if (cloudSource) {
+            addSubChip(chip(R.drawable.tp_ic_cloud, t("TP_MEDIA_ALL_ACCOUNTS", R.string.TP_MEDIA_ALL_ACCOUNTS), cloudUserFilter == 0, v -> { cloudUserFilter = 0; loadCloud(); }));
+            for (int account : TelePremiumCloudMediaRepository.accounts()) {
+                long user = UserConfig.getInstance(account).getClientUserId();
+                addSubChip(chip(R.drawable.tp_ic_cloud, TelePremiumCloudMediaRepository.accountName(account), cloudUserFilter == user, v -> { cloudUserFilter = user; loadCloud(); }));
+            }
+            addSubChip(chip(R.drawable.tp_ic_expand, t("TP_MEDIA_REFRESH", R.string.TP_MEDIA_REFRESH), false, v -> loadCloud()));
+        }
         // In Network mode the mode chips fill the row width; elsewhere chips wrap their text.
         View scroll = (View) chipsRow.getParent();
         if (scroll instanceof HorizontalScrollView) ((HorizontalScrollView) scroll).setFillViewport(network);
@@ -431,8 +473,13 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
 
     private void selectSource(int source) {
         queueMode = false;
+        cancelSourceRequest();
+        ++loadGeneration;
+        ytLoading = false;
         if (source == SOURCE_PLAYLISTS) { showPlaylistPicker(); return; }
         currentSource = source;
+        if (search != null) search.setText("");
+        setSource(Collections.emptyList(), "", null);
         refreshTabs();
         rebuildChips();
         if (source == TelePremiumMediaItem.SOURCE_CLOUD) loadCloud();
@@ -488,14 +535,48 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     }
 
     private void loadCloud() {
+        if (isFinishing() || isDestroyed()) return;
+        cancelSourceRequest();
         currentSource = TelePremiumMediaItem.SOURCE_CLOUD;
         refreshTabs();
+        int selected = -1;
+        for (int account : TelePremiumCloudMediaRepository.accounts())
+            if (UserConfig.getInstance(account).getClientUserId() == cloudUserFilter) selected = account;
+        if (selected < 0) cloudUserFilter = 0;
+        rebuildChips();
+        final int gen = ++loadGeneration;
+        cloudCatalogEpoch = TelePremiumCloudResetState.epoch();
+        emptyView.setOnClickListener(v -> { if (currentSource == TelePremiumMediaItem.SOURCE_CLOUD) loadCloud(); });
+        if (!TelePremiumCloudResetState.allowed(TelePremiumCloudResetState.epoch())) {
+            setSource(Collections.emptyList(), t("TP_L10N_069", R.string.TP_L10N_069), TelePremiumCloudResetState.MESSAGE); return;
+        }
+        if (!TelePremiumCloudSecuritySession.isUnlocked(this)) {
+            setSource(Collections.emptyList(), t("TP_L10N_069", R.string.TP_L10N_069), t("TP_MEDIA_VAULT_LOCKED", R.string.TP_MEDIA_VAULT_LOCKED));
+            unlockMediaVault(() -> { if (currentSource == TelePremiumMediaItem.SOURCE_CLOUD) loadCloud(); });
+            return;
+        }
+        TelePremiumCloudSecuritySession.touch(this);
+        setSource(Collections.emptyList(), t("TP_L10N_069", R.string.TP_L10N_069), null);
         setSection(t("TP_L10N_069", R.string.TP_L10N_069), t("TP_L10N_316", R.string.TP_L10N_316));
-        int gen = ++loadGeneration;
-        cloudRepo.load(UserConfig.selectedAccount, (items, error) -> {
-            if (gen != loadGeneration) return;
+        cloudRepo.load(selected, (items, error) -> {
+            if (isFinishing() || isDestroyed() || gen != loadGeneration || currentSource != TelePremiumMediaItem.SOURCE_CLOUD) return;
             setSource(items, t("TP_L10N_069", R.string.TP_L10N_069), error);
         });
+    }
+
+    private void unlockMediaVault(Runnable after) {
+        if (vaultUnlock != null || isFinishing()) return;
+        vaultUnlock = new TelePremiumMediaVaultUnlock(this, unlocked -> {
+            vaultUnlock = null;
+            if (unlocked && !isFinishing() && !isDestroyed()) after.run();
+        });
+        vaultUnlock.show();
+    }
+
+    private void cancelSourceRequest() {
+        if (sourceRequest != null) { sourceRequest.cancel(); sourceRequest = null; }
+        if (auxiliaryRequest != null) { auxiliaryRequest.cancel(); auxiliaryRequest = null; }
+        handler.removeCallbacks(radioSearch);
     }
 
     private void setSource(List<TelePremiumMediaItem> items, String label, String error) {
@@ -504,8 +585,12 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         sourceLabelText = label;
         applyFilter();
         if (error != null) {
-            emptyView.setText(tf("TP_NET_ERROR", R.string.TP_NET_ERROR, error));
-            emptyView.setVisibility(View.VISIBLE);
+            if (sourceItems.isEmpty()) {
+                emptyView.setText(tf("TP_NET_ERROR", R.string.TP_NET_ERROR, error)); emptyView.setVisibility(View.VISIBLE);
+            } else {
+                sectionCount.append(" · " + t("TP_MEDIA_PARTIAL", R.string.TP_MEDIA_PARTIAL));
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -559,7 +644,10 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     // ------------------------------------------------------------------ network: radio / IPTV / link
 
     private void selectNetworkMode(int mode) {
+        cancelSourceRequest(); ++loadGeneration; ytLoading = false;
         if (mode == NET_LINK) mode = NET_IPTV;
+        if (networkMode != mode && search != null) search.setText("");
+        setSource(Collections.emptyList(), "", null);
         currentSource = TelePremiumMediaItem.SOURCE_NETWORK;
         networkMode = mode;
         refreshTabs();
@@ -607,10 +695,11 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     }
 
     private void loadYoutube(String url) {
+        cancelSourceRequest();
         setSection("YouTube", t("TP_L10N_316", R.string.TP_L10N_316));
         int gen = ++loadGeneration;
         ytLoading = true;
-        org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadFeed(url, (feed, error) -> {
+        sourceRequest = org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadFeed(url, (feed, error) -> {
             ytLoading = false;
             if (gen != loadGeneration) return;
             if (feed == null) {
@@ -629,7 +718,7 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
         ytLoading = true;
         Toast.makeText(this, t("TP_L10N_316", R.string.TP_L10N_316), Toast.LENGTH_SHORT).show();
         org.telegram.messenger.telepremium.media.TelePremiumYouTube.Feed feed = ytFeed;
-        org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadMore(feed, (items, error) -> {
+        sourceRequest = org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadMore(feed, (items, error) -> {
             ytLoading = false;
             if (feed != ytFeed || networkMode != NET_YT) return;
             if (error != null) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); return; }
@@ -669,7 +758,8 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     /** Quality and audio track for a download; "audio only" is the first entry. */
     private void showYoutubeDownload(TelePremiumMediaItem item) {
         Toast.makeText(this, t("TP_L10N_316", R.string.TP_L10N_316), Toast.LENGTH_SHORT).show();
-        org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadFormats(item.uri, (formats, error) -> {
+        if (auxiliaryRequest != null) auxiliaryRequest.cancel();
+        auxiliaryRequest = org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadFormats(item.uri, (formats, error) -> {
             if (isFinishing()) return;
             if (formats == null) { Toast.makeText(this, error == null ? "YouTube" : error, Toast.LENGTH_LONG).show(); return; }
             if (formats.live) { Toast.makeText(this, t("TP_YT_LIVE_NO_DL", R.string.TP_YT_LIVE_NO_DL), Toast.LENGTH_LONG).show(); return; }
@@ -709,29 +799,31 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     }
 
     private void loadRadio() {
+        cancelSourceRequest();
         String query = search.getText().toString().trim();
         if (radioFavoritesOnly) {
             setSource(TelePremiumNetworkLibrary.getRadioFavorites(), t("TP_NET_RADIO", R.string.TP_NET_RADIO), null);
             return;
         }
-        if (!query.isEmpty()) { runRadioSearch(); return; }
+        if (query.length() >= 2) { runRadioSearch(); return; }
         String country = TelePremiumNetworkLibrary.getRadioCountry();
         setSection(t("TP_NET_RADIO", R.string.TP_NET_RADIO), t("TP_NET_RADIO_LOADING", R.string.TP_NET_RADIO_LOADING));
         int gen = ++loadGeneration;
-        TelePremiumRadioBrowser.byCountry(country, 300, (stations, error) -> {
+        sourceRequest = TelePremiumRadioBrowser.byCountry(country, 300, (stations, error) -> {
             if (gen != loadGeneration) return;
             setSource(stations, t("TP_NET_RADIO", R.string.TP_NET_RADIO), error);
         });
     }
 
     private void runRadioSearch() {
+        cancelSourceRequest();
         if (currentSource != TelePremiumMediaItem.SOURCE_NETWORK || networkMode != NET_RADIO || radioFavoritesOnly) return;
         String query = search.getText().toString().trim();
         if (query.length() < 2) { loadRadio(); return; }
         setSection(t("TP_NET_RADIO", R.string.TP_NET_RADIO), t("TP_NET_RADIO_LOADING", R.string.TP_NET_RADIO_LOADING));
         int gen = ++loadGeneration;
         // Search worldwide: a station name is rarely ambiguous, and users look for foreign stations too.
-        TelePremiumRadioBrowser.search(query, null, 100, (stations, error) -> {
+        sourceRequest = TelePremiumRadioBrowser.search(query, null, 100, (stations, error) -> {
             if (gen != loadGeneration) return;
             sourceItems.clear();
             if (stations != null) sourceItems.addAll(stations);
@@ -743,7 +835,8 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
 
     private void pickRadioCountry() {
         Toast.makeText(this, t("TP_L10N_316", R.string.TP_L10N_316), Toast.LENGTH_SHORT).show();
-        TelePremiumRadioBrowser.countries((countries, error) -> {
+        if (auxiliaryRequest != null) auxiliaryRequest.cancel();
+        auxiliaryRequest = TelePremiumRadioBrowser.countries((countries, error) -> {
             if (isFinishing()) return;
             if (error != null || countries.isEmpty()) {
                 Toast.makeText(this, tf("TP_NET_ERROR", R.string.TP_NET_ERROR, error == null ? "—" : error), Toast.LENGTH_LONG).show();
@@ -1202,6 +1295,9 @@ public final class TelePremiumMediaCenterActivity extends Activity implements Te
     private void playItem(int position) {
         if (position < 0 || position >= visibleItems.size()) return;
         TelePremiumMediaItem item = visibleItems.get(position);
+        if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD && !TelePremiumCloudSecuritySession.isUnlocked(this)) {
+            unlockMediaVault(() -> { controller.play(item); TelePremiumPlayerActivity.openCurrent(this); }); return;
+        }
         controller.getQueue().replace(new ArrayList<>(visibleItems), position);
         controller.playCurrent();
         TelePremiumRadioBrowser.countClick(item);

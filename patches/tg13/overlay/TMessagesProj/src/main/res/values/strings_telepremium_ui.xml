@@ -679,4 +679,8 @@
     <string name="TP_RESET_RETRY">Completed deletions are saved. Use Continue recreating clouds to retry. Do not clear app data.</string>
     <string name="TP_RESET_DONE">New V3 clouds are ready</string>
     <string name="TP_RESET_NEW_KEY">Encrypted clouds have been created and synchronized for all connected accounts. Save the NEW recovery code outside Telegram. Old codes do not open these clouds.</string>
+    <string name="TP_MEDIA_ALL_ACCOUNTS">All accounts</string>
+    <string name="TP_MEDIA_REFRESH">Refresh</string>
+    <string name="TP_MEDIA_VAULT_LOCKED">Unlock the cloud to view your media. Tap here to continue.</string>
+    <string name="TP_MEDIA_PARTIAL">Some clouds are unavailable</string>
 </resources>
