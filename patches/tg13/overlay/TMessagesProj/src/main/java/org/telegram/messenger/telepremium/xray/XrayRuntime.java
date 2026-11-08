@@ -52,12 +52,18 @@ public final class XrayRuntime {
         for(String id:wanted){XrayProfile p=XrayProfileStore.find(id);if(p==null)throw new IllegalStateException("Выбранный профиль Xray отсутствует");profiles.add(p);String f=fingerprint(p);nextFingerprints.put(id,f);hash.append(id).append(f);}
         if(hash.toString().equals(signature))return false;
         status="Переключение маршрутов…";
+        Map<String,int[]> ports=new HashMap<>();String configuration=null;
+        // Validate the replacement while existing listeners still carry other accounts.
+        if(!profiles.isEmpty()){
+            JSONArray free=invoke("getFreePorts",new JSONObject().put("count",profiles.size()*2)).getJSONArray("ports");
+            for(int i=0;i<profiles.size();i++)ports.put(profiles.get(i).id,new int[]{free.getInt(i*2),free.getInt(i*2+1)});
+            configuration=XrayConfig.build(profiles,ports).toString();
+            if(signature.isEmpty())invoke("testXray",new JSONObject().put("xrayJson",configuration));
+        }
         if(!signature.isEmpty())invoke("stopXray",new JSONObject());
         signature="";runningPorts=Collections.emptyMap();fingerprints=Collections.emptyMap();
         if(profiles.isEmpty()){status="Выключен";return true;}
-        Map<String,int[]> ports=new HashMap<>();JSONArray free=invoke("getFreePorts",new JSONObject().put("count",profiles.size()*2)).getJSONArray("ports");
-        for(int i=0;i<profiles.size();i++)ports.put(profiles.get(i).id,new int[]{free.getInt(i*2),free.getInt(i*2+1)});
-        try{invoke("runXray",new JSONObject().put("xrayJson",XrayConfig.build(profiles,ports).toString()));}
+        try{invoke("runXray",new JSONObject().put("xrayJson",configuration));}
         catch(Exception e){try{invoke("stopXray",new JSONObject());}catch(Exception ignored){}status="Ошибка запуска; прямой маршрут не включён";throw e;}
         runningPorts=Collections.unmodifiableMap(ports);fingerprints=Collections.unmodifiableMap(nextFingerprints);signature=hash.toString();status="Работает · маршрутов: "+profiles.size();return true;
     }
@@ -81,7 +87,10 @@ public final class XrayRuntime {
             String trimmed=text.trim();
             JSONArray nodes=trimmed.startsWith("{")||trimmed.startsWith("[")?XrayConfig.importJson(trimmed):invoke("convertShareLinksToXrayJson",new JSONObject().put("text",trimmed)).getJSONArray("outbounds");
             List<XrayProfile> profiles=XrayProfileStore.profiles();if(profiles.size()+nodes.length()>10)throw new IllegalArgumentException("Можно сохранить до 10 профилей");
-            for(int i=0;i<nodes.length();i++){XrayProfile p=new XrayProfile();p.outbound=nodes.getJSONObject(i);p.name=p.outbound.optString("tag","Профиль "+(profiles.size()+1));if(p.name.length()>120)p.name=p.name.substring(0,120);XrayConfig.validateOutbound(p.outbound);profiles.add(p);}
+            for(int i=0;i<nodes.length();i++){XrayProfile p=new XrayProfile();p.outbound=nodes.getJSONObject(i);p.name=p.outbound.optString("tag","Профиль "+(profiles.size()+1));if(p.name.length()>120)p.name=p.name.substring(0,120);XrayConfig.validateOutbound(p.outbound);
+                Map<String,int[]> validationPorts=new HashMap<>();validationPorts.put(p.id,new int[]{20000,20001});
+                String validation=XrayConfig.build(Collections.singletonList(p),validationPorts).toString();
+                if(signature.isEmpty())invoke("testXray",new JSONObject().put("xrayJson",validation));profiles.add(p);}
             if(nodes.length()==0)throw new IllegalArgumentException("В конфигурации нет подходящих профилей");XrayProfileStore.saveAll(profiles);
         }catch(Throwable e){error=e instanceof IllegalArgumentException?e.getMessage():"Не удалось импортировать профили";}
             final String result=error;AndroidUtilities.runOnUIThread(()->callback.run(result));

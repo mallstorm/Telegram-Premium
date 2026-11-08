@@ -33,6 +33,9 @@ public class XrayAndSyncModelTest{
   check(XrayConfig.importJson(config.toString()).length()==2,"full config imports proxy outbounds while ignoring direct and block helpers");
   rejects(()->XrayConfig.importJson(new JSONObject().put("outbounds",new JSONArray().put(new JSONObject().put("protocol","freedom"))).toString()),"direct-only root does not create a fake proxy profile");
   rejects(()->XrayConfig.importJson(new JSONArray().put(new JSONObject().put("protocol","socks").put("sendThrough","127.0.0.1")).toString()),"JSON import validates route isolation before saving");
+  rejects(()->XrayConfig.validateOutbound(new JSONObject().put("protocol","socks").put("settings",new JSONObject())),"missing endpoints fail before an existing core is stopped");
+  rejects(()->XrayConfig.validateOutbound(new JSONObject().put("protocol","socks").put("settings",new JSONObject().put("address","host").put("port",65536))),"out-of-range server ports are rejected before route replacement");
+  XrayConfig.validateOutbound(new JSONObject().put("protocol","socks").put("settings",new JSONObject().put("address","host").put("port",1080)));check(true,"modern converter endpoint schema remains accepted");
   JSONObject added=record("channel","birth-a",1,false),removed=record("channel","birth-a",2,true),stale=record("channel","birth-a",99999,false);
   JSONArray deletion=merge(new JSONArray().put(added),new JSONArray().put(removed));check(deletion.getJSONObject(0).optBoolean("deleted"),"deletion is retained in the catalog");check(merge(deletion,new JSONArray().put(stale)).getJSONObject(0).optBoolean("deleted"),"stale offline title updates cannot resurrect deleted channels even with newer clocks");
   JSONArray readd=merge(deletion,new JSONArray().put(record("channel","birth-b",3,false)));check(readd.length()==2&&!readd.getJSONObject(1).optBoolean("deleted"),"explicit re-add creates a new incarnation while retaining the old tombstone");

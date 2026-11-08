@@ -79,7 +79,15 @@ class Test:
             candidate=json.loads(json.dumps(cfg));candidate['outbounds'][2]=dict(imported[0],tag='account-a');candidate['outbounds'][3]=dict(imported[1],tag='account-b');self.invoke('testXray',{'xrayJson':json.dumps(candidate)})
             self.check(True,'converted profiles validate when normalized into independent application routes')
             self.invoke('testXray',{'xrayJson':json.dumps(cfg)});self.check(all(self.closed(p) for p in ports),'validation alone does not start listeners')
+            invalid=json.loads(json.dumps(cfg));invalid['outbounds'][2]['protocol']='not-a-protocol';rejected=False
+            try:self.invoke('testXray',{'xrayJson':json.dumps(invalid)})
+            except AssertionError:rejected=True
+            self.check(rejected and all(self.closed(p) for p in ports),'invalid configuration is rejected before any listener starts')
             self.invoke('runXray',{'xrayJson':json.dumps(cfg)})
+            live_rejected=False
+            try:self.invoke('testXray',{'xrayJson':json.dumps(cfg)})
+            except AssertionError:live_rejected=True
+            self.check(live_rejected and self.fetch(ports[3],target.server_port,'still-live')[1]['source']=='127.0.0.3','isolated-only native validation must be skipped on a running managed core')
             status,a=self.fetch(ports[1],target.server_port,'account-a');self.check(status==200 and a['source']=='127.0.0.2','first profile must use only its chosen outbound')
             status,b=self.fetch(ports[3],target.server_port,'account-b');self.check(status==200 and b['source']=='127.0.0.3','second account/media route must use a different outbound')
             with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:

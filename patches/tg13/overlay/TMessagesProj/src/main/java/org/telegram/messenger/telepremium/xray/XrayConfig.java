@@ -18,7 +18,19 @@ public final class XrayConfig {
         JSONObject stream = node.optJSONObject("streamSettings");
         JSONObject sock = stream == null ? null : stream.optJSONObject("sockopt");
         if (sock != null && sock.has("dialerProxy")) throw new IllegalArgumentException("A profile cannot reference a different outbound");
+        JSONObject settings=node.optJSONObject("settings");
+        if(settings==null)throw new IllegalArgumentException("В профиле отсутствуют параметры сервера");
+        JSONArray servers=settings.optJSONArray("vnext");if(servers==null)servers=settings.optJSONArray("servers");
+        if(servers!=null){
+            if(servers.length()==0)throw new IllegalArgumentException("В профиле нет сервера");
+            for(int i=0;i<servers.length();i++)validateServer(servers.getJSONObject(i));
+        }else validateServer(settings);
         if (node.toString().length() > 262144) throw new IllegalArgumentException("Profile is too large");
+    }
+    private static void validateServer(JSONObject server) {
+        String address=server.optString("address","").trim();int port=server.optInt("port",0);
+        if(address.isEmpty()||address.length()>1024||port<1||port>65535)
+            throw new IllegalArgumentException("Проверьте адрес и порт сервера профиля");
     }
     /** Accept a single outbound, an array, or outbounds from a full root configuration. */
     public static JSONArray importJson(String text) throws Exception {

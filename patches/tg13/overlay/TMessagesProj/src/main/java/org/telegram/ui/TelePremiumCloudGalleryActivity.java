@@ -71,7 +71,7 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
         });setContentView(root);showPosition(position);main.post(lockCheck);
     }
     private boolean valid(Entry e){return !closed&&e.account>=0&&UserConfig.getInstance(e.account).isClientActivated()&&UserConfig.getInstance(e.account).getClientUserId()==e.user&&TelePremiumCloudResetState.allowed(e.epoch)&&e.node.state!=CloudNode.STATE_DELETED;}
-    private boolean active(){return entries!=null&&position>=0&&position<entries.size()&&valid(entries.get(position))&&TelePremiumCloudSecuritySession.isUnlocked(this);}
+    private boolean active(){return entries!=null&&position>=0&&position<entries.size()&&valid(entries.get(position))&&TelePremiumCloudAccessGate.canExposeNode(this,entries.get(position).node);}
     private void showPosition(int next){
         if(next<0||next>=entries.size()||closed)return;position=next;if(!active()){finish();return;}TelePremiumCloudSecuritySession.touch(this);int token=++generation;
         if(download!=null)download.cancel();if(prefetch!=null)prefetch.cancel();Entry entry=entries.get(position);
