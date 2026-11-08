@@ -67,16 +67,13 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
 
     public CloudPayloadRepository(int account){
         this.account=account;
-        this.peerManager=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext)
-                ? TelePremiumCloudPeerManager.getVaultInstance(account)
-                : TelePremiumCloudPeerManager.getInstance(account);
+        this.peerManager=TelePremiumCloudPeerManager.getVaultInstance(account);
         this.transferManager=CloudTransferManager.getInstance(account);
     }
 
     public void importUri(Uri uri, String parentId, String displayName, String mime, ImportCallback callback) {
         if(pending!=null){callback.onComplete(null,"Уже выполняется загрузка");return;}
         Utilities.globalQueue.postRunnable(() -> {
-            File temp=null;
             try {
                 long declaredSize=querySize(uri);
                 long limit=maxUploadBytes(account);
@@ -88,18 +85,17 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                 }
                 // A secure file is encrypted BEFORE it reaches SendMessagesHelper.
                 // Plaintext never goes to the Telegram service peer in Vault mode.
-                boolean vaultEnabled=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext);
-                if(vaultEnabled) {
-                    // The standard Telegram document sender rejects app-internal /data/data paths.
-                    // Store ONLY encrypted bytes in the app-specific external cache for upload.
-                    File encrypted=VaultTransportStaging.createCiphertextTarget(
-                            ApplicationLoader.applicationContext, "tpv_");
-                    byte[] master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
-                    VaultFileOps.UploadResult result;
-                    try(InputStream original=ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri)){
-                        if(original==null)throw new IllegalStateException("Не удалось открыть выбранный файл");
-                        result=VaultFileOps.encryptToFile(original,encrypted,master);
-                    } catch(Exception e) { encrypted.delete(); throw e; }
+                // The standard Telegram document sender rejects app-internal /data/data paths.
+                // Store ONLY encrypted bytes in the app-specific external cache for upload.
+                File encrypted=VaultTransportStaging.createCiphertextTarget(
+                        ApplicationLoader.applicationContext, "tpv_");
+                byte[] master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
+                VaultFileOps.UploadResult result;
+                try(InputStream original=ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri)){
+                    if(original==null)throw new IllegalStateException("Не удалось открыть выбранный файл");
+                    TelePremiumVaultKeyManager.markKeyUsed(ApplicationLoader.applicationContext);
+                    result=VaultFileOps.encryptToFile(original,encrypted,master);
+                } catch(Exception e) { encrypted.delete(); throw e; }
                     finally { Arrays.fill(master,(byte)0); }
                     CloudNode secured=CloudNode.file(parentId,safe,mime,result.originalSize,result.originalSha256);
                     secured.encryptionVersion=1;
@@ -139,46 +135,12 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                         pending.encryptedCaption="#TPV3F:"+encrypted.getName().substring(4,16);
                         startObservers();transferManager.markUploading();sendToCloudPeer();
                     }));
-                    return;
-                }
-                temp=new File(ApplicationLoader.applicationContext.getCacheDir(),"tpcloud_"+System.nanoTime()+"_"+safe);
-                try(InputStream in=ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri);
-                    FileOutputStream out=new FileOutputStream(temp)) {
-                    if(in==null) throw new IllegalStateException("Не удалось открыть выбранный файл");
-                    byte[] b=new byte[1024*1024]; int n;
-                    while((n=in.read(b))>0){
-                        out.write(b,0,n);
-                    }
-                }
-                CloudNode node=CloudNode.file(parentId,safe,mime,temp.length(),CloudFileHasher.sha256(temp));
-                transferManager.beginUpload(uri.toString(), parentId, safe, mime, node.size);
-                transferManager.updateProgress(0, node.size);
-                CloudNode existing=dedupLookup==null?null:dedupLookup.find(node.sha256);
-                if(existing!=null && existing.telegramDocumentId!=0){
-                    node.telegramDocumentId=existing.telegramDocumentId;
-                    node.telegramMessageId=existing.telegramMessageId;
-                    temp.delete();
-                    transferManager.complete();
-                    AndroidUtilities.runOnUIThread(() -> callback.onComplete(node,null));
-                    return;
-                }
-                temp.delete();
-                AndroidUtilities.runOnUIThread(() -> peerManager.ensure((dialogId,error) -> {
-                    if(error!=null || dialogId==0){
-                        transferManager.waitingNetwork(error==null?"Cloud service peer unavailable":error);
-                        callback.onComplete(null,error==null?"Cloud service peer unavailable":error);
-                        return;
-                    }
-                    pending=new Pending(node,callback,dialogId,uri,parentId,safe,mime);
-                    startObservers();
-                    transferManager.markUploading();
-                    sendToCloudPeer();
-                }));
             } catch(Exception e) {
-                if(temp!=null) temp.delete();
                 FileLog.e(e);
-                transferManager.failRetryable(e.getMessage());
-                AndroidUtilities.runOnUIThread(() -> callback.onComplete(null,e.getMessage()));
+                String error=e.getMessage()==null || e.getMessage().isEmpty()
+                        ? "Не удалось зашифровать и загрузить файл Vault" : e.getMessage();
+                transferManager.failRetryable(error);
+                AndroidUtilities.runOnUIThread(() -> callback.onComplete(null,error));
             }
         });
     }
@@ -200,6 +162,8 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     public void resumePending(ImportCallback callback) {
+        // An active repository already owns its upload and reconnect timer.
+        if (pending != null) return;
         CloudTransferManager.Task task=transferManager.getTask();
         if(task==null || task.type!=CloudTransferManager.TYPE_UPLOAD) return;
         if(task.state!=CloudTransferManager.WAITING_NETWORK && task.state!=CloudTransferManager.FAILED_RETRYABLE) return;
@@ -215,14 +179,14 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     private void sendToCloudPeer() {
         Pending p=pending;
         if(p==null)return;
-        if(p.multipart!=null && p.encryptedPayload==null)return; // next part is still being prepared
+        if(p.encryptedPayload==null)return; // no plaintext upload path, including during part preparation
         SendMessagesHelper.prepareSendingDocument(
                 AccountInstance.getInstance(account),
-                p.encryptedPayload==null?null:p.encryptedPayload.getAbsolutePath(),
-                p.encryptedPayload==null?null:p.encryptedPayload.getAbsolutePath(),
-                p.encryptedPayload==null?p.uri:null,
-                p.encryptedPayload==null?p.node.name:p.encryptedCaption,
-                p.encryptedPayload==null?p.node.mimeType:"application/octet-stream",
+                p.encryptedPayload.getAbsolutePath(),
+                p.encryptedPayload.getAbsolutePath(),
+                null,
+                p.encryptedCaption,
+                "application/octet-stream",
                 p.dialogId,
                 null,
                 null,
@@ -389,7 +353,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
 
     /** Runs on the global queue. */
     private void importMultipart(Uri uri,String parentId,String safe,String mime,long size,long limit,ImportCallback callback) throws Exception {
-        boolean vault=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext);
+        boolean vault=true;
         CloudNode node=restoreMultipartState(uri,size,vault);
         if(node==null){
             int count=planPartCount(size,limit);
@@ -445,20 +409,12 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                     java.io.FileInputStream raw=new java.io.FileInputStream(pfd.getFileDescriptor())){
                     raw.getChannel().position(offset);
                     PartInputStream in=new PartInputStream(raw,length,mp.digest,partDigest);
-                    if(mp.vault){
-                        byte[] master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
-                        try{
-                            VaultFileOps.UploadResult result=VaultFileOps.encryptToFile(in,staging,master);
-                            partSha=result.originalSha256;
-                        }finally{Arrays.fill(master,(byte)0);}
-                    }else{
-                        try(FileOutputStream out=new FileOutputStream(staging)){
-                            byte[] b=new byte[1024*1024];int n;
-                            while((n=in.read(b))>0)out.write(b,0,n);
-                            out.getFD().sync();
-                        }
-                        partSha=hex(partDigest.digest());
-                    }
+                    byte[] master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
+                    try {
+                        TelePremiumVaultKeyManager.markKeyUsed(ApplicationLoader.applicationContext);
+                        VaultFileOps.UploadResult result=VaultFileOps.encryptToFile(in,staging,master);
+                        partSha=result.originalSha256;
+                    } finally {Arrays.fill(master,(byte)0);}
                     if(in.count!=length)throw new java.io.IOException("Файл изменился во время загрузки");
                 }
                 p.node.partSha256[index]=partSha;
@@ -523,17 +479,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     private File createPartTarget(CloudNode node,int index,int count,boolean vault,long length) throws java.io.IOException {
-        File target;
-        if(vault){
-            target=VaultTransportStaging.createCiphertextTarget(ApplicationLoader.applicationContext,"tpp_");
-        }else{
-            File external=ApplicationLoader.applicationContext.getExternalCacheDir();
-            if(external==null)throw new java.io.IOException("Внешний кэш приложения недоступен");
-            File dir=new File(external,"telepremium_cloud_outbox");
-            if(!dir.isDirectory() && !dir.mkdirs())throw new java.io.IOException("Не удалось создать папку для частей");
-            String width=String.valueOf(count).length()<2?"%02d":"%0"+String.valueOf(count).length()+"d";
-            target=new File(dir,node.name+".part"+String.format(java.util.Locale.ROOT,width,index+1)+"of"+String.format(java.util.Locale.ROOT,width,count));
-        }
+        File target=VaultTransportStaging.createCiphertextTarget(ApplicationLoader.applicationContext,"tpp_");
         File dir=target.getParentFile();
         long free=dir==null?Long.MAX_VALUE:dir.getUsableSpace();
         long need=length+64L*1024L*1024L;

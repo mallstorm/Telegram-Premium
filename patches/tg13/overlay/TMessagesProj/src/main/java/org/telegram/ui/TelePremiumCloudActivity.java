@@ -38,6 +38,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.telepremium.cloud.CloudDownloadManager;
 import org.telegram.messenger.telepremium.cloud.CloudNode;
@@ -53,6 +54,7 @@ import org.telegram.messenger.telepremium.theme.TelePremiumThemeArtwork;
 import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;
 import org.telegram.messenger.telepremium.theme.TelePremiumThemePreset;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -68,7 +70,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class TelePremiumCloudActivity extends BaseFragment {
+public class TelePremiumCloudActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
     private static final int PICK_FILE = 7301;
     private static final int SAVE_FILE = 7302;
     private static final int PICK_FOLDER = 7303;
@@ -79,6 +81,7 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private int pendingUploadAccount;
     private int syncGeneration;
     private boolean disposed;
+    private final ArrayList<Integer> connectionAccounts = new ArrayList<>();
     private final String folderId;
     private final String folderName;
     private LinearLayout body;
@@ -103,6 +106,9 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private CloudPayloadRepository payloads;
     private File pendingExportFile;
     private String pendingExportName;
+    private final Runnable reconnectSync = () -> {
+        if (!disposed && syncState != null) syncSelectedAccount(false);
+    };
 
     public TelePremiumCloudActivity(int account) { this(account, "root", org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_069", org.telegram.messenger.R.string.TP_L10N_069)); }
     private TelePremiumCloudActivity(int account, String folderId, String folderName) {
@@ -192,6 +198,11 @@ public class TelePremiumCloudActivity extends BaseFragment {
         add.bringToFront();
 
         fragmentView = root;
+        for (int account : activatedAccounts()) {
+            if (connectionAccounts.contains(account)) continue;
+            connectionAccounts.add(account);
+            NotificationCenter.getInstance(account).addObserver(this, NotificationCenter.didUpdateConnectionState);
+        }
         renderAccounts();
         loadSelectedAccount();
         return fragmentView;
@@ -408,6 +419,10 @@ public class TelePremiumCloudActivity extends BaseFragment {
 
     @Override public void onFragmentDestroy() {
         disposed = true;
+        AndroidUtilities.cancelRunOnUIThread(reconnectSync);
+        for (int account : connectionAccounts)
+            NotificationCenter.getInstance(account).removeObserver(this, NotificationCenter.didUpdateConnectionState);
+        connectionAccounts.clear();
         ++syncGeneration; // Invalidates late callbacks from a previous account.
         if (transferManager != null) transferManager.removeListener(transferListener);
         super.onFragmentDestroy();
@@ -417,11 +432,31 @@ public class TelePremiumCloudActivity extends BaseFragment {
 
 
     private void loadSelectedAccount() {
+        syncSelectedAccount(true);
+    }
+
+    @Override public void onResume() {
+        super.onResume();
+        if (!disposed && syncState != null) syncSelectedAccount(false);
+    }
+
+    @Override public void didReceivedNotification(int id, int account, Object... args) {
+        if (disposed || id != NotificationCenter.didUpdateConnectionState ||
+                (selectedAccount >= 0 && selectedAccount != account)) return;
+        if (ConnectionsManager.getInstance(account).getConnectionState() == ConnectionsManager.ConnectionStateConnected) {
+            AndroidUtilities.cancelRunOnUIThread(reconnectSync);
+            AndroidUtilities.runOnUIThread(reconnectSync, 500);
+        }
+    }
+
+    private void syncSelectedAccount(boolean resetView) {
         quietPreviewDownload = false;
         final int generation = ++syncGeneration;
         final int requestedAccount = selectedAccount;
-        activeCategory = null;
-        if (search != null && search.length() > 0) search.setText("");
+        if (resetView) {
+            activeCategory = null;
+            if (search != null && search.length() > 0) search.setText("");
+        }
         // A verified in-memory catalog is immediately usable while the remote
         // generation check runs. Never present cached data as a fresh sync.
         final TelePremiumCloudManager cachedManager = requestedAccount >= 0
@@ -471,9 +506,13 @@ public class TelePremiumCloudActivity extends BaseFragment {
     private static String shortError(String error) { return TelePremiumCloudFormat.shortError(error); }
 
     private void configureAccount(int account) {
-        cloud = TelePremiumCloudManager.getInstance(account);
-        payloads = new CloudPayloadRepository(account);
-        payloads.setDedupLookup(sha256 -> cloud.findByHash(sha256));
+        TelePremiumCloudManager selectedCloud = TelePremiumCloudManager.getInstance(account);
+        // Automatic refresh must not create a second owner for an active upload.
+        if (cloud != selectedCloud || payloads == null) {
+            payloads = new CloudPayloadRepository(account);
+            payloads.setDedupLookup(selectedCloud::findByHash);
+        }
+        cloud = selectedCloud;
         attachTransferManager(account);
         // Do not resume here: Cloud bootstrap may still be decrypting its index.
     }

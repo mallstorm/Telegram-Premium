@@ -1,29 +1,16 @@
 # Telegram-Premium
 
-TelePremium extends Telegram Android with the Concept 5 product layer: multi-account tooling, Cloud V2, per-account network profiles, global appearance presets and additional privacy/security controls.
+TelePremium extends Telegram Android with multi-account tooling, encrypted Cloud V3, per-account network profiles, themes and privacy controls.
 
-## Current product line
+## Encrypted cloud by default
 
-The active product architecture is **Cloud V2 + Themes V2**. The previous Saved Messages-backed cloud is legacy-only and is no longer used as the normal storage backend.
+The Telegram 13.1.1 product line uses **Vault V3 for every cloud account**, with no V2 switch and no encryption setup screen. A random 256-bit master key is created automatically and wrapped by AndroidKeyStore. Files, multipart files and folder catalogs are encrypted locally with authenticated AES-256-GCM before Telegram receives them.
 
-## Cloud V2
+Each Telegram account has its own private `TelePremium Vault` service channel (`TP_VAULT_V3`). Catalog documents use `#TPV3I`; ordinary encrypted payloads use `#TPV3F`. No filenames or folder JSON are sent as plaintext metadata. Existing V3 keys and password-protected recovery codes remain compatible.
 
-TelePremium Cloud is a virtual filesystem backed by a dedicated private Telegram service channel created per Telegram account.
+Screen protection (pattern/biometrics) is optional and separate from encryption. Save a private recovery code from Cloud protection settings to open the same encrypted cloud after losing this device or on another device. New standalone secret codes need no password; adding password protection is optional and keeps the same master key. Previously exported standalone codes remain valid.
 
-- service peer: `TelePremium Cloud Storage`
-- service marker: `TELEPREMIUM_CLOUD_STORAGE_V2`
-- metadata snapshot prefix: `#TELEPREMIUM_CLOUD_V2`
-- payload documents and Cloud metadata are stored in the service peer, not in Saved Messages
-- the service dialog is filtered from normal TelePremium dialog/search flows
-- folders are virtual filesystem nodes; move/rename/favorite/trash operations mutate Cloud metadata without re-uploading the payload
-- SHA-256 deduplication allows multiple Cloud nodes to reference the same Telegram payload
-- orphan payloads are removed only when no live Cloud node references them
-
-### Migration from Cloud V1
-
-Saved Messages is accessed only by the legacy migration layer. `LegacyCloudV1Store` and `CloudMigrationV1ToV2` recover V1 snapshots, copy unique payloads to the V2 service peer, persist the old-to-new message mapping, write and verify a V2 snapshot, and only then remove the exact legacy V1 metadata/payload messages.
-
-This keeps user-owned Saved Messages separate from the active TelePremium Cloud backend.
+V1/V2 channels are neither accessed nor migrated by the active cloud flow. Their existing data is not modified. See [Vault V3 behavior and validation](docs/VAULT_V3_DEFAULT.md).
 
 ## Cloud transfers
 
@@ -39,7 +26,7 @@ Uploads and downloads expose persistent transfer state per Telegram account:
 
 ## Cloud security
 
-Cloud access can be protected independently of the normal Telegram UI.
+The cloud is always encrypted. Optional screen access protection is independent of the normal Telegram UI.
 
 - pattern lock with salted hashing
 - optional biometric unlock
