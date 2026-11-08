@@ -16,14 +16,14 @@ FILES = {
     'android/content/SharedPreferences.java': r"""package android.content;
 public interface SharedPreferences {
  boolean contains(String k);long getLong(String k,long d);int getInt(String k,int d);boolean getBoolean(String k,boolean d);String getString(String k,String d);Editor edit();
- interface Editor {Editor putLong(String k,long v);Editor putInt(String k,int v);Editor putBoolean(String k,boolean v);Editor putString(String k,String v);Editor remove(String k);boolean commit();void apply();}
+ interface Editor {Editor putLong(String k,long v);Editor putInt(String k,int v);Editor putBoolean(String k,boolean v);Editor putString(String k,String v);Editor remove(String k);Editor clear();boolean commit();void apply();}
 }
 """,
     'android/content/Context.java': r"""package android.content;
 import java.io.*;import java.util.*;
 public class Context {
- public static final int MODE_PRIVATE=0;public File root;public boolean failCommit;
- public Map<String,Object> prefs=new HashMap<>();public Context getApplicationContext(){return this;}public File getFilesDir(){return root;}
+ public static final int MODE_PRIVATE=0;public File root;public boolean failCommit,memoryOnFailedCommit;public String failPreferences;
+ public Map<String,Object> prefs=new HashMap<>();public Context getApplicationContext(){return this;}public File getFilesDir(){return root;}public File getCacheDir(){return new File(root,"cache");}public File getExternalCacheDir(){return new File(root,"external-cache");}
  public SharedPreferences getSharedPreferences(String n,int mode){return new SharedPreferences(){
   String key(String k){return n+":"+k;}
   public boolean contains(String k){return prefs.containsKey(key(k));}
@@ -31,10 +31,11 @@ public class Context {
   public int getInt(String k,int d){return (int)getLong(k,d);}
   public boolean getBoolean(String k,boolean d){Object o=prefs.get(key(k));return o instanceof Boolean?(Boolean)o:d;}
   public String getString(String k,String d){Object o=prefs.get(key(k));return o instanceof String?(String)o:d;}
-  public Editor edit(){return new Editor(){Map<String,Object> changes=new HashMap<>();
+  public Editor edit(){return new Editor(){Map<String,Object> changes=new HashMap<>();boolean clearAll;
+   public Editor clear(){clearAll=true;return this;}
    public Editor putLong(String k,long v){changes.put(key(k),v);return this;}public Editor putInt(String k,int v){return putLong(k,v);}
    public Editor putBoolean(String k,boolean v){changes.put(key(k),v);return this;}public Editor putString(String k,String v){changes.put(key(k),v);return this;}
-   public Editor remove(String k){changes.put(key(k),null);return this;}public boolean commit(){if(failCommit)return false;for(var e:changes.entrySet()){if(e.getValue()==null)prefs.remove(e.getKey());else prefs.put(e.getKey(),e.getValue());}return true;}public void apply(){commit();}
+   public Editor remove(String k){changes.put(key(k),null);return this;}public boolean commit(){boolean failed=failCommit||n.equals(failPreferences);if(failed&&!memoryOnFailedCommit)return false;if(clearAll)prefs.keySet().removeIf(k->k.startsWith(n+":"));for(var e:changes.entrySet()){if(e.getValue()==null)prefs.remove(e.getKey());else prefs.put(e.getKey(),e.getValue());}return !failed;}public void apply(){commit();}
   };}
  };}
 }
@@ -170,6 +171,14 @@ public class IndexRuntimeTest {
   store=reset();TelePremiumVaultKeyManager.fail=true;load(store);check(error!=null&&latest()==0,"provider exceptions without a message must never report a successful catalog load");var failedSave=new ArrayList<String>();store.save(snapshot(1),failedSave::add);check(failedSave.size()==1&&failedSave.get(0)!=null&&SendMessagesHelper.sends==0,"provider exceptions without a message must never report a successful encrypted save");
   store=reset();SendMessagesHelper.autoAck=true;var manager=TelePremiumCloudManager.getInstance(0);var result=new ArrayList<String>();manager.bootstrap(result::add);
   check(result.size()==1&&result.get(0)==null&&manager.isRemoteReady(),"fresh cloud bootstrap completes without V2 migration or setup");check(manager.getSnapshot()!=null&&manager.getSnapshot().nodes.size()==1&&SendMessagesHelper.sends==1,"first root-only catalog is sent as one authenticated ciphertext document");
+  store=reset();var staleStore=store;var late=new ArrayList<String>();store.save(snapshot(1),late::add);
+  long oldEpoch=TelePremiumCloudResetState.epoch();String resetId=java.util.UUID.randomUUID().toString();
+  TelePremiumCloudResetState.begin(resetId,"test");TelePremiumCloudResetState.save(resetId,"clearing","test",false);TelePremiumCloudResetState.save(resetId,"creating","test",true);TelePremiumCloudResetState.complete(resetId);
+  SendMessagesHelper.ack();
+  check(late.size()==1&&late.get(0)!=null,"late index upload acknowledgement must remain rejected after reset finishes");
+  check(ApplicationLoader.applicationContext.getSharedPreferences("telepremium_vault_index_checkpoint_u42",0).getLong("generation",0)==0,"old acknowledgement cannot recreate a cleared checkpoint");
+  int sendsBefore=SendMessagesHelper.sends;staleStore.save(snapshot(2),e->error=e);
+  check(error!=null&&sendsBefore==SendMessagesHelper.sends&&!TelePremiumCloudResetState.allowed(oldEpoch),"old index instance cannot send after new epoch is enabled");
   System.out.println("IndexRuntimeTest OK: "+checks+" checks");
  }
 }
@@ -185,7 +194,7 @@ def run():
             p = src / name
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(content, encoding="utf-8")
-        names = ["CloudNode", "CloudSnapshot", "CloudConflictResolver", "CloudIntegrityChecker", "CloudRecoveryEngine", "TelePremiumCloudManager", "TelegramCloudMetadataStore"]
+        names = ["TelePremiumCloudResetState", "CloudNode", "CloudSnapshot", "CloudConflictResolver", "CloudIntegrityChecker", "CloudRecoveryEngine", "TelePremiumCloudManager", "TelegramCloudMetadataStore"]
         sources = [PROD / ("org/telegram/messenger/telepremium/cloud/" + n + ".java") for n in names]
         sources += [PROD / ("org/telegram/messenger/telepremium/cloud/vault/" + n + ".java") for n in ["TelePremiumVaultCrypto", "TelePremiumVaultIndexStore"]]
         sources += sorted((ROOT / "scripts/tests/stubs").rglob("*.java"))

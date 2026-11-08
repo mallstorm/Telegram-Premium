@@ -18,6 +18,13 @@ import java.util.Arrays;
 
 public final class CloudDownloadManager implements NotificationCenter.NotificationCenterDelegate {
     public static final int CLOUD_ONLY=0, DOWNLOADING=1, OFFLINE_AVAILABLE=2, ERROR=3;
+    private final long ownerUserId;
+    private final long epoch = TelePremiumCloudResetState.epoch();
+    private static final java.util.Set<CloudDownloadManager> LIVE = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    public static void cancelAllForReset() {
+        synchronized (LIVE) { for (CloudDownloadManager operation : new java.util.ArrayList<>(LIVE)) operation.cancel(); }
+    }
+    private boolean active() { return TelePremiumCloudResetState.allowed(epoch) && ownerUserId == org.telegram.messenger.UserConfig.getInstance(account).getClientUserId(); }
     private final int account;
     private final TelePremiumCloudPeerManager peerManager;
     private final CloudTransferManager transferManager;
@@ -40,6 +47,8 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
 
     public CloudDownloadManager(int account){
         this.account=account;
+        this.ownerUserId=org.telegram.messenger.UserConfig.getInstance(account).getClientUserId();
+        synchronized (LIVE) { LIVE.add(this); }
         this.peerManager=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext)
                 ? TelePremiumCloudPeerManager.getVaultInstance(account)
                 : TelePremiumCloudPeerManager.getInstance(account);
@@ -47,9 +56,11 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
     }
 
     public void download(CloudNode node, Callback callback) {
+        if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
         if(node==null || node.telegramMessageId==0){callback.onState(ERROR,null,"У файла нет Telegram payload");return;}
         if(node.isMultipart()){downloadMultipart(node,callback);return;}
         peerManager.ensure((dialogId,error)->{
+            if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
             if(error!=null || peerManager.getInputChannel()==null){
                 if(!tryLocalVaultReplica(node,callback))callback.onState(ERROR,null,error==null?"Cloud service peer unavailable":error);
                 return;
@@ -58,6 +69,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
             req.channel=peerManager.getInputChannel();
             req.id.add((int)node.telegramMessageId);
             ConnectionsManager.getInstance(account).sendRequest(req,(response,requestError)->AndroidUtilities.runOnUIThread(()->{
+                if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
                 if(requestError!=null){
                     if(!tryLocalVaultReplica(node,callback))callback.onState(ERROR,null,requestError.text);
                     return;
@@ -92,6 +104,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
 
     /** A Telegram message may be gone, but the same-device encrypted replica can survive. */
     private boolean tryLocalVaultReplica(CloudNode node,Callback callback) {
+        if (!active()) return false;
         if(node==null || node.encryptionVersion!=1 || node.localBackupId==null)return false;
         File replica=TelePremiumVaultBackupStore.find(ApplicationLoader.applicationContext,node.localBackupId);
         if(replica==null)return false;
@@ -102,6 +115,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
 
     /** Never hand ciphertext to media players or external viewers as plaintext. */
     private void deliverAvailable(CloudNode node,File encryptedOrPlain,Callback callback) {
+        if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
         if(node.encryptionVersion==0){callback.onState(OFFLINE_AVAILABLE,encryptedOrPlain,null);return;}
         if(node.encryptionVersion!=1){callback.onState(ERROR,null,"Unsupported Vault format");return;}
         try {
@@ -110,9 +124,11 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
             callback.onState(DOWNLOADING,null,null);
             Utilities.globalQueue.postRunnable(()->{
                 try {
+                    if (!active()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
                     File folder=new File(ApplicationLoader.applicationContext.getCacheDir(),"tpvault_dec");
                     File file=VaultFileOps.decryptToVerifiedFile(encryptedOrPlain,folder,node.name,master,node.sha256,node.size);
                     AndroidUtilities.runOnUIThread(()->{
+                        if (!active()) { file.delete(); callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
                         transferManager.complete();node.offlineState=OFFLINE_AVAILABLE;
                         callback.onState(OFFLINE_AVAILABLE,file,null);
                     });
@@ -162,6 +178,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
     }
 
     @Override public void didReceivedNotification(int id,int accountId,Object... args) {
+        if (!active()) { cancel(); return; }
         if(activeDocument==null || activeCallback==null || accountId!=account)return;
         String expected=FileLoader.getAttachFileName(activeDocument);
         String actual=args.length>0 && args[0] instanceof String?(String)args[0]:null;
@@ -256,6 +273,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
     }
 
     private void downloadMultipart(CloudNode node,Callback callback){
+        if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
         if(node.encryptionVersion==0){
             File joined=joinedFile(node);
             if(joined!=null && joined.isFile() && joined.length()==node.size){
@@ -265,11 +283,13 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
             }
         }
         peerManager.ensure((dialogId,error)->{
+            if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
             if(error!=null || peerManager.getInputChannel()==null){callback.onState(ERROR,null,error==null?"Cloud service peer unavailable":error);return;}
             TLRPC.TL_channels_getMessages req=new TLRPC.TL_channels_getMessages();
             req.channel=peerManager.getInputChannel();
             for(long id:node.partMessageIds)req.id.add((int)id);
             ConnectionsManager.getInstance(account).sendRequest(req,(response,requestError)->AndroidUtilities.runOnUIThread(()->{
+                if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
                 if(requestError!=null){callback.onState(ERROR,null,requestError.text);return;}
                 if(!(response instanceof TLRPC.messages_Messages)){callback.onState(ERROR,null,"Файл не найден в облаке");return;}
                 java.util.HashMap<Integer,TLRPC.Message> byId=new java.util.HashMap<>();
@@ -297,6 +317,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
     }
 
     private void nextMultipartPart(){
+        if (!active()) { cancel(); return; }
         while(multiIndex<multiDocs.length){
             File f=resolveFile(multiDocs[multiIndex]);
             if(f!=null && f.exists()){
@@ -328,6 +349,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
         Utilities.globalQueue.postRunnable(()->{
             File out=null;
             try{
+                if (!active()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
                 java.security.MessageDigest sha=java.security.MessageDigest.getInstance("SHA-256");
                 if(key!=null){
                     File folder=new File(ApplicationLoader.applicationContext.getCacheDir(),"tpvault_dec");
@@ -368,6 +390,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                 if(key==null)for(int i=0;i<docs.length;i++)deleteIfPresent(parts[i]);
                 File result=out;
                 AndroidUtilities.runOnUIThread(()->{
+                    if (!active()) { result.delete(); cb.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
                     transferManager.complete();node.offlineState=OFFLINE_AVAILABLE;
                     cb.onState(OFFLINE_AVAILABLE,result,null);
                 });

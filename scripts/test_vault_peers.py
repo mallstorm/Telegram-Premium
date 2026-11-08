@@ -1,78 +1,56 @@
 #!/usr/bin/env python3
-"""Exercise production V3 channel discovery against deterministic Telegram responses."""
+"""Production peer + authenticated scanner tests, with a fake server and no network."""
 from pathlib import Path
-import runpy
-import shutil
-import subprocess
-import tempfile
-ROOT = Path(__file__).resolve().parents[1]
-FILES = {
-    'org/telegram/messenger/ChatObject.java': r"""package org.telegram.messenger;import org.telegram.tgnet.TLRPC;
-public class ChatObject {public static final int CHAT_TYPE_CHANNEL=1;public static boolean isChannel(TLRPC.Chat c){return c.channel;}}
-""",
-    'org/telegram/messenger/MessagesController.java': r"""package org.telegram.messenger;
-import java.util.*;import org.telegram.tgnet.TLRPC;
-public class MessagesController {public static Map<Long,TLRPC.Chat> chats=new HashMap<>();public static int creates;public static String title,marker;
- public static MessagesController getInstance(int a){return new MessagesController();}public Map<Long,TLRPC.Chat> getChats(){return chats;}
- public TLRPC.Chat getChat(long id){return chats.get(id);}public void putChats(ArrayList<TLRPC.Chat> c,boolean cache){for(var chat:c)chats.put(chat.id,chat);}public void putUsers(ArrayList<TLRPC.User> u,boolean cache){}
- public TLRPC.InputPeer getInputPeer(TLRPC.Peer p){return new TLRPC.TL_inputPeerChannel();}
- public void createChat(String t,ArrayList<Long> users,String about,int type,boolean forum,Object a,Object b,int c,Object d){creates++;title=t;marker=about;TLRPC.Chat chat=new TLRPC.Chat();chat.id=77;chat.title=t;chat.creator=true;chat.channel=true;chat.access_hash=123;chats.put(chat.id,chat);NotificationCenter.INSTANCE.emit(NotificationCenter.chatDidCreated,Long.valueOf(chat.id));}
-}
-""",
-    'org/telegram/messenger/UserConfig.java': r"""package org.telegram.messenger;
-public class UserConfig {public static final int MAX_ACCOUNT_COUNT=10;public static long user=40;public static UserConfig getInstance(int a){return new UserConfig();}public long getClientUserId(){return user;}}
-""",
-    'org/telegram/tgnet/TLRPC.java': r"""package org.telegram.tgnet;import java.util.*;
-public class TLRPC {
- public static class User{}public static class Chat {public long id,access_hash;public String title;public boolean creator,channel;}
- public static class Peer {public long channel_id,chat_id,user_id;}public static class InputPeer {public long channel_id,access_hash;}
- public static class InputChannel {public long channel_id,access_hash;}public static class TL_inputChannel extends InputChannel{}
- public static class TL_inputPeerChannel extends InputPeer{}public static class TL_inputPeerEmpty extends InputPeer{}
- public static class Dialog {public Peer peer;public int top_message;}public static class Message {public Peer peer_id;public int id,date;}
- public static class messages_Dialogs {public ArrayList<Dialog> dialogs=new ArrayList<>();public ArrayList<Chat> chats=new ArrayList<>();public ArrayList<User> users=new ArrayList<>();public ArrayList<Message> messages=new ArrayList<>();}
- public static class TL_messages_getDialogs {public int limit,offset_date,offset_id;public InputPeer offset_peer;public boolean exclude_pinned;}
- public static class Error {public String text;}
-}
-""",
-    'org/telegram/tgnet/ConnectionsManager.java': r"""package org.telegram.tgnet;
-public class ConnectionsManager {public static int reads;public static boolean fail,firstExcludedPinned;public static TLRPC.messages_Dialogs first,second;
- public static ConnectionsManager getInstance(int a){return new ConnectionsManager();}public interface Callback {void run(Object r,TLRPC.Error e);}
- public void sendRequest(TLRPC.TL_messages_getDialogs r,Callback cb){reads++;if(reads==1)firstExcludedPinned=r.exclude_pinned;if(fail){TLRPC.Error e=new TLRPC.Error();e.text="NETWORK_ERROR";cb.run(null,e);}else cb.run(r.offset_id==0?first:second,null);}
-}
-""",
-    'PeerRuntimeTest.java': r"""import android.content.*;import java.util.*;import org.telegram.messenger.*;import org.telegram.tgnet.*;import org.telegram.messenger.telepremium.cloud.*;
-public class PeerRuntimeTest {static int checks;static long dialog;static String error;
+import runpy, shutil, subprocess, tempfile
+ROOT=Path(__file__).resolve().parents[1]
+PROD=ROOT/'patches/tg13/overlay/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud'
+FILES=dict(runpy.run_path(str(ROOT/'scripts/test_cloud_reset.py'))['FILES'])
+del FILES['org/telegram/messenger/telepremium/cloud/TelePremiumCloudPeerManager.java']
+del FILES['CloudResetTest.java']
+shared=runpy.run_path(str(ROOT/'scripts/test_vault_runtime.py'))['FILES']
+FILES['org/telegram/messenger/NotificationCenter.java']=shared['org/telegram/messenger/NotificationCenter.java'].replace('fileLoaded=1,fileLoadFailed=2,messageReceivedByServer=3','fileLoaded=1,fileLoadFailed=2,messageReceivedByServer=3,chatDidCreated=4,chatDidFailCreate=5')
+FILES['org/telegram/messenger/ChatObject.java']='''package org.telegram.messenger;import org.telegram.tgnet.TLRPC;
+public class ChatObject {public static final int CHAT_TYPE_CHANNEL=1;public static boolean isChannel(TLRPC.Chat c){return c.broadcast;}}
+'''
+FILES['org/telegram/tgnet/TLRPC.java']=FILES['org/telegram/tgnet/TLRPC.java'].replace('public static class InputPeer{}','public static class InputPeer {public long channel_id,access_hash;}public static class TL_inputPeerChannel extends InputPeer{}')
+FILES['org/telegram/messenger/MessagesController.java']=FILES['org/telegram/messenger/MessagesController.java'].replace('public static Map<Integer,Map<Long,TLRPC.Chat>> caches=', 'public static int creates;public static Map<Integer,Map<Long,TLRPC.Chat>> caches=').replace(' public void deleteDialog(',''' public TLRPC.Chat getChat(long id){return getChats().get(id);}
+ public void createChat(String title,ArrayList<Long> users,String about,int type,boolean forum,Object l,Object address,int ttl,Object fragment){
+  creates++;var c=new TLRPC.Chat();c.id=1000+creates;c.title=title;c.about=about;c.creator=true;c.broadcast=true;c.access_hash=123;getChats().put(c.id,c);org.telegram.tgnet.ConnectionsManager.remote(a).put(c.id,c);NotificationCenter.getInstance(a).emit(NotificationCenter.chatDidCreated,Long.valueOf(c.id));
+ }
+ public void deleteDialog(''')
+FILES['PeerRuntimeTest.java']=r'''import android.content.*;import java.nio.file.*;import java.util.*;import org.telegram.messenger.*;import org.telegram.tgnet.*;import org.telegram.messenger.telepremium.cloud.*;
+public class PeerRuntimeTest {static int checks;static long uid=100,dialog;static String error;
  static void check(boolean b,String m){if(!b)throw new AssertionError(m);checks++;}
- static void reset(){UserConfig.user++;ApplicationLoader.applicationContext=new Context();MessagesController.chats.clear();MessagesController.creates=0;ConnectionsManager.reads=0;ConnectionsManager.fail=false;ConnectionsManager.first=new TLRPC.messages_Dialogs();ConnectionsManager.second=new TLRPC.messages_Dialogs();NotificationCenter.INSTANCE.listeners.clear();dialog=0;error=null;}
- static TLRPC.Chat vault(){var c=new TLRPC.Chat();c.id=7;c.access_hash=123;c.title="TelePremium Vault";c.creator=true;c.channel=true;return c;}
+ static void reset(){UserConfig.users=new long[]{++uid,0,0,0};ApplicationLoader.applicationContext=new Context();MessagesController.caches.clear();MessagesController.creates=0;ConnectionsManager.server.clear();ConnectionsManager.paginate=false;ConnectionsManager.loop=false;ConnectionsManager.failScan=false;ConnectionsManager.folderMask=0;ConnectionsManager.reads=0;NotificationCenter.INSTANCE.listeners.clear();dialog=0;error=null;}
+ static TLRPC.Chat vault(long id,String title,String about,int folder){var c=new TLRPC.Chat();c.id=id;c.access_hash=id*3;c.title=title;c.about=about;c.creator=true;c.broadcast=true;c.folder=folder;ConnectionsManager.remote(0).put(id,c);return c;}
  static void ensure(){TelePremiumCloudPeerManager.getInstance(0).ensure((d,e)->{dialog=d;error=e;});}
- public static void main(String[] args){
-  reset();ConnectionsManager.first.chats.add(vault());ensure();
-  check(dialog==-7&&error==null&&MessagesController.creates==0,"existing remote vault must be discovered before creating a replacement");check(!ConnectionsManager.firstExcludedPinned,"first discovery page must include pinned vault channels");
-  check(TelePremiumCloudPeerManager.getInstance(0)==TelePremiumCloudPeerManager.getVaultInstance(0),"default peer must always be V3");
-  reset();ensure();check(dialog==-77&&error==null&&MessagesController.creates==1&&"TelePremium Vault".equals(MessagesController.title)&&"TP_VAULT_V3".equals(MessagesController.marker),"fresh account creates only the V3 namespace");
-  reset();ConnectionsManager.fail=true;ensure();check(error!=null&&MessagesController.creates==0,"network failure must not create a duplicate empty namespace");
-  reset();for(int i=0;i<100;i++){var d=new TLRPC.Dialog();d.peer=new TLRPC.Peer();d.peer.user_id=i+100;d.top_message=i+1;ConnectionsManager.first.dialogs.add(d);var m=new TLRPC.Message();m.id=i+1;m.date=200-i;m.peer_id=d.peer;ConnectionsManager.first.messages.add(m);}ConnectionsManager.second.chats.add(vault());ensure();check(dialog==-7&&error==null&&ConnectionsManager.reads==2&&MessagesController.creates==0,"remote discovery must paginate instead of creating a duplicate channel");
-  var before=TelePremiumCloudPeerManager.getVaultInstance(0);reset();var after=TelePremiumCloudPeerManager.getVaultInstance(0);check(before!=after&&after.getChannelId()==0,"account-slot reuse must not reuse another Telegram user's peer");
+ public static void main(String[] args)throws Exception{
+  reset();vault(7,"Renamed encrypted storage","TP_VAULT_V3",1);ensure();check(dialog==-7&&error==null&&MessagesController.creates==0,"discover authenticated renamed archived V3 before creating another namespace");
+  check(ConnectionsManager.folderMask==3,"normal discovery checks both regular and archived dialogs");
+  check(TelePremiumCloudPeerManager.getInstance(0)==TelePremiumCloudPeerManager.getVaultInstance(0),"default peer is V3");
+  reset();ensure();check(dialog==-1001&&error==null&&MessagesController.creates==1,"fresh account creates one private V3 channel");
+  reset();vault(8,"TelePremium Vault","ordinary channel",0);ensure();check(dialog==-1001&&ConnectionsManager.remote(0).containsKey(8L),"title-only lookalike cannot become the encrypted backend");
+  reset();ConnectionsManager.failScan=true;ensure();check(error!=null&&MessagesController.creates==0,"failed scan never creates a duplicate empty namespace");
+  reset();ConnectionsManager.paginate=true;vault(7,"TelePremium Vault","TP_VAULT_V3",0);ensure();check(dialog==-7&&ConnectionsManager.reads==3&&MessagesController.creates==0,"authenticated discovery paginates before creation");
+  reset();vault(7,"Vault A","TP_VAULT_V3",0);vault(8,"Vault B","TP_VAULT_V3",1);ensure();check(error!=null&&MessagesController.creates==0,"ambiguous old V3 channels require explicit reset instead of arbitrary choice");
+  reset();vault(7,"TelePremium Vault","TP_VAULT_V3",0);var old=TelePremiumCloudPeerManager.getVaultInstance(0);ensure();String id=UUID.randomUUID().toString();TelePremiumCloudResetState.begin(id,"test");TelePremiumCloudResetState.save(id,"clearing","test",false);TelePremiumCloudResetState.save(id,"creating","test",true);TelePremiumCloudResetState.complete(id);
+  old.ensure((d,e)->{dialog=d;error=e;});check(error!=null&&dialog==0&&old.getInputPeer()==null,"old peer remains invalid after reset unblocks");
+  var fresh=TelePremiumCloudPeerManager.getVaultInstance(0);check(fresh!=old,"epoch changes invalidate cached peers");
+  reset();vault(7,"TelePremium Vault","TP_VAULT_V3",0);ApplicationLoader.applicationContext.getSharedPreferences("telepremium_retired_cloud_u"+uid,0).edit().putBoolean("c7",true).commit();ensure();check(dialog==-1001,"late Telegram cache update cannot rediscover a retired cloud");
+  reset();id=UUID.randomUUID().toString();TelePremiumCloudResetState.begin(id,"test");TelePremiumCloudResetState.save(id,"clearing","test",false);TelePremiumCloudResetState.save(id,"creating","test",true);
+  vault(7,"Old service","TP_VAULT_V3",0);vault(8,"New service","TP_VAULT_V3:"+id,1);ensure();check(dialog==-8&&MessagesController.creates==0,"resume creation rebinds only this reset transaction marker");
+  var before=TelePremiumCloudPeerManager.getVaultInstance(0);reset();var after=TelePremiumCloudPeerManager.getVaultInstance(0);check(before!=after&&after.getChannelId()==0,"account-slot reuse never reuses another owner's peer");
   System.out.println("PeerRuntimeTest OK: "+checks+" checks");
  }
-}
-""",
-}
-
+}'''
 def run():
-    shared = runpy.run_path(str(ROOT / "scripts/test_vault_runtime.py"))["FILES"]
-    files = {k: shared[k] for k in ["android/content/Context.java", "android/content/SharedPreferences.java", "org/telegram/messenger/ApplicationLoader.java", "org/telegram/messenger/AndroidUtilities.java", "org/telegram/messenger/NotificationCenter.java"]}
-    files["org/telegram/messenger/NotificationCenter.java"] = files["org/telegram/messenger/NotificationCenter.java"].replace("fileLoaded=1,fileLoadFailed=2,messageReceivedByServer=3", "fileLoaded=1,fileLoadFailed=2,messageReceivedByServer=3,chatDidCreated=4,chatDidFailCreate=5")
-    files.update(FILES)
-    with tempfile.TemporaryDirectory(prefix="tp-vault-peer-tests-") as folder:
-        base = Path(folder); src=base/"src"; out=base/"classes"; src.mkdir();out.mkdir()
-        for name, content in files.items():
-            p=src/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content,encoding="utf-8")
-        production=ROOT/"patches/tg13/overlay/TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudPeerManager.java"
-        compiler=["javac"] if shutil.which("javac") else ["java","com.sun.tools.javac.Main"]
-        subprocess.run([*compiler,"-d",str(out),*map(str,src.rglob("*.java")),str(production)],check=True)
-        subprocess.run(["java","-cp",str(out),"PeerRuntimeTest"],check=True)
-
-if __name__ == "__main__":
-    run()
+ with tempfile.TemporaryDirectory(prefix='tp-vault-peer-tests-') as directory:
+  base=Path(directory);src=base/'src';out=base/'classes';src.mkdir();out.mkdir()
+  for name,content in FILES.items():
+   p=src/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content,encoding='utf-8')
+  sources=sorted(src.rglob('*.java'))+sorted((ROOT/'scripts/tests/stubs').rglob('*.java'))
+  sources += [PROD/(n+'.java') for n in ['TelePremiumCloudPeerManager','TelePremiumCloudResetState','TelePremiumCloudResetPlan','TelePremiumCloudResetScanner']]
+  compiler=['javac'] if shutil.which('javac') else ['java','com.sun.tools.javac.Main']
+  subprocess.run([*compiler,'-d',str(out),*map(str,sources)],check=True)
+  subprocess.run(['java','-cp',str(out),'PeerRuntimeTest'],check=True)
+if __name__=='__main__':run()

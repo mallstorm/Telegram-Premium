@@ -19,12 +19,15 @@ public final class TelePremiumCloudManager {
     private static final TelePremiumCloudManager[] INSTANCES = new TelePremiumCloudManager[UserConfig.MAX_ACCOUNT_COUNT];
     public static synchronized TelePremiumCloudManager getInstance(int account) {
         if (INSTANCES[account] == null ||
+                INSTANCES[account].epoch != TelePremiumCloudResetState.epoch() ||
                 INSTANCES[account].ownerUserId != UserConfig.getInstance(account).getClientUserId())
             INSTANCES[account] = new TelePremiumCloudManager(account);
         return INSTANCES[account];
     }
 
     public interface Callback { void onComplete(String error); }
+    private final long epoch = TelePremiumCloudResetState.epoch();
+    private boolean active() { return TelePremiumCloudResetState.allowed(epoch) && ownerUserId == UserConfig.getInstance(account).getClientUserId(); }
     private final int account;
     private final long ownerUserId;
     private final TelegramCloudMetadataStore store;
@@ -38,9 +41,10 @@ public final class TelePremiumCloudManager {
     private boolean publishingFirstIndex;
 
     /** The encrypted local catalog is readable offline, but not writable. */
-    public boolean isRemoteReady() { return remoteReady; }
+    public boolean isRemoteReady() { return active() && remoteReady; }
 
     private boolean requireWritable(Callback callback) {
+        if (!active()) { callback.onComplete(TelePremiumCloudResetState.MESSAGE); return false; }
         if (!remoteReady) {
             callback.onComplete("Vault offline: wait for sync before changing files");
             return false;
@@ -59,6 +63,7 @@ public final class TelePremiumCloudManager {
     public CloudSnapshot getSnapshot() { return snapshot; }
 
     public void bootstrap(Callback callback) {
+        if (!active()) { if (callback != null) callback.onComplete(TelePremiumCloudResetState.MESSAGE); return; }
         synchronized (this) {
             if (callback != null) bootstrapWaiters.add(callback);
             if (bootstrapInFlight) return;
@@ -108,7 +113,7 @@ public final class TelePremiumCloudManager {
         int days = getTrashRetentionDays();
         List<CloudNode> expired = expiredTrash(System.currentTimeMillis(), days);
         if (expired.isEmpty()) { callback.onComplete(0, null); return; }
-        if (!remoteReady) { callback.onComplete(0, "Vault offline"); return; }
+        if (!active() || !remoteReady) { callback.onComplete(0, "Vault offline"); return; }
         long now = System.currentTimeMillis();
         HashSet<Integer> payloadMessages = new HashSet<>();
         for (CloudNode node : expired) markDeleted(node, now, payloadMessages);
@@ -138,12 +143,13 @@ public final class TelePremiumCloudManager {
             bootstrapInFlight = false;
         }
         AndroidUtilities.runOnUIThread(() -> {
-            for (Callback listener : listeners) listener.onComplete(error);
+            for (Callback listener : listeners) listener.onComplete(active() ? error : TelePremiumCloudResetState.MESSAGE);
         });
     }
 
     private void bootstrapVault(Callback callback) {
         store.loadGenerations((generations, error) -> {
+            if (!active()) { callback.onComplete(TelePremiumCloudResetState.MESSAGE); return; }
             CloudSnapshot loaded=new CloudRecoveryEngine().recover(generations);
             if (loaded != null) {
                 snapshot=loaded;
@@ -367,6 +373,7 @@ public final class TelePremiumCloudManager {
     }
 
     private void commit(Callback callback) {
+        if (!active()) { callback.onComplete(TelePremiumCloudResetState.MESSAGE); return; }
         if (!remoteReady && !publishingFirstIndex) {
             callback.onComplete("Vault offline: encrypted catalog is read-only");
             return;
@@ -376,6 +383,7 @@ public final class TelePremiumCloudManager {
 
     private void commitMerged(Callback callback, int attempt) {
         store.loadLatest((remote,error)->{
+            if (!active()) { callback.onComplete(TelePremiumCloudResetState.MESSAGE); return; }
             if(error!=null){callback.onComplete(error);return;}
             if(remote!=null) snapshot=conflictResolver.merge(snapshot,remote);
             snapshot.generation=Math.max(snapshot.generation,remote==null?0:remote.generation)+1;

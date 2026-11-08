@@ -10,6 +10,10 @@ public class JSONArray {
     public JSONArray() {}
 
     public JSONArray put(Object value) { values.add(value); return this; }
+    public long getLong(int index) throws JSONException {
+        Object v = opt(index); if (v instanceof Number) return ((Number) v).longValue();
+        throw new JSONException("Not a number at " + index);
+    }
     public int length() { return values.size(); }
     public Object opt(int index) { return index >= 0 && index < values.size() ? values.get(index) : null; }
 

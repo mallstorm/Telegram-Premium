@@ -107,6 +107,46 @@ public class VaultKeyManagerTest {
   check(!TelePremiumVaultKeyManager.hasMasterKey(failed),"failed persistence cannot leave a configured key flag");
   Context incomplete=new Context();incomplete.getSharedPreferences(PREF,0).edit().putString("wrapped_recovery","existing-data").commit();
   fails(()->key(incomplete),"partial legacy key state must require recovery, never reset");
+  org.telegram.messenger.ApplicationLoader.applicationContext=first;
+  String wrappedBefore=first.getSharedPreferences(PREF,0).getString("wrapped_local",null);
+  String resetId=java.util.UUID.randomUUID().toString();
+  org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.begin(resetId,"approved-test-plan");
+  fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,resetId),"deleting stage cannot rotate the old key");
+  fails(()->key(first),"normal key access is blocked during destructive reset");
+  check(wrappedBefore.equals(first.getSharedPreferences(PREF,0).getString("wrapped_local",null)),"partial reset preserves original encrypted master");
+  var state=org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.class;
+  org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.save(resetId,"clearing","all-deletions-confirmed",false);
+  first.failCommit=true;
+  fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,resetId),"archive persistence failure prevents rotation");first.failCommit=false;
+  check(wrappedBefore.equals(first.getSharedPreferences(PREF,0).getString("wrapped_local",null)),"archive failure preserves old active key");
+  TelePremiumVaultKeyManager.rotateAfterCloudReset(first,resetId);
+  String wrappedNew=first.getSharedPreferences(PREF,0).getString("wrapped_local",null);
+  check(!wrappedBefore.equals(wrappedNew),"explicit completed reset rotates the key");
+  check(wrappedBefore.equals(first.getSharedPreferences("telepremium_vault_retired_keys_v1",0).getString(resetId+".wrapped_local",null)),"archive retains only original AndroidKeyStore ciphertext");
+  check(!TelePremiumVaultKeyManager.hasPasswordRecovery(first)&&!TelePremiumVaultKeyManager.isRecoveryConfirmed(first),"old recovery envelope and confirmation are not reused for a new key");
+  TelePremiumVaultKeyManager.rotateAfterCloudReset(first,resetId);
+  check(wrappedNew.equals(first.getSharedPreferences(PREF,0).getString("wrapped_local",null)),"retry after interruption never generates a second master");
+  org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.save(resetId,"creating","ready-to-create",true);
+  byte[] newMaster=key(first);check(!same(original,newMaster),"newly created V3 uses a different master");
+  String newCode=TelePremiumVaultKeyManager.exportRecoveryEnvelope(first);
+  fails(()->TelePremiumVaultKeyManager.recoverFromCode(first,legacy,password),"recovery cannot replace the reset master before creation completes");
+  Context restoredNew=new Context();org.telegram.messenger.ApplicationLoader.applicationContext=restoredNew;TelePremiumVaultKeyManager.recoverFromCode(restoredNew,newCode,new char[0]);
+  check(same(newMaster,key(restoredNew)),"new recovery code restores the new cloud master");
+  org.telegram.messenger.ApplicationLoader.applicationContext=first;
+  TelePremiumVaultKeyManager.markKeyUsed(first);
+  org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.complete(resetId);
+  fails(()->TelePremiumVaultKeyManager.recoverFromCode(first,legacy,password),"old recovery code cannot overwrite the new key after new cloud use");
+  fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,resetId),"completed reset cannot be reused to rotate keys");
+  String archiveId=java.util.UUID.randomUUID().toString();String keepWrapped=first.getSharedPreferences(PREF,0).getString("wrapped_local",null);
+  org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.begin(archiveId,"test");org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.save(archiveId,"clearing","test",false);
+  first.memoryOnFailedCommit=true;first.failPreferences="telepremium_vault_retired_keys_v1";
+  fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,archiveId),"archive failure after Android memory update still blocks rotation");
+  check(first.getSharedPreferences("telepremium_vault_retired_keys_v1",0).getBoolean(archiveId+".saved",false),"test models Android's visible memory after a failed commit");
+  fails(()->TelePremiumVaultKeyManager.rotateAfterCloudReset(first,archiveId),"cached archive saved flag must be flushed successfully before rotation retry");
+  check(keepWrapped.equals(first.getSharedPreferences(PREF,0).getString("wrapped_local",null)),"failed archive retries never change the active wrapped master");
+  first.failPreferences=null;TelePremiumVaultKeyManager.rotateAfterCloudReset(first,archiveId);
+  check(!keepWrapped.equals(first.getSharedPreferences(PREF,0).getString("wrapped_local",null)),"rotation resumes only after archive persistence succeeds");
+  org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.save(archiveId,"creating","test",true);org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.complete(archiveId);
   System.out.println("VaultKeyManagerTest OK: "+checks+" checks");
  }
 }
@@ -117,6 +157,7 @@ public class VaultKeyManagerTest {
 def run():
     common = runpy.run_path(str(ROOT / "scripts/test_vault_runtime.py"))["FILES"]
     files = {k: common[k] for k in ["android/content/Context.java", "android/content/SharedPreferences.java"]}
+    files["org/telegram/messenger/ApplicationLoader.java"] = common["org/telegram/messenger/ApplicationLoader.java"]
     files.update(FILES)
     with tempfile.TemporaryDirectory(prefix="tp-vault-key-tests-") as folder:
         base = Path(folder)
@@ -128,6 +169,7 @@ def run():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
         sources = sorted(src.rglob("*.java"))
+        sources += [PROD / "org/telegram/messenger/telepremium/cloud/TelePremiumCloudResetState.java"]
         sources += [PROD / ("org/telegram/messenger/telepremium/cloud/vault/" + n + ".java")
                     for n in ["TelePremiumVaultCrypto", "TelePremiumVaultKeyManager"]]
         compiler = ["javac"] if shutil.which("javac") else ["java", "com.sun.tools.javac.Main"]

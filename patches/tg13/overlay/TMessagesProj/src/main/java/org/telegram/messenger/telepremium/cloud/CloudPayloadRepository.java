@@ -25,6 +25,13 @@ import java.io.InputStream;
 import java.util.Arrays;
 
 public final class CloudPayloadRepository implements NotificationCenter.NotificationCenterDelegate {
+    private final long ownerUserId;
+    private final long epoch = TelePremiumCloudResetState.epoch();
+    private static final java.util.Set<CloudPayloadRepository> LIVE = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    public static void cancelAllForReset() {
+        synchronized (LIVE) { for (CloudPayloadRepository operation : new java.util.ArrayList<>(LIVE)) operation.cancel(); }
+    }
+    private boolean active() { return TelePremiumCloudResetState.allowed(epoch) && ownerUserId == org.telegram.messenger.UserConfig.getInstance(account).getClientUserId(); }
     private final int account;
     private final TelePremiumCloudPeerManager peerManager;
     private final CloudTransferManager transferManager;
@@ -67,14 +74,18 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
 
     public CloudPayloadRepository(int account){
         this.account=account;
+        this.ownerUserId=org.telegram.messenger.UserConfig.getInstance(account).getClientUserId();
+        synchronized (LIVE) { LIVE.add(this); }
         this.peerManager=TelePremiumCloudPeerManager.getVaultInstance(account);
         this.transferManager=CloudTransferManager.getInstance(account);
     }
 
     public void importUri(Uri uri, String parentId, String displayName, String mime, ImportCallback callback) {
+        if (!active()) { callback.onComplete(null, TelePremiumCloudResetState.MESSAGE); return; }
         if(pending!=null){callback.onComplete(null,"Уже выполняется загрузка");return;}
         Utilities.globalQueue.postRunnable(() -> {
             try {
+                if (!active()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
                 long declaredSize=querySize(uri);
                 long limit=maxUploadBytes(account);
                 String safe=(displayName==null||displayName.trim().isEmpty())?"cloud-file":displayName.replaceAll("[\\\\/:*?\"<>|]","_");
@@ -109,6 +120,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                         encrypted.delete();
                         AndroidUtilities.runOnUIThread(()->{
                             try {
+                                if (!active()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
                                 // Preserve the remote receipt even if the encrypted
                                 // outbox write later fails (never re-upload blindly).
                                 transferManager.markIndexing(secured.id,secured.telegramMessageId);
@@ -123,6 +135,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                         return;
                     }
                     AndroidUtilities.runOnUIThread(()->peerManager.ensure((dialogId,error)->{
+                        if (!active()) { encrypted.delete(); callback.onComplete(null, TelePremiumCloudResetState.MESSAGE); return; }
                         if(error!=null || dialogId==0){
                             encrypted.delete();
                             transferManager.waitingNetwork(error==null?"Cloud service peer unavailable":error);
@@ -162,6 +175,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     public void resumePending(ImportCallback callback) {
+        if (!active()) { callback.onComplete(null, TelePremiumCloudResetState.MESSAGE); return; }
         // An active repository already owns its upload and reconnect timer.
         if (pending != null) return;
         CloudTransferManager.Task task=transferManager.getTask();
@@ -177,6 +191,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     private void sendToCloudPeer() {
+        if (!active()) return;
         Pending p=pending;
         if(p==null)return;
         if(p.encryptedPayload==null)return; // no plaintext upload path, including during part preparation
@@ -216,6 +231,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     @Override public void didReceivedNotification(int id, int accountId, Object... args) {
+        if (!active()) { cancel(); return; }
         if(pending==null || accountId!=account) return;
         try {
             if(id==NotificationCenter.fileUploadProgressChanged){
@@ -334,6 +350,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     private void saveMultipartState(Pending p){
+        if (!active()) return;
         try{
             multipartPrefs().edit().putString("uri",p.uri.toString()).putLong("size",p.node.size)
                     .putBoolean("vault",p.multipart.vault).putString("node",p.node.toJson().toString()).apply();
@@ -349,7 +366,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         }catch(Exception e){FileLog.e(e);return null;}
     }
 
-    private void clearMultipartState(){multipartPrefs().edit().clear().apply();}
+    private void clearMultipartState(){if (!active()) return;multipartPrefs().edit().clear().apply();}
 
     /** Runs on the global queue. */
     private void importMultipart(Uri uri,String parentId,String safe,String mime,long size,long limit,ImportCallback callback) throws Exception {
@@ -375,6 +392,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         if(mp.doneBytes>0)hashRange(uri,0,mp.doneBytes,mp.digest);
         CloudNode target=node;
         AndroidUtilities.runOnUIThread(()->peerManager.ensure((dialogId,error)->{
+            if (!active()) { callback.onComplete(null, TelePremiumCloudResetState.MESSAGE); return; }
             if(error!=null || dialogId==0){
                 transferManager.waitingNetwork(error==null?"Cloud service peer unavailable":error);
                 callback.onComplete(null,error==null?"Cloud service peer unavailable":error);
@@ -391,6 +409,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     private void stageNextPart(){
+        if (!active()) return;
         Pending p=pending;
         if(p==null || p.multipart==null)return;
         Multipart mp=p.multipart;
@@ -398,6 +417,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
         Utilities.globalQueue.postRunnable(()->{
             File staging=null;
             try{
+                if (!active()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
                 int index=mp.index;
                 long offset=0;
                 for(int i=0;i<index;i++)offset+=p.node.partSizes[i];
@@ -420,7 +440,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                 p.node.partSha256[index]=partSha;
                 File ready=staging;
                 AndroidUtilities.runOnUIThread(()->{
-                    if(pending!=p){ready.delete();return;}
+                    if(!active() || pending!=p){ready.delete();return;}
                     p.encryptedPayload=ready;
                     p.encryptedFilename=ready.getName();
                     p.encryptedCaption="#TPPART:"+p.node.id.substring(0,8)+":"+(index+1)+"/"+mp.count;
@@ -441,6 +461,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     private void onMultipartPartSent(TLRPC.Message message){
+        if (!active()) return;
         Pending p=pending;
         Multipart mp=p.multipart;
         int index=mp.index;
@@ -458,6 +479,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     private void finishMultipart(){
+        if (!active()) return;
         Pending done=pending;pending=null;
         stopObservers();
         done.node.sha256=hex(done.multipart.digest.digest());

@@ -28,13 +28,22 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
     }
 
     public static synchronized TelePremiumCloudPeerManager getVaultInstance(int account) {
-        if (VAULT_INSTANCES[account] == null || VAULT_INSTANCES[account].ownerUserId != UserConfig.getInstance(account).getClientUserId())
+        if (VAULT_INSTANCES[account] == null || VAULT_INSTANCES[account].epoch != TelePremiumCloudResetState.epoch() || VAULT_INSTANCES[account].ownerUserId != UserConfig.getInstance(account).getClientUserId())
             VAULT_INSTANCES[account] = new TelePremiumCloudPeerManager(account);
         return VAULT_INSTANCES[account];
     }
 
     private String storageTitle() { return VAULT_TITLE; }
-    private String storageMarker() { return VAULT_MARKER; }
+    private String storageMarker() {
+        return TelePremiumCloudResetState.CREATING.equals(TelePremiumCloudResetState.phase())
+                ? VAULT_MARKER + ":" + TelePremiumCloudResetState.operation() : VAULT_MARKER;
+    }
+    private final long epoch = TelePremiumCloudResetState.epoch();
+    private boolean active() { return TelePremiumCloudResetState.allowed(epoch) && ownerUserId == UserConfig.getInstance(account).getClientUserId(); }
+    public static synchronized boolean busy() {
+        for (TelePremiumCloudPeerManager p : VAULT_INSTANCES) if (p != null && p.creating) return true;
+        return false;
+    }
     private final int account;
     private final long ownerUserId;
     private long channelId;
@@ -55,7 +64,7 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
     }
 
     public long getChannelId() {
-        if (channelId == 0) discoverLoadedChannel();
+        if (!active()) return 0;
         return channelId;
     }
 
@@ -65,7 +74,7 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
     }
 
     public TLRPC.InputPeer getInputPeer() {
-        if (channelId == 0) return null;
+        if (!active() || channelId == 0) return null;
         TLRPC.TL_inputPeerChannel peer = new TLRPC.TL_inputPeerChannel();
         peer.channel_id = channelId;
         peer.access_hash = accessHash;
@@ -73,7 +82,7 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
     }
 
     public TLRPC.InputChannel getInputChannel() {
-        if (channelId == 0) return null;
+        if (!active() || channelId == 0) return null;
         TLRPC.TL_inputChannel input = new TLRPC.TL_inputChannel();
         input.channel_id = channelId;
         input.access_hash = accessHash;
@@ -81,55 +90,35 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
     }
 
     public void ensure(Callback callback) {
+        if (!active()) { if (callback != null) callback.onReady(0, TelePremiumCloudResetState.MESSAGE); return; }
         if (callback != null) callbacks.add(callback);
         if (getChannelId() != 0 && accessHash != 0) {
             finish(null);
             return;
         }
         if (creating) return;
-        if (discoverLoadedChannel()) {
-            finish(null);
-            return;
-        }
         creating = true;
-        // After reinstall, the channel may not yet be loaded in MessagesController.
-        // Ask Telegram before creating a replacement namespace.
-        discoverRemote(0, 0, new TLRPC.TL_inputPeerEmpty(), 0);
-    }
-
-    private void discoverRemote(int offsetDate, int offsetId, TLRPC.InputPeer offsetPeer, int page) {
-        TLRPC.TL_messages_getDialogs req = new TLRPC.TL_messages_getDialogs();
-        req.limit = 100;
-        req.exclude_pinned = page > 0;
-        req.offset_date = offsetDate;
-        req.offset_id = offsetId;
-        req.offset_peer = offsetPeer;
-        ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
-            if (error != null || !(response instanceof TLRPC.messages_Dialogs)) {
-                finish(error == null ? "Не удалось проверить существующий канал Vault" : error.text);
-                return;
+        // Authenticated markers, including renamed/archived channels, are safer than title matches.
+        TelePremiumCloudResetScanner.scanAccount(account, (plan, error) -> {
+            if (!active()) { finish(TelePremiumCloudResetState.MESSAGE); return; }
+            if (error != null) { finish(error); return; }
+            TelePremiumCloudResetPlan.Target found = null;
+            for (TelePremiumCloudResetPlan.Target t : plan.targets) {
+                boolean marker = TelePremiumCloudResetState.CREATING.equals(TelePremiumCloudResetState.phase())
+                        ? storageMarker().equals(t.about) : VAULT_MARKER.equals(t.about) || t.about.startsWith(VAULT_MARKER + ":");
+                if (!marker || isRetired(t.channelId)) continue;
+                if (found != null) { finish("Найдено несколько Vault. Откройте защиту облака и проверьте список перед пересозданием"); return; }
+                found = t;
             }
-            TLRPC.messages_Dialogs result = (TLRPC.messages_Dialogs) response;
-            MessagesController.getInstance(account).putChats(result.chats, false);
-            MessagesController.getInstance(account).putUsers(result.users, false);
-            if (discoverLoadedChannel()) { finish(null); return; }
-            if (result.dialogs.size() < req.limit) { createVault(); return; }
-            TLRPC.Dialog last = result.dialogs.get(result.dialogs.size() - 1);
-            TLRPC.Message top = null;
-            for (TLRPC.Message m : result.messages) {
-                if (m.id != last.top_message || m.peer_id == null || last.peer == null) continue;
-                if (m.peer_id.channel_id == last.peer.channel_id && m.peer_id.chat_id == last.peer.chat_id
-                        && m.peer_id.user_id == last.peer.user_id) { top = m; break; }
-            }
-            if (top == null || page >= 99 || (top.date == offsetDate && top.id == offsetId)) {
-                finish("Проверка каналов Vault не завершена; повторите подключение");
-                return;
-            }
-            discoverRemote(top.date, top.id, MessagesController.getInstance(account).getInputPeer(last.peer), page + 1);
-        }));
+            if (found == null) { createVault(); return; }
+            channelId = found.channelId; accessHash = found.accessHash;
+            prefs().edit().putLong("channel_id", channelId).putLong("access_hash", accessHash).putBoolean("service_peer", true).apply();
+            finish(null);
+        });
     }
 
     private void createVault() {
+        if (!active()) { finish(TelePremiumCloudResetState.MESSAGE); return; }
         NotificationCenter.getInstance(account).addObserver(this, NotificationCenter.chatDidCreated);
         NotificationCenter.getInstance(account).addObserver(this, NotificationCenter.chatDidFailCreate);
         try {
@@ -149,20 +138,12 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
         }
     }
 
-    private boolean discoverLoadedChannel() {
-        try {
-            for (TLRPC.Chat chat : MessagesController.getInstance(account).getChats().values()) {
-                if (chat != null && storageTitle().equals(chat.title) && ChatObject.isChannel(chat) && chat.creator) {
-                    remember(chat);
-                    return true;
-                }
-            }
-        } catch (Throwable ignore) {
-        }
-        return channelId != 0 && accessHash != 0;
+    private boolean isRetired(long id) {
+        return ApplicationLoader.applicationContext.getSharedPreferences("telepremium_retired_cloud_u" + ownerUserId, 0).getBoolean("c" + id, false);
     }
 
     private void remember(TLRPC.Chat chat) {
+        if (!active()) return;
         channelId = chat.id;
         accessHash = chat.access_hash;
         prefs().edit()
@@ -178,13 +159,14 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
         NotificationCenter.getInstance(account).removeObserver(this, NotificationCenter.chatDidFailCreate);
         ArrayList<Callback> copy = new ArrayList<>(callbacks);
         callbacks.clear();
-        long did = getDialogId();
+        long did = active() ? getDialogId() : 0;
         for (Callback cb : copy) cb.onReady(did, error);
     }
 
     @Override
     public void didReceivedNotification(int id, int accountId, Object... args) {
         if (!creating || accountId != account) return;
+        if (!active()) { finish(TelePremiumCloudResetState.MESSAGE); return; }
         if (id == NotificationCenter.chatDidFailCreate) {
             finish("Не удалось создать служебное облако");
             return;
@@ -192,9 +174,14 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
         if (id == NotificationCenter.chatDidCreated && args.length > 0 && args[0] instanceof Long) {
             long createdId = (Long) args[0];
             TLRPC.Chat chat = MessagesController.getInstance(account).getChat(createdId);
-            if (chat != null && storageTitle().equals(chat.title)) {
-                remember(chat);
-                finish(null);
+            if (chat != null && storageTitle().equals(chat.title) && chat.creator && chat.broadcast && !chat.megagroup) {
+                TelePremiumCloudResetScanner.full(account, chat.id, chat.access_hash, (verified, about, error) -> {
+                    if (!active()) { finish(TelePremiumCloudResetState.MESSAGE); return; }
+                    if (error != null) { finish(error); return; }
+                    if (!storageMarker().equals(about) || !verified.creator || !verified.broadcast || verified.megagroup) return;
+                    remember(verified);
+                    finish(null);
+                });
             }
         }
     }
