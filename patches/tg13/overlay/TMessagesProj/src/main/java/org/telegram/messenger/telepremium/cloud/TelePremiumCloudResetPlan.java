@@ -34,7 +34,7 @@ public final class TelePremiumCloudResetPlan {
         public Target(long userId, long channelId, long accessHash, String title, String about, boolean knownBinding) {
             if (userId <= 0 || channelId <= 0 || accessHash == 0) throw new IllegalArgumentException("Invalid reset target");
             this.userId = userId; this.channelId = channelId; this.accessHash = accessHash;
-            this.title = title; this.about = about == null ? "" : about; this.knownBinding = knownBinding;
+            this.title = title == null ? "" : title; this.about = about == null ? "" : about; this.knownBinding = knownBinding;
         }
         public String identity() { return userId + ":" + channelId; }
     }
@@ -73,10 +73,11 @@ public final class TelePremiumCloudResetPlan {
         if (!TelePremiumCloudResetState.DELETING.equals(p.phase) && !TelePremiumCloudResetState.CLEARING.equals(p.phase)
                 && !TelePremiumCloudResetState.CREATING.equals(p.phase)) throw new IllegalArgumentException("Invalid reset phase");
         JSONArray a = o.getJSONArray("accounts"), t = o.getJSONArray("targets"), ready = o.getJSONArray("ready");
+        Set<Integer> slots = new HashSet<>();
         Set<Long> users = new HashSet<>(); Set<String> targets = new HashSet<>();
         for (int i = 0; i < a.length(); i++) {
             JSONObject x = a.getJSONObject(i); Account account = new Account(x.getInt("slot"), x.getLong("user"), x.getString("name"));
-            if (account.userId <= 0 || account.slot < 0) throw new IllegalArgumentException("Invalid account");
+            if (account.userId <= 0 || account.slot < 0 || account.slot >= org.telegram.messenger.UserConfig.MAX_ACCOUNT_COUNT || !slots.add(account.slot)) throw new IllegalArgumentException("Invalid account");
             p.accounts.add(account); users.add(account.userId);
         }
         if (users.isEmpty()) throw new IllegalArgumentException("Empty reset scope");
@@ -92,6 +93,10 @@ public final class TelePremiumCloudResetPlan {
             long user = ready.getLong(i); if (!users.contains(user)) throw new IllegalArgumentException("Invalid ready account");
             p.readyUsers.add(user);
         }
+        if (!TelePremiumCloudResetState.DELETING.equals(p.phase) && !p.deletionComplete())
+            throw new IllegalArgumentException("Unconfirmed deletions before key rotation");
+        if (!TelePremiumCloudResetState.CREATING.equals(p.phase) && !p.readyUsers.isEmpty())
+            throw new IllegalArgumentException("Ready accounts before cloud creation");
         return p;
     }
 }

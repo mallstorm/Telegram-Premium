@@ -174,9 +174,14 @@ public final class TelePremiumCloudPeerManager implements NotificationCenter.Not
         if (id == NotificationCenter.chatDidCreated && args.length > 0 && args[0] instanceof Long) {
             long createdId = (Long) args[0];
             TLRPC.Chat chat = MessagesController.getInstance(account).getChat(createdId);
-            if (chat != null && storageTitle().equals(chat.title)) {
-                remember(chat);
-                finish(null);
+            if (chat != null && storageTitle().equals(chat.title) && chat.creator && chat.broadcast && !chat.megagroup) {
+                TelePremiumCloudResetScanner.full(account, chat.id, chat.access_hash, (verified, about, error) -> {
+                    if (!active()) { finish(TelePremiumCloudResetState.MESSAGE); return; }
+                    if (error != null) { finish(error); return; }
+                    if (!storageMarker().equals(about) || !verified.creator || !verified.broadcast || verified.megagroup) return;
+                    remember(verified);
+                    finish(null);
+                });
             }
         }
     }

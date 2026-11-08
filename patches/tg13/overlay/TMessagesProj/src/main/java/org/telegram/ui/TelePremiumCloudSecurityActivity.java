@@ -186,7 +186,7 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             toastStatus(resetText("TP_RESET_WORKING", R.string.TP_RESET_WORKING)); return;
         }
         if (TelePremiumCloudSecurityStore.isProtectionEnabled(context) && !TelePremiumCloudSecuritySession.isUnlocked(context)) {
-            toastStatus(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_224", R.string.TP_L10N_224)); return;
+            presentFragment(new TelePremiumCloudUnlockActivity(UserConfig.selectedAccount, null, this::reviewCloudReset)); return;
         }
         resetReviewInFlight = true;
         toastStatus(resetText("TP_RESET_SCANNING", R.string.TP_RESET_SCANNING));
@@ -217,6 +217,9 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
     }
 
     private void executeCloudReset(TelePremiumCloudResetPlan plan) {
+        if (TelePremiumCloudSecurityStore.isProtectionEnabled(context) && !TelePremiumCloudSecuritySession.isUnlocked(context)) {
+            presentFragment(new TelePremiumCloudUnlockActivity(UserConfig.selectedAccount, null, () -> executeCloudReset(plan))); return;
+        }
         AlertDialog progress = new AlertDialog(context, AlertDialog.ALERT_TYPE_SPINNER);
         progress.setMessage(resetText("TP_RESET_WORKING", R.string.TP_RESET_WORKING));
         progress.setCanCancel(false); progress.setCancelable(false); progress.show();
@@ -231,10 +234,17 @@ public class TelePremiumCloudSecurityActivity extends BaseFragment {
             } else {
                 new AlertDialog.Builder(context).setTitle(resetText("TP_RESET_DONE", R.string.TP_RESET_DONE))
                         .setMessage(resetText("TP_RESET_NEW_KEY", R.string.TP_RESET_NEW_KEY))
-                        .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_209", R.string.TP_L10N_209), (d, w) -> showVaultRecoveryCode())
+                        .setPositiveButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_209", R.string.TP_L10N_209), (d, w) -> showResetRecoveryCode())
                         .setNegativeButton("OK", null).show();
             }
         });
+    }
+
+    private void showResetRecoveryCode() {
+        if (TelePremiumCloudSecurityStore.isProtectionEnabled(context) && !TelePremiumCloudSecuritySession.isUnlocked(context)) {
+            presentFragment(new TelePremiumCloudUnlockActivity(UserConfig.selectedAccount, null, this::showResetRecoveryCode)); return;
+        }
+        showVaultRecoveryCode();
     }
 
     private void showVaultSetup() {

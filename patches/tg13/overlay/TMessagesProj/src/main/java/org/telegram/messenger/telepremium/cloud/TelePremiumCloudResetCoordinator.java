@@ -50,7 +50,11 @@ public final class TelePremiumCloudResetCoordinator {
             TelePremiumCloudResetPlan frozen = TelePremiumCloudResetPlan.decode(reviewed.encode());
             if (!TelePremiumCloudResetScanner.sameScope(frozen) || TelePremiumCloudPeerManager.busy())
                 throw new IllegalStateException("Состав аккаунтов или подключение Vault изменились. Повторите проверку");
-            if (!TelePremiumCloudResetState.pending()) TelePremiumCloudResetState.begin(frozen.id, frozen.encode());
+            if (!TelePremiumCloudResetState.pending()) {
+                if (!TelePremiumCloudResetState.DELETING.equals(frozen.phase) || !frozen.readyUsers.isEmpty()) throw new IllegalStateException("Неверный новый план пересоздания");
+                for (TelePremiumCloudResetPlan.Target t : frozen.targets) if (t.state != TelePremiumCloudResetPlan.PENDING) throw new IllegalStateException("Нет подтверждения удаления нового списка");
+                TelePremiumCloudResetState.begin(frozen.id, frozen.encode());
+            }
             else {
                 TelePremiumCloudResetPlan saved = load();
                 if (!saved.id.equals(frozen.id) || !saved.phase.equals(frozen.phase)) throw new IllegalStateException("План пересоздания изменился");
