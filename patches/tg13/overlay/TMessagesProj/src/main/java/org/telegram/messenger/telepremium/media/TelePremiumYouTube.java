@@ -63,7 +63,7 @@ import java.util.concurrent.Executors;
  */
 public final class TelePremiumYouTube {
     public static final String MIME = "video/youtube";
-    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2);
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(3);
     private static volatile boolean initialized;
 
     private TelePremiumYouTube() {}
@@ -147,30 +147,32 @@ public final class TelePremiumYouTube {
 
     private static StreamingService yt() { return ServiceList.YouTube; }
 
-    private static <T> void async(java.util.concurrent.Callable<T> work, Callback<T> callback) {
-        EXECUTOR.execute(() -> {
-            T result = null;
-            String error = null;
-            try {
-                ensureInit();
-                result = work.call();
-            } catch (ReCaptchaException e) {
-                error = "YouTube требует проверку (reCAPTCHA). Попробуйте позже или через другой VPN-сервер";
-            } catch (Throwable e) {
-                FileLog.e(e);
-                error = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-            }
-            T r = result;
-            String err = error;
-            AndroidUtilities.runOnUIThread(() -> callback.onResult(r, err));
+    private static <T> TelePremiumMediaRequest async(java.util.concurrent.Callable<T> work, Callback<T> callback) {
+        return TelePremiumMediaRequest.start(EXECUTOR, () -> { ensureInit(); return work.call(); }, (result, failure) -> {
+            if (failure != null) FileLog.e(failure);
+            callback.onResult(result, failure == null ? null : errorMessage(failure));
         });
+    }
+
+    static String errorMessage(Throwable error) {
+        String message = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+        String lower = message.toLowerCase(Locale.ROOT);
+        if (error instanceof ReCaptchaException || (lower.contains("login_required")
+                && (lower.contains("bot") || lower.contains("бот"))))
+            return TPStrings.isRussian()
+                    ? "YouTube запросил проверку соединения. Попробуйте другую сеть или VPN-сервер, либо откройте ролик в браузере"
+                    : "YouTube requested a connection check. Try another network or VPN server, or open the video in a browser";
+        if (lower.contains("login_required")) return TPStrings.isRussian()
+                ? "YouTube ограничил доступ к этому ролику; проверьте его доступность в браузере"
+                : "YouTube restricted this video; check its availability in a browser";
+        return message;
     }
 
     // ------------------------------------------------------------------ channel / playlist
 
     /** Channel (videos tab), playlist or a single video link. */
-    public static void loadFeed(String input, Callback<Feed> callback) {
-        async(() -> {
+    public static TelePremiumMediaRequest loadFeed(String input, Callback<Feed> callback) {
+        return async(() -> {
             String url = normalize(input);
             StreamingService service = yt();
             StreamingService.LinkType type = service.getLinkTypeByUrl(url);
@@ -215,8 +217,8 @@ public final class TelePremiumYouTube {
     }
 
     /** Appends the next page of the feed; the callback gets only the new items. */
-    public static void loadMore(Feed feed, Callback<List<TelePremiumMediaItem>> callback) {
-        async(() -> {
+    public static TelePremiumMediaRequest loadMore(Feed feed, Callback<List<TelePremiumMediaItem>> callback) {
+        return async(() -> {
             if (!feed.hasMore()) return Collections.<TelePremiumMediaItem>emptyList();
             Feed page = new Feed();
             if (feed.kind == 0) {
@@ -295,8 +297,8 @@ public final class TelePremiumYouTube {
 
     // ------------------------------------------------------------------ formats
 
-    public static void loadFormats(String videoUrl, Callback<Formats> callback) {
-        async(() -> formats(videoUrl), callback);
+    public static TelePremiumMediaRequest loadFormats(String videoUrl, Callback<Formats> callback) {
+        return async(() -> formats(videoUrl), callback);
     }
 
     private static Formats formats(String videoUrl) throws Exception {
@@ -368,7 +370,8 @@ public final class TelePremiumYouTube {
 
     public static final class Playback {
         public String videoUrl, audioUrl;
-        public boolean hls;
+        public boolean hls, live;
+        public long durationMs;
     }
 
     private static final int[] QUALITIES = {360, 480, 720, 1080, 1440, 2160};
@@ -387,10 +390,10 @@ public final class TelePremiumYouTube {
      * Picks what the player streams: HLS for live; otherwise the best video-only format up to the
      * preferred height (H.264 MP4 first: hardware decoding everywhere) plus the best original audio.
      */
-    public static void resolvePlayback(String videoUrl, Callback<Playback> callback) {
-        async(() -> {
+    public static TelePremiumMediaRequest resolvePlayback(String videoUrl, Callback<Playback> callback) {
+        return async(() -> {
             Formats f = formats(videoUrl);
-            Playback p = new Playback();
+            Playback p = new Playback(); p.live = f.live; p.durationMs = f.durationMs;
             if (f.live && f.hlsUrl != null) {
                 p.videoUrl = f.hlsUrl;
                 p.hls = true;
@@ -425,11 +428,12 @@ public final class TelePremiumYouTube {
     // ------------------------------------------------------------------ HTTP for the extractor
 
     private static final class HttpDownloader extends Downloader {
-        private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0";
+        private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:153.0) Gecko/20100101 Firefox/153.0";
 
         @Override
         public Response execute(Request request) throws java.io.IOException, ReCaptchaException {
-            HttpURLConnection c = (HttpURLConnection) new URL(request.url()).openConnection();
+            HttpURLConnection c = TelePremiumMediaRequest.open(new URL(request.url()));
+            try {
             c.setConnectTimeout(15000);
             c.setReadTimeout(30000);
             c.setInstanceFollowRedirects(true);
@@ -451,7 +455,6 @@ public final class TelePremiumYouTube {
             }
             int code = c.getResponseCode();
             if (code == 429) {
-                c.disconnect();
                 throw new ReCaptchaException("reCaptcha Challenge requested", request.url());
             }
             InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
@@ -460,7 +463,7 @@ public final class TelePremiumYouTube {
                 try (InputStream stream = in; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                     byte[] buffer = new byte[16 * 1024];
                     int n;
-                    while ((n = stream.read(buffer)) > 0) out.write(buffer, 0, n);
+                    while ((n = stream.read(buffer)) > 0) { TelePremiumMediaRequest.checkCancelled(); out.write(buffer, 0, n); }
                     text = out.toString(StandardCharsets.UTF_8.name());
                 }
             }
@@ -470,8 +473,8 @@ public final class TelePremiumYouTube {
             }
             String latest = c.getURL().toString();
             String message = c.getResponseMessage();
-            c.disconnect();
             return new Response(code, message, headers, text, latest);
+            } finally { TelePremiumMediaRequest.disconnect(c); }
         }
     }
 }

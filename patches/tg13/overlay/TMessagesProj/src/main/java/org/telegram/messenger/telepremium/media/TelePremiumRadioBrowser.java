@@ -7,7 +7,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
-import org.telegram.messenger.Utilities;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -30,6 +31,7 @@ public final class TelePremiumRadioBrowser {
     private static final String[] FALLBACK_SERVERS = {"de1.api.radio-browser.info", "de2.api.radio-browser.info", "fi1.api.radio-browser.info"};
     private static final String USER_AGENT = "TelePremium/13.1.1";
     private static volatile List<String> servers;
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(3);
 
     public static final class Country {
         public final String code, name;
@@ -43,17 +45,17 @@ public final class TelePremiumRadioBrowser {
     private TelePremiumRadioBrowser() {}
 
     /** Most listened live stations of a country (ISO 3166-1 alpha-2, e.g. "RU"). */
-    public static void byCountry(String countryCode, int limit, StationsCallback callback) {
-        stations("/json/stations/search?countrycode=" + Uri.encode(countryCode.toUpperCase(Locale.ROOT))
+    public static TelePremiumMediaRequest byCountry(String countryCode, int limit, StationsCallback callback) {
+        return stations("/json/stations/search?countrycode=" + Uri.encode(countryCode.toUpperCase(Locale.ROOT))
                 + "&hidebroken=true&order=clickcount&reverse=true&limit=" + limit, callback);
     }
 
     /** Free-text search over station names and tags, optionally inside one country. */
-    public static void search(String query, String countryCode, int limit, StationsCallback callback) {
+    public static TelePremiumMediaRequest search(String query, String countryCode, int limit, StationsCallback callback) {
         String q = Uri.encode(query.trim());
         String country = TextUtils.isEmpty(countryCode) ? "" : "&countrycode=" + Uri.encode(countryCode);
         // Two passes (name, tag) merged: "rock" should find "Rock FM" and stations tagged rock.
-        Utilities.globalQueue.postRunnable(() -> {
+        return TelePremiumMediaRequest.start(EXECUTOR, () -> {
             ArrayList<TelePremiumMediaItem> out = new ArrayList<>();
             String error = null;
             try {
@@ -69,12 +71,15 @@ public final class TelePremiumRadioBrowser {
                 error = message(e);
             }
             final String err = error;
-            AndroidUtilities.runOnUIThread(() -> callback.onLoaded(out, err));
+            return new Object[]{out, err};
+        }, (result, failure) -> {
+            @SuppressWarnings("unchecked") List<TelePremiumMediaItem> items = result == null ? Collections.emptyList() : (List<TelePremiumMediaItem>) result[0];
+            callback.onLoaded(items, failure != null ? message(failure) : (String) result[1]);
         });
     }
 
-    public static void countries(CountriesCallback callback) {
-        Utilities.globalQueue.postRunnable(() -> {
+    public static TelePremiumMediaRequest countries(CountriesCallback callback) {
+        return TelePremiumMediaRequest.start(EXECUTOR, () -> {
             ArrayList<Country> out = new ArrayList<>();
             String error = null;
             try {
@@ -90,7 +95,10 @@ public final class TelePremiumRadioBrowser {
                 error = message(e);
             }
             final String err = error;
-            AndroidUtilities.runOnUIThread(() -> callback.onLoaded(out, err));
+            return new Object[]{out, err};
+        }, (result, failure) -> {
+            @SuppressWarnings("unchecked") List<Country> items = result == null ? Collections.emptyList() : (List<Country>) result[0];
+            callback.onLoaded(items, failure != null ? message(failure) : (String) result[1]);
         });
     }
 
@@ -98,13 +106,14 @@ public final class TelePremiumRadioBrowser {
     public static void countClick(TelePremiumMediaItem station) {
         if (station == null || TextUtils.isEmpty(station.cloudNodeId) || !station.cloudNodeId.startsWith("radio:")) return;
         String uuid = station.cloudNodeId.substring(6);
-        Utilities.globalQueue.postRunnable(() -> {
+        TelePremiumMediaRequest.start(EXECUTOR, () -> {
             try { get("/json/url/" + Uri.encode(uuid)); } catch (Exception ignored) { /* best effort */ }
-        });
+            return null;
+        }, (value, error) -> {});
     }
 
-    private static void stations(String path, StationsCallback callback) {
-        Utilities.globalQueue.postRunnable(() -> {
+    private static TelePremiumMediaRequest stations(String path, StationsCallback callback) {
+        return TelePremiumMediaRequest.start(EXECUTOR, () -> {
             List<TelePremiumMediaItem> out = Collections.emptyList();
             String error = null;
             try {
@@ -115,7 +124,10 @@ public final class TelePremiumRadioBrowser {
             }
             final List<TelePremiumMediaItem> result = out;
             final String err = error;
-            AndroidUtilities.runOnUIThread(() -> callback.onLoaded(result, err));
+            return new Object[]{result, err};
+        }, (result, failure) -> {
+            @SuppressWarnings("unchecked") List<TelePremiumMediaItem> items = result == null ? Collections.emptyList() : (List<TelePremiumMediaItem>) result[0];
+            callback.onLoaded(items, failure != null ? message(failure) : (String) result[1]);
         });
     }
 
@@ -179,9 +191,10 @@ public final class TelePremiumRadioBrowser {
     private static String get(String path) throws Exception {
         Exception last = null;
         for (String host : servers()) {
+            TelePremiumMediaRequest.checkCancelled();
             HttpURLConnection c = null;
             try {
-                c = (HttpURLConnection) new URL("https://" + host + path).openConnection();
+                c = TelePremiumMediaRequest.open(new URL("https://" + host + path));
                 c.setConnectTimeout(8000);
                 c.setReadTimeout(15000);
                 c.setRequestProperty("User-Agent", USER_AGENT);
@@ -190,19 +203,19 @@ public final class TelePremiumRadioBrowser {
                 try (InputStream in = c.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                     byte[] buf = new byte[32 * 1024];
                     int n;
-                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                    while ((n = in.read(buf)) > 0) { TelePremiumMediaRequest.checkCancelled(); out.write(buf, 0, n); }
                     return out.toString("UTF-8");
                 }
             } catch (Exception e) {
                 last = e;
             } finally {
-                if (c != null) c.disconnect();
+                TelePremiumMediaRequest.disconnect(c);
             }
         }
         throw last == null ? new IllegalStateException("Radio Browser unavailable") : last;
     }
 
-    private static String message(Exception e) {
+    private static String message(Throwable e) {
         return TextUtils.isEmpty(e.getMessage()) ? e.getClass().getSimpleName() : e.getMessage();
     }
 

@@ -21,6 +21,9 @@ import org.telegram.messenger.FileStreamLoadOperation;
 import org.telegram.messenger.telepremium.cloud.CloudDownloadManager;
 import org.telegram.messenger.telepremium.cloud.CloudNode;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudPeerManager;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager;
+import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.Components.VideoPlayer;
@@ -65,6 +68,7 @@ public final class TelePremiumPlaybackController {
     private TLRPC.Document streamDocument;
     private TLRPC.Message streamMessage;
     private CloudDownloadManager fallbackDownload;
+    private TelePremiumMediaRequest playbackRequest;
     private boolean cloudStreaming;
     private boolean fallbackAttempted;
     private boolean subtitlesEnabled = true;
@@ -173,6 +177,7 @@ public final class TelePremiumPlaybackController {
     }
 
     public void toggle() {
+        if (player == null && (state == STATE_RESOLVING || state == STATE_BUFFERING)) { pause(); return; }
         if (player == null) { playCurrent(); return; }
         try {
             boolean value = !player.getPlayWhenReady();
@@ -188,7 +193,12 @@ public final class TelePremiumPlaybackController {
     }
 
     public void pause() {
-        if (player == null) return;
+        if (player == null) {
+            generation++;
+            if (playbackRequest != null) { playbackRequest.cancel(); playbackRequest = null; }
+            if (fallbackDownload != null) { fallbackDownload.cancel(); fallbackDownload = null; }
+            setState(STATE_PAUSED); return;
+        }
         try { player.pause(); setState(STATE_PAUSED); } catch (Throwable ignore) {}
     }
 
@@ -235,6 +245,7 @@ public final class TelePremiumPlaybackController {
 
     public void stopAndRelease() {
         generation++;
+        if (playbackRequest != null) { playbackRequest.cancel(); playbackRequest = null; }
         if (fallbackDownload != null) { try { fallbackDownload.cancel(); } catch (Throwable ignore) {} fallbackDownload = null; }
         releasePlayer();
         current = null;
@@ -247,6 +258,11 @@ public final class TelePremiumPlaybackController {
     private void playInternal(TelePremiumMediaItem item) {
         generation++;
         int token = generation;
+        if (playbackRequest != null) { playbackRequest.cancel(); playbackRequest = null; }
+        if (fallbackDownload != null) { fallbackDownload.cancel(); fallbackDownload = null; }
+        if (current != null && current.isVideo() && player != null) resumePrefs.edit().putLong(current.id, getPosition()).apply();
+        releasePlayer();
+        streamDocument = null; streamMessage = null; pendingAudioUri = null; pendingHls = false;
         current = item;
         fallbackAttempted = false;
         cloudStreaming = false;
@@ -271,7 +287,27 @@ public final class TelePremiumPlaybackController {
      * chunk-by-chunk Vault decryption (nothing is pre-downloaded, plaintext never hits the disk).
      */
     private void resolveCloud(TelePremiumMediaItem item, int token) {
+        if (!cloudItemCurrent(item)) { fail("Обновите медиатеку: аккаунт или облако изменились"); return; }
+        if (item.encryptionVersion != 1) { fail("Обновите медиатеку из зашифрованного облака V3"); return; }
         if (item.cloudAccount < 0 || item.telegramMessageId == 0) { fail("Облачный файл не указан"); return; }
+        if (item.cloudUserId == 0 || item.cloudEpoch < 0) {
+            final long user = UserConfig.getInstance(item.cloudAccount).getClientUserId();
+            TelePremiumCloudManager manager = TelePremiumCloudManager.getInstance(item.cloudAccount);
+            manager.bootstrap(error -> {
+                if (token != generation) return;
+                if (error != null || UserConfig.getInstance(item.cloudAccount).getClientUserId() != user) { fail(error == null ? "Аккаунт изменился" : error); return; }
+                if (manager.getSnapshot() != null) for (CloudNode node : manager.getSnapshot().nodes) {
+                    if (node.state == CloudNode.STATE_ACTIVE && node.encryptionVersion == 1 && node.id.equals(item.cloudNodeId)
+                            && node.telegramDocumentId == item.telegramDocumentId && node.telegramMessageId == item.telegramMessageId) {
+                        item.cloudUserId = user; item.cloudEpoch = TelePremiumCloudResetState.epoch();
+                        item.size = node.size; item.sha256 = node.sha256; item.setParts(node);
+                        resolveCloud(item, token); return;
+                    }
+                }
+                fail("Файл из старого плейлиста отсутствует в текущем Vault; обновите медиатеку");
+            });
+            return;
+        }
         boolean vault = item.encryptionVersion != 0;
         if (vault && item.encryptionVersion != 1) { startFullDownloadFallback(item, token, "Неподдерживаемый формат Vault"); return; }
         boolean multipart = item.isMultipart();
@@ -283,13 +319,15 @@ public final class TelePremiumPlaybackController {
         TelePremiumCloudPeerManager peer = vault ? TelePremiumCloudPeerManager.getVaultInstance(item.cloudAccount) : TelePremiumCloudPeerManager.getInstance(item.cloudAccount);
         peer.ensure((dialogId, error) -> {
             if (token != generation) return;
+            if (!cloudItemCurrent(item)) { fail("Облако изменилось; обновите медиатеку"); return; }
             if (error != null || peer.getInputChannel() == null) { AndroidUtilities.runOnUIThread(() -> fail(error == null ? "Облако недоступно" : error)); return; }
             TLRPC.TL_channels_getMessages req = new TLRPC.TL_channels_getMessages();
             req.channel = peer.getInputChannel();
             for (long id : ids) req.id.add((int) id);
             ConnectionsManager.getInstance(item.cloudAccount).sendRequest(req, (response, requestError) -> AndroidUtilities.runOnUIThread(() -> {
                 if (token != generation) return;
-                if (requestError != null) { fail(requestError.text); return; }
+                if (!cloudItemCurrent(item)) { fail("Облако изменилось; обновите медиатеку"); return; }
+                if (requestError != null) { startFullDownloadFallback(item, token, requestError.text); return; }
                 if (!(response instanceof TLRPC.messages_Messages)) { fail("Файл удалён из облака"); return; }
                 java.util.HashMap<Integer, TLRPC.Message> byId = new java.util.HashMap<>();
                 for (TLRPC.Message m : ((TLRPC.messages_Messages) response).messages) if (m != null) byId.put(m.id, m);
@@ -304,6 +342,10 @@ public final class TelePremiumPlaybackController {
                         return;
                     }
                     TLRPC.Document document = m.media.document;
+                    long expectedDocument = !multipart ? item.telegramDocumentId
+                            : item.partDocumentIds != null && i < item.partDocumentIds.length ? item.partDocumentIds[i]
+                            : i == 0 ? item.telegramDocumentId : 0;
+                    if (expectedDocument != 0 && expectedDocument != document.id) { fail("Облачный файл изменился; обновите медиатеку"); return; }
                     if (i == 0) { streamMessage = m; streamDocument = document; }
                     FileStreamLoadOperation.setPriorityForDocument(document, FileLoader.PRIORITY_HIGH);
                     parts[i] = FileStreamLoadOperation.prepareUri(item.cloudAccount, document, m);
@@ -334,6 +376,13 @@ public final class TelePremiumPlaybackController {
         });
     }
 
+    private static boolean cloudItemCurrent(TelePremiumMediaItem item) {
+        if (item.cloudAccount < 0 || item.cloudAccount >= UserConfig.MAX_ACCOUNT_COUNT) return false;
+        UserConfig account = UserConfig.getInstance(item.cloudAccount);
+        return account.isClientActivated() && (item.cloudUserId == 0 || item.cloudUserId == account.getClientUserId())
+                && TelePremiumCloudResetState.allowed(item.cloudEpoch < 0 ? TelePremiumCloudResetState.epoch() : item.cloudEpoch);
+    }
+
     /** Current Cloud stream (its cached parts are removed when playback of the item ends). */
     private Uri cloudStreamUri;
 
@@ -348,9 +397,10 @@ public final class TelePremiumPlaybackController {
     private boolean pendingHls;
 
     private void resolveYouTube(TelePremiumMediaItem item, int token) {
-        TelePremiumYouTube.resolvePlayback(item.uri, (playback, error) -> {
+        playbackRequest = TelePremiumYouTube.resolvePlayback(item.uri, (playback, error) -> {
             if (token != generation) return;
             if (playback == null) { fail(error == null ? "YouTube недоступен" : error); return; }
+            item.duration = playback.durationMs; item.live = playback.live;
             pendingAudioUri = playback.audioUrl == null ? null : Uri.parse(playback.audioUrl);
             pendingHls = playback.hls;
             startPlayer(Uri.parse(playback.videoUrl), item, token);
@@ -386,9 +436,10 @@ public final class TelePremiumPlaybackController {
 
             @Override public void onError(VideoPlayer videoPlayer, Exception e) {
                 if (token != generation) return;
+                if (authenticationFailure(e)) { fail("Не удалось проверить подлинность файла Vault"); return; }
                 if (tryReconnect(item, token, e)) return;
                 if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD && !fallbackAttempted) startFullDownloadFallback(item, token, "Поток прерван");
-                else fail("Декодер устройства не поддерживает этот формат");
+                else fail(isNetworkError(e) ? "Не удалось подключиться к источнику после повторных попыток" : "Декодер устройства не поддерживает этот формат");
             }
 
             @Override public void onVideoSizeChanged(int width, int height, int rotation, float ratio) {
@@ -428,6 +479,12 @@ public final class TelePremiumPlaybackController {
                 || code == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW;
     }
 
+    private static boolean authenticationFailure(Throwable error) {
+        for (Throwable cause = error; cause != null; cause = cause.getCause())
+            if (cause instanceof java.security.GeneralSecurityException) return true;
+        return false;
+    }
+
     private static boolean isRemote(TelePremiumMediaItem item) {
         if (item.sourceType == TelePremiumMediaItem.SOURCE_CLOUD) return true;
         if (TelePremiumYouTube.isYouTube(item)) return true;
@@ -441,7 +498,7 @@ public final class TelePremiumPlaybackController {
      * Cloud links and YouTube URLs are resolved again, so expired file references are renewed.
      */
     private boolean tryReconnect(TelePremiumMediaItem item, int token, Exception e) {
-        if (!isNetworkError(e) || !isRemote(item) || fallbackAttempted) return false;
+        if (authenticationFailure(e) || !isNetworkError(e) || !isRemote(item) || fallbackAttempted) return false;
         long now = android.os.SystemClock.elapsedRealtime();
         if (now - lastReconnectAt > 60_000L) reconnectAttempts = 0;
         if (reconnectAttempts >= MAX_RECONNECTS) return false;
@@ -461,6 +518,7 @@ public final class TelePremiumPlaybackController {
     }
 
     private void startFullDownloadFallback(TelePremiumMediaItem item, int token, String reason) {
+        if (!cloudItemCurrent(item)) { fail("Облако изменилось; обновите медиатеку"); return; }
         if (fallbackAttempted || item.cloudAccount < 0 || item.telegramMessageId == 0) { fail(reason); return; }
         // A multipart file is many gigabytes: never silently pre-download it after a stream hiccup.
         if (item.isMultipart() && item.encryptionVersion == 0) { fail(reason + " — повторите воспроизведение"); return; }
@@ -545,6 +603,9 @@ public final class TelePremiumPlaybackController {
     }
 
     private void fail(String message) {
+        generation++;
+        if (playbackRequest != null) { playbackRequest.cancel(); playbackRequest = null; }
+        releasePlayer(); pendingAudioUri = null; pendingHls = false; cloudStreaming = false;
         setState(STATE_ERROR);
         for (Listener listener : listeners) listener.onError(message == null ? "Ошибка воспроизведения" : message);
     }

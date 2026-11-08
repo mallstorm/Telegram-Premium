@@ -113,7 +113,7 @@ dependencies {
 
     // TelePremium: YouTube channel parsing and stream extraction (GPL-3.0, NewPipe e.V.).
     // It needs java.nio desugaring below API 33, hence desugar_jdk_libs_nio.
-    implementation('com.github.teamnewpipe:NewPipeExtractor:v0.26.5') {
+    implementation('com.github.teamnewpipe:NewPipeExtractor:v0.27.0') {
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
     }
 

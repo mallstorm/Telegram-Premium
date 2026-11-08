@@ -15,6 +15,8 @@ import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.FileStreamLoadOperation;
 import org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultCrypto;
+import org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState;
+import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.TLRPC;
 
 import java.io.EOFException;
@@ -60,6 +62,9 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
 
     private static final class Entry {
         final int account;
+        final long epoch = TelePremiumCloudResetState.epoch();
+        final long owner;
+        final boolean encrypted;
         final Uri[] parts;
         final TLRPC.Document[] documents;
         final long[] offsets;
@@ -71,16 +76,21 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
         final byte[][] headers;
         volatile byte[] master;
         int focus;
-        boolean closed;
+        volatile boolean closed;
 
         Entry(int account, Uri[] parts, TLRPC.Document[] documents, long[] sizes, byte[] master) {
             this.account = account;
-            this.parts = parts;
-            this.documents = documents;
+            owner = account >= 0 ? UserConfig.getInstance(account).getClientUserId() : 0;
+            encrypted = master != null;
+            this.parts = parts.clone();
+            this.documents = documents == null ? null : documents.clone();
             this.master = master;
             int n = parts.length;
             offsets = new long[n + 1];
-            for (int i = 0; i < n; i++) offsets[i + 1] = offsets[i] + Math.max(0, sizes[i]);
+            for (int i = 0; i < n; i++) {
+                if (parts[i] == null || sizes[i] < 0) throw new IllegalArgumentException("Invalid cloud stream part");
+                offsets[i + 1] = Math.addExact(offsets[i], sizes[i]);
+            }
             total = offsets[n];
             keep = new boolean[n];
             touched = new boolean[n];
@@ -89,7 +99,14 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
             for (int i = 0; i < n; i++) keep[i] = !"tg".equals(parts[i].getScheme()) || isComplete(account, documents == null ? null : documents[i]);
         }
 
-        boolean vault() { return master != null; }
+        boolean vault() { return encrypted; }
+
+        void checkActive() throws IOException {
+            if (closed || !TelePremiumCloudResetState.allowed(epoch)
+                    || (account >= 0 && UserConfig.getInstance(account).getClientUserId() != owner)) {
+                close(); throw new IOException("Cloud stream expired; refresh the media library");
+            }
+        }
 
         long plainSize(int i) { return offsets[i + 1] - offsets[i]; }
 
@@ -171,6 +188,9 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
      * @param master    Vault master key (copied) or null for plain files
      */
     public static Uri register(int account, Uri[] parts, @Nullable TLRPC.Document[] documents, long[] sizes, @Nullable byte[] master) {
+        if (parts == null || parts.length == 0 || sizes == null || sizes.length != parts.length
+                || (documents != null && documents.length != parts.length) || (master != null && master.length != 32))
+            throw new IllegalArgumentException("Invalid cloud stream registration");
         if (REGISTRY.size() > 8) {
             for (Entry stale : REGISTRY.values()) stale.close();
             REGISTRY.clear();
@@ -216,6 +236,7 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
         uri = dataSpec.uri;
         entry = REGISTRY.get(uri.getHost());
         if (entry == null || entry.closed) throw new IOException("Cloud stream expired");
+        entry.checkActive();
         transferInitializing(dataSpec);
         position = Math.max(0, dataSpec.position);
         if (position > entry.total) throw new IOException("Position beyond end of Cloud file");
@@ -223,7 +244,13 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
         if (dataSpec.length != C.LENGTH_UNSET) bytesRemaining = Math.min(bytesRemaining, dataSpec.length);
         partIndex = entry.partAt(position);
         entry.focus(partIndex);
-        if (bytesRemaining > 0) openPart(position - entry.offsets[partIndex]);
+        try {
+            if (bytesRemaining > 0) openPart(position - entry.offsets[partIndex]);
+        } catch (IOException | RuntimeException failure) {
+            try { closeChild(); } catch (IOException ignored) {}
+            if (plain != null) { Arrays.fill(plain, (byte) 0); plain = null; }
+            throw failure;
+        }
         opened = true;
         transferStarted(dataSpec);
         return bytesRemaining;
@@ -341,6 +368,8 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
 
     @Override
     public int read(byte[] buffer, int offset, int length) throws IOException {
+        if (entry == null) throw new IOException("Cloud stream is not open");
+        entry.checkActive();
         if (length == 0) return 0;
         if (bytesRemaining == 0) return C.RESULT_END_OF_INPUT;
         while (true) {
@@ -383,7 +412,7 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
      */
     private void maybePrefetch() {
         int next = partIndex + 1;
-        if (prefetch != null || next >= entry.parts.length) return;
+        if (prefetch != null || next >= entry.parts.length || entry.closed) return;
         if (entry.offsets[next] - position > PREFETCH_BYTES) return;
         Uri part = entry.parts[next];
         if (!"tg".equals(part.getScheme())) return; // already on disk: nothing to warm up
@@ -391,9 +420,10 @@ public final class TelePremiumMultipartDataSource extends BaseDataSource {
         e.acquire(next);
         prefetchIndex = next;
         prefetch = PREFETCH.submit(() -> {
+            e.checkActive();
             DataSource source = new FileStreamLoadOperation();
-            source.open(new DataSpec.Builder().setUri(part).setPosition(0).build());
-            return source;
+            try { source.open(new DataSpec.Builder().setUri(part).setPosition(0).build()); return source; }
+            catch (Exception failure) { try { source.close(); } catch (Exception ignored) {} throw failure; }
         });
     }
 
