@@ -442,7 +442,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudDownloadManager.java",
       "base_sha256": null,
-      "sha256": "33ca785a4467db4454ac5bca22bf361c227c02903d1eae41db5d186571362e4d"
+      "sha256": "cd8061116a06928231402abe066b07cb0fa53bad26b7a0bcbbdf7c8866da64ac"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudFileHasher.java",
@@ -617,7 +617,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumArtworkLoader.java",
       "base_sha256": null,
-      "sha256": "481421aa9869dd9e3447e91ebfb2fb858c3e68bfab5cadb2f8688972d1c2d51b"
+      "sha256": "2245d415ea06a36622aed1e66268d630ba7b6cc2f95b3b064dee9f4edfbffef1"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumAudioEffects.java",
@@ -682,7 +682,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumNetworkLibrary.java",
       "base_sha256": null,
-      "sha256": "a24df9c6f532a96d5fc718cf91e0487afff31809d50944e2f6ffc58bc44deb66"
+      "sha256": "1f8ad24b36a2e45dc9c53f615a9bd7debbeb57e0cc2a3889ceb9cddf3b9fdacc"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumNetworkPlaylistParser.java",
@@ -727,7 +727,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumYouTube.java",
       "base_sha256": null,
-      "sha256": "195e098ecd0574c6a0ce79055b2a5864ba9cdd1e2dc0007e681d9c2d40dafdf6"
+      "sha256": "4cc2479fffb6ac11d618fecff019b4263a35dbe68bd96433b6abfeff2d393ed6"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumYouTubeDownloader.java",
@@ -927,7 +927,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/MainTabsActivity.java",
       "base_sha256": "8b9f92008595c4769a004d718d1ee96bafea34b91c1a34ba7d8836c24032f62a",
-      "sha256": "657dc2d76434c5dadaac228ace696025cbc8bbb17be79245082b426036b37e1a"
+      "sha256": "8d6da800f5f0401f721c44565b01cd3f36b4b8668206e3e5cc12c9c080f23b92"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/PeerColorActivity.java",
@@ -1017,7 +1017,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudGalleryActivity.java",
       "base_sha256": null,
-      "sha256": "9f3497e803b9f8b44ac2cf150382dbf5d0a2c165ffba857ba171b0a28f1ace1d"
+      "sha256": "909e38df56b0d2b9683330ca1c6858abeac0b7007ec9d0ffefbd3dcb72db42fc"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudSecurityActivity.java",
@@ -1047,7 +1047,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumMediaCenterActivity.java",
       "base_sha256": null,
-      "sha256": "788f34a25f7e3086a99229fd1a6e87174cfddaefb63dc8cff486f3221279d377"
+      "sha256": "28c4bbfb698cd369c2b33906acc34cbc33ec1cbdb896386e19ad3c099a3bb2b6"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumMediaCenterFragment.java",
@@ -1057,7 +1057,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumMediaCenterScreen.java",
       "base_sha256": null,
-      "sha256": "80b19d01b0a45168b0f2e101aef72d4951d0e429833e5ea0b31be9778bbebc3c"
+      "sha256": "08364efe05a284bf40dc7958ae0d0005109b003d591a6e370cd04bd75c1b4f64"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumMediaVaultUnlock.java",
@@ -1147,7 +1147,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumYoutubeChannelsDialog.java",
       "base_sha256": null,
-      "sha256": "9e2a74ac35604104c984ef561a5a9064d195562eeefbca452d81b88f24c20b52"
+      "sha256": "9bfe3772154f42cadb9d67f3141d120323828985887dce2ab4ce4ea1c25647ae"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/ThemeActivity.java",
@@ -1627,7 +1627,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "8d665b1b06488c36b0573ee262c3500161e76dc03f5779c9b7cb33401fddc51c"
+      "sha256": "c29dc65582168cf98aaf3cc5d55d7b4f7715b1ff6c5940224705bfe91dc5dbc5"
     },
     {
       "path": "settings.gradle",

@@ -62,6 +62,14 @@ public final class TelePremiumArtworkLoader {
         });
     }
 
+    /** Channel avatars must never fall back to the generic YouTube/site favicon. */
+    public static void loadChannelIcon(String url,int sizePx,Callback callback){
+        if(url==null||!url.startsWith("https://")){MAIN.post(()->callback.onLoaded(null));return;}
+        String key="channel:"+url+":"+sizePx;Bitmap cached=CACHE.get(key);
+        if(cached!=null){callback.onLoaded(cached);return;}
+        EXECUTOR.execute(()->{Bitmap bitmap=fetchBitmap(url,sizePx);if(bitmap!=null)CACHE.put(key,bitmap);MAIN.post(()->callback.onLoaded(bitmap));});
+    }
+
     /** Site icon service used when a station logo is missing or cannot be decoded (SVG, broken link). */
     public static String siteIconUrl(String host) {
         return "https://www.google.com/s2/favicons?sz=256&domain=" + host;

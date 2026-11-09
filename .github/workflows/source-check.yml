@@ -34,6 +34,7 @@ jobs:
           python3 scripts/test_vault_runtime.py
           python3 scripts/test_vault_peers.py
           python3 scripts/test_cloud_reset.py
+          python3 scripts/test_cloud_preview_runtime.py
           python3 scripts/test_media_vault_runtime.py
           python3 scripts/test_media_playback_runtime.py
           python3 scripts/test_account_xray_runtime.py
