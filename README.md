@@ -2,6 +2,10 @@
 
 TelePremium extends Telegram Android with multi-account tooling, encrypted Cloud V3, per-account network profiles, themes and privacy controls.
 
+## Latest ARM64 APK — 723749
+
+[Download TelePremium 13.1.1 · Xray / Media / Vault V3](https://drive.google.com/file/d/1ulH_r2xm5BmPbSHAqHx3bM33Lz5ZeCEY/view?usp=drivesdk) — 52.4 MB, signed for an in-place update. Includes ten Xray profiles, per-account routes, Cloud/Media tabs, internal photo viewing and encrypted media settings sync. [Changes, checks and recovery instructions](docs/APK_XRAY_723749.md).
+
 ## Encrypted cloud by default
 
 The Telegram 13.1.1 product line uses **Vault V3 for every cloud account**, with no V2 switch and no encryption setup screen. A random 256-bit master key is created automatically and wrapped by AndroidKeyStore. Files, multipart files and folder catalogs are encrypted locally with authenticated AES-256-GCM before Telegram receives them.
