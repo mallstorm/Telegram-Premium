@@ -133,6 +133,13 @@ public final class TelePremiumCloudManager {
     }
 
     private void completeBootstrap(String error) {
+        if(error==null&&remoteReady&&snapshot!=null&&CloudImageNames.compactGeneric(snapshot.nodes,System.currentTimeMillis())>0){
+            commit(this::completeBootstrapListeners);return;
+        }
+        completeBootstrapListeners(error);
+    }
+
+    private void completeBootstrapListeners(String error) {
         if (error == null) {
             try { maybeAutoPurgeTrash(); } catch (Throwable e) { org.telegram.messenger.FileLog.e(e); }
         }
@@ -207,6 +214,7 @@ public final class TelePremiumCloudManager {
                 commit(callback);return;
             }
         }
+        CloudImageNames.assignNew(node,snapshot.nodes);
         snapshot.nodes.add(node); commit(callback);
     }
 
@@ -268,7 +276,7 @@ public final class TelePremiumCloudManager {
     public List<CloudNode> category(String kind) {
         if(snapshot==null)return Collections.emptyList(); ArrayList<CloudNode> out=new ArrayList<>();
         for(CloudNode n:snapshot.nodes){if(n.type!=CloudNode.TYPE_FILE||n.state!=CloudNode.STATE_ACTIVE)continue; String x=(n.name==null?"":n.name).toLowerCase(); String m=n.mimeType==null?"":n.mimeType;
-            boolean hit=("images".equals(kind)&&m.startsWith("image/")) || ("video".equals(kind)&&m.startsWith("video/")) || ("audio".equals(kind)&&m.startsWith("audio/")) || ("apk".equals(kind)&&x.endsWith(".apk")) || ("archives".equals(kind)&&(x.endsWith(".zip")||x.endsWith(".rar")||x.endsWith(".7z")||x.endsWith(".tar")||x.endsWith(".gz")||x.endsWith(".tgz")||x.endsWith(".bz2")||x.endsWith(".xz"))) || ("documents".equals(kind)&&(m.startsWith("text/")||x.endsWith(".pdf")||x.endsWith(".doc")||x.endsWith(".docx")||x.endsWith(".xls")||x.endsWith(".xlsx")||x.endsWith(".ppt")||x.endsWith(".pptx")||x.endsWith(".epub")||x.endsWith(".rtf")));
+            boolean hit=("images".equals(kind)&&CloudImageNames.isImage(n)) || ("video".equals(kind)&&m.startsWith("video/")) || ("audio".equals(kind)&&m.startsWith("audio/")) || ("apk".equals(kind)&&x.endsWith(".apk")) || ("archives".equals(kind)&&(x.endsWith(".zip")||x.endsWith(".rar")||x.endsWith(".7z")||x.endsWith(".tar")||x.endsWith(".gz")||x.endsWith(".tgz")||x.endsWith(".bz2")||x.endsWith(".xz"))) || ("documents".equals(kind)&&(m.startsWith("text/")||x.endsWith(".pdf")||x.endsWith(".doc")||x.endsWith(".docx")||x.endsWith(".xls")||x.endsWith(".xlsx")||x.endsWith(".ppt")||x.endsWith(".pptx")||x.endsWith(".epub")||x.endsWith(".rtf")));
             if(hit)out.add(n);}
         return out;
     }
