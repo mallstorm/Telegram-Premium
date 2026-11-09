@@ -30,6 +30,7 @@ public final class CloudConflictResolver {
             if (other == null || changeTime(node) >= changeTime(other)) byId.put(node.id, node);
         }
         merged.nodes.addAll(byId.values());
+        merged.mediaLibrary = CloudSnapshot.mergeMediaLibrary(local.mediaLibrary, remote.mediaLibrary);
         return merged;
     }
 

@@ -71,6 +71,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class TelePremiumCloudActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
+    private Runnable mainTabBack;
+    public TelePremiumCloudActivity asMainTab(Runnable back) { mainTabBack = back; return this; }
     private static final int PICK_FILE = 7301;
     private static final int SAVE_FILE = 7302;
     private static final int PICK_FOLDER = 7303;
@@ -124,12 +126,13 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         actionBar.setTitle(folderName);
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) {
-                if (id == -1 && !navigateBackWithinCloud()) finishFragment();
+                if (id == -1 && !navigateBackWithinCloud()) { if (mainTabBack != null) mainTabBack.run(); else finishFragment(); }
             }
         });
 
         visualTheme = TelePremiumThemeController.getCurrent(context);
         FrameLayout root = new FrameLayout(context);
+        if (mainTabBack != null) root.setPadding(0,0,0,AndroidUtilities.dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS));
         root.setBackground(TelePremiumThemeArtwork.cloudBackground(context));
         LinearLayout page = new LinearLayout(context);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -743,6 +746,16 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
 
 
 
+    private List<AccountNode> previewSiblings(){
+        String query=search==null?"":search.getText().toString().trim().toLowerCase(java.util.Locale.ROOT);
+        List<AccountNode> nodes=!query.isEmpty()?collectSearchNodes(query):activeCategory!=null?collectCategoryNodes(activeCategory):collectNodes();
+        if(activeCategory!=null&&query.isEmpty())Collections.sort(nodes,(a,b)->Long.compare(b.node.modifiedAt,a.node.modifiedAt));return nodes;
+    }
+    private org.telegram.messenger.telepremium.media.TelePremiumMediaItem previewMedia(AccountNode entry){
+        org.telegram.messenger.telepremium.media.TelePremiumMediaItem media=org.telegram.messenger.telepremium.media.TelePremiumMediaItem.cloud(entry.account,entry.node.id,entry.node.telegramMessageId,entry.node.telegramDocumentId,entry.node.name,resolvedMime(entry.node),0,entry.node.size);
+        media.cloudUserId=UserConfig.getInstance(entry.account).getClientUserId();media.cloudEpoch=org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.epoch();media.encryptionVersion=entry.node.encryptionVersion;media.sha256=entry.node.sha256;media.localBackupId=entry.node.localBackupId;media.setParts(entry.node);return media;
+    }
+
     private void openNode(AccountNode item) {
         if (item.node.type == CloudNode.TYPE_FILE && !TelePremiumCloudAccessGate.canExposeNode(context, item.node)) {
             String protectedCategory = TelePremiumCloudSecurityStore.categoryForNode(item.node);
@@ -758,30 +771,30 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         String mime = resolvedMime(item.node);
         quietPreviewDownload = true;
         if (transferStrip != null) transferStrip.setVisibility(View.GONE);
-        // Vault attachments are ciphertext: never feed them to the Telegram streaming player.
-        // Download, authenticate and decrypt before handing them to a media viewer.
-        if (item.node.encryptionVersion==0 && TelePremiumPlayerActivity.canHandle(item.node.name, mime)) {
-            // Cloud audio/video goes straight to the Telegram-backed stream URI. The
-            // player itself resolves the service-channel document and starts ExoPlayer
-            // as soon as the first playable range is available; no full pre-download.
-            if (item.node.isMultipart()) {
-                // Multipart (> Telegram document limit): stream all parts as one file.
-                org.telegram.messenger.telepremium.media.TelePremiumMediaItem media =
-                        org.telegram.messenger.telepremium.media.TelePremiumMediaItem.cloud(item.account, item.node.id,
-                                item.node.telegramMessageId, item.node.telegramDocumentId, item.node.name, mime, 0, item.node.size);
-                media.sha256 = item.node.sha256;
-                media.setParts(item.node);
-                TelePremiumPlayerActivity.openMedia(getParentActivity(), media);
-                return;
-            }
-            TelePremiumPlayerActivity.openCloud(
-                    getParentActivity(),
-                    item.account,
-                    item.node.telegramMessageId,
-                    item.node.name,
-                    mime,
-                    item.node.size);
+        if (mime.startsWith("image/")) {
+            try {
+                ArrayList<TelePremiumCloudGalleryActivity.Entry> images = new ArrayList<>();int selected=0;boolean found=false;
+                for(AccountNode candidate:previewSiblings())if(candidate.node.type==CloudNode.TYPE_FILE&&resolvedMime(candidate.node).startsWith("image/")){
+                    if(candidate.account==item.account&&candidate.node.id.equals(item.node.id)){selected=images.size();found=true;}
+                    images.add(new TelePremiumCloudGalleryActivity.Entry(candidate.account,candidate.node));
+                }
+                if(!found){selected=images.size();images.add(new TelePremiumCloudGalleryActivity.Entry(item.account,item.node));}
+                TelePremiumCloudGalleryActivity.open(getParentActivity(),images,selected);
+            } catch(Exception e){setSyncText("Не удалось открыть изображения",false);}
             return;
+        }
+        if (TelePremiumPlayerActivity.canHandle(item.node.name,mime)) {
+            ArrayList<org.telegram.messenger.telepremium.media.TelePremiumMediaItem> media=new ArrayList<>();int selected=0;boolean found=false;
+            org.telegram.messenger.telepremium.media.TelePremiumMediaItem anchor=previewMedia(item);
+            for(AccountNode candidate:previewSiblings())if(candidate.node.type==CloudNode.TYPE_FILE&&TelePremiumPlayerActivity.canHandle(candidate.node.name,resolvedMime(candidate.node))) {
+                org.telegram.messenger.telepremium.media.TelePremiumMediaItem entry=previewMedia(candidate);
+                if(entry.isVideo()!=anchor.isVideo())continue;
+                if(candidate.account==item.account&&candidate.node.id.equals(item.node.id)){selected=media.size();found=true;}
+                media.add(entry);
+            }
+            if(!found){selected=media.size();media.add(anchor);}
+            org.telegram.messenger.telepremium.media.TelePremiumPlaybackController player=org.telegram.messenger.telepremium.media.TelePremiumPlaybackController.getInstance();
+            player.getQueue().replace(media,selected);player.playCurrent();TelePremiumPlayerActivity.openCurrent(getParentActivity());return;
         }
 
         attachTransferManager(item.account);

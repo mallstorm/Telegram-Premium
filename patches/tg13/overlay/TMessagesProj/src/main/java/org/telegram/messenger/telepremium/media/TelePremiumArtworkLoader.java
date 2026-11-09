@@ -99,7 +99,7 @@ public final class TelePremiumArtworkLoader {
             String current = url;
             // HttpURLConnection never follows http <-> https redirects by itself; logos often need one.
             for (int hop = 0; hop < 5; hop++) {
-                c = (java.net.HttpURLConnection) new java.net.URL(current).openConnection();
+                c = (java.net.HttpURLConnection) new java.net.URL(current).openConnection(org.telegram.messenger.telepremium.xray.XrayRuntime.mediaProxy());
                 c.setConnectTimeout(8000);
                 c.setReadTimeout(10000);
                 c.setInstanceFollowRedirects(false);

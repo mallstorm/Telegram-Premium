@@ -35,6 +35,8 @@ public class AccountNetworkController {
     public void saveAndApply(int account, AccountNetworkProfile profile) {
         store.save(account, profile);
         applyProfile(account);
+        if (account == UserConfig.selectedAccount) org.telegram.messenger.telepremium.xray.XrayRuntime.selectedAccountChanged();
+        org.telegram.messenger.telepremium.xray.XrayRuntime.refresh();
         refreshPromo(account);
     }
 
@@ -42,7 +44,21 @@ public class AccountNetworkController {
         store.clear(account);
         applyInheritedGlobal(account);
         ConnectionsManager.native_resumeNetwork(account, true);
+        if (account == UserConfig.selectedAccount) org.telegram.messenger.telepremium.xray.XrayRuntime.selectedAccountChanged();
+        org.telegram.messenger.telepremium.xray.XrayRuntime.refresh();
         refreshPromo(account);
+    }
+
+    /** Set before native_init so a configured account never starts with the global/direct route. */
+    public boolean prepareForInit(int account) {
+        AccountNetworkProfile p=store.load(account);
+        if(p==null||p.mode==AccountNetworkProfile.MODE_INHERIT)return false;
+        ConnectionsManager.native_setIpStrategy(account,p.ipStrategy);
+        if(p.mode==AccountNetworkProfile.MODE_XRAY){int port=org.telegram.messenger.telepremium.xray.XrayRuntime.currentSocksPort(p.xrayProfileId);ConnectionsManager.native_setProxySettings(account,"127.0.0.1",port>0?port:9,"","","");}
+        else if(p.isConfiguredProxy())ConnectionsManager.native_setProxySettings(account,safe(p.address),p.port,safe(p.username),safe(p.password),p.mode==AccountNetworkProfile.MODE_MTPROTO?safe(p.secret):"");
+        else if(p.isProxyMode())ConnectionsManager.native_setProxySettings(account,"127.0.0.1",9,"","","");
+        else ConnectionsManager.native_setProxySettings(account,"",1080,"","","");
+        return true;
     }
 
     public void applyProfile(int account) {
@@ -53,6 +69,21 @@ public class AccountNetworkController {
         }
 
         ConnectionsManager.native_setIpStrategy(account, profile.ipStrategy);
+        if (profile.mode == AccountNetworkProfile.MODE_XRAY) {
+            final long user = UserConfig.getInstance(account).getClientUserId();
+            int port = org.telegram.messenger.telepremium.xray.XrayRuntime.currentSocksPort(profile.xrayProfileId);
+            ConnectionsManager.native_setProxySettings(account, "127.0.0.1", port > 0 ? port : 9, "", "", "");
+            ConnectionsManager.native_resumeNetwork(account, true);
+            if (port == 0) org.telegram.messenger.telepremium.xray.XrayRuntime.ensureSocks(profile.xrayProfileId, (ready, error) -> {
+                AccountNetworkProfile latest = store.load(account);
+                if (UserConfig.getInstance(account).getClientUserId() != user || latest == null
+                        || latest.mode != AccountNetworkProfile.MODE_XRAY || !profile.xrayProfileId.equals(latest.xrayProfileId)) return;
+                ConnectionsManager.native_setProxySettings(account, "127.0.0.1", ready > 0 ? ready : 9, "", "", "");
+                ConnectionsManager.native_resumeNetwork(account, true);
+            });
+            return;
+        }
+
 
         if (profile.isConfiguredProxy()) {
             ConnectionsManager.native_setProxySettings(
@@ -61,8 +92,10 @@ public class AccountNetworkController {
                     profile.port,
                     safe(profile.username),
                     safe(profile.password),
-                    safe(profile.secret)
+                    profile.mode == AccountNetworkProfile.MODE_MTPROTO ? safe(profile.secret) : ""
             );
+        } else if (profile.isProxyMode()) {
+            ConnectionsManager.native_setProxySettings(account, "127.0.0.1", 9, "", "", "");
         } else {
             ConnectionsManager.native_setProxySettings(account, "", 1080, "", "", "");
         }
@@ -71,8 +104,17 @@ public class AccountNetworkController {
     }
 
     public long checkProfile(int account, AccountNetworkProfile profile, RequestTimeDelegate delegate) {
+        if (profile != null && profile.mode == AccountNetworkProfile.MODE_XRAY) {
+            org.telegram.messenger.telepremium.xray.XrayRuntime.ensureSocks(profile.xrayProfileId, (port,error) -> {
+                if (port <= 0) { if(delegate!=null)delegate.run(-1); return; }
+                org.telegram.utils.proxy.ProxySettings settings=org.telegram.utils.proxy.ProxySettings.builder()
+                        .setType(org.telegram.utils.proxy.ProxySettings.Type.SOCKS5).setAddress("127.0.0.1").setPort(port).setUser("").setPassword("").setSecret("").build();
+                ConnectionsManager.getInstance(account).checkProxy(settings,delegate);
+            });
+            return 0;
+        }
         if (profile != null && profile.isConfiguredProxy()) {
-            String secret = safe(profile.secret);
+            String secret = profile.mode == AccountNetworkProfile.MODE_MTPROTO ? safe(profile.secret) : "";
             org.telegram.utils.proxy.ProxySettings settings = org.telegram.utils.proxy.ProxySettings.builder()
                     .setType(secret.isEmpty() ? org.telegram.utils.proxy.ProxySettings.Type.SOCKS5 : org.telegram.utils.proxy.ProxySettings.Type.MTPROTO)
                     .setAddress(safe(profile.address))

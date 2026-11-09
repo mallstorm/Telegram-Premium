@@ -90,20 +90,21 @@ import me.vkryl.android.animator.FactorAnimator;
 
 public class MainTabsActivity extends ViewPagerActivity implements NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target {
 
-    public static final int TABS_COUNT = 4;
+    public static final int TABS_COUNT = 5;
     private static final int POSITION_CHATS = 0;
     private static final int POSITION_CONTACTS = 1;
-    private static final int POSITION_CALLS_OR_SETTINGS = 2;
-    private static final int POSITION_PROFILE = 3;
+    private static final int POSITION_CLOUD = 2;
+    private static final int POSITION_MEDIA = 3;
+    private static final int POSITION_PROFILE = 4;
 
     private static final int INDEX_CHATS = 0;
     private static final int INDEX_CONTACTS = 1;
-    private static final int INDEX_SETTINGS = 2;
-    private static final int INDEX_CALLS = 3;
+    private static final int INDEX_CLOUD = 2;
+    private static final int INDEX_MEDIA = 3;
     private static final int INDEX_PROFILE = 4;
 
     private static int indexToPosition(int index) {
-        return index > 2 ? index - 1 : index;
+        return index;
     }
 
     private static final int ANIMATOR_ID_TABS_VISIBLE = 0;
@@ -120,10 +121,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private BlurredBackgroundDrawable tabsViewBackground;
     private View fadeView;
 
-    /** TelePremium: a tabs screen that opens on Settings (used after switching the account from Settings). */
+    /** TelePremium: the profile is the Settings entry after switching accounts. */
     public static MainTabsActivity openedOnSettings() {
         MainTabsActivity activity = new MainTabsActivity();
-        activity.setInitialFragmentPosition(POSITION_CALLS_OR_SETTINGS);
+        activity.setInitialFragmentPosition(POSITION_PROFILE);
         return activity;
     }
 
@@ -316,23 +317,25 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsView = new MainTabsLayout(context, resourceProvider);
         tabsView.setClipChildren(false);
         tabsView.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4));
-        tabsView.setMaxWidth(dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
+        tabsView.setMaxWidth(dp(392 + DialogsActivity.MAIN_TABS_MARGIN * 2));
 
         tabs = new GlassTabView[5];
         tabs[INDEX_CHATS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHATS, R.string.MainTabsChats);
         tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CONTACTS, R.string.MainTabsContacts);
-        tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.SETTINGS, R.string.Settings);
-        tabs[INDEX_CALLS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CALLS, R.string.MainTabsCalls);
+        tabs[INDEX_CLOUD] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CLOUD, R.string.TP_L10N_069);
+        tabs[INDEX_MEDIA] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.MEDIA, R.string.TP_L10N_304);
+        tabs[INDEX_CLOUD].setText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_069", R.string.TP_L10N_069));
+        tabs[INDEX_MEDIA].setText(org.telegram.messenger.telepremium.TPStrings.isRussian() ? "Медиа" : "Media");
         tabs[INDEX_PROFILE] = GlassTabView.createAvatar(context, resourceProvider, currentAccount, R.string.MainTabsProfile);
         tabs[INDEX_CHATS].setOnLongClickListener(this::openFoldersSelector);
         tabs[INDEX_CONTACTS].setOnLongClickListener(this::openContactsSelector);
-        tabs[INDEX_CALLS].setOnLongClickListener(this::openCallsSelector);
+
         tabs[INDEX_PROFILE].setOnLongClickListener(this::openAccountSelector);
 
         tabsView.addTabToIgnoreClick(tabs[INDEX_CHATS]);
         tabsView.addTabToIgnoreClick(tabs[INDEX_CONTACTS]);
         tabsView.addTabToIgnoreClick(tabs[INDEX_PROFILE]);
-        tabsView.addTabToIgnoreClick(tabs[INDEX_CALLS]);
+        tabsView.addTabToIgnoreClick(tabs[INDEX_MEDIA]);
 
         for (int index = 0; index < tabs.length; index++) {
             final GlassTabView view = tabs[index];
@@ -740,10 +743,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         if (viewPager != null) {
             final int currentPosition = viewPager.getCurrentPosition();
-            if (currentPosition != POSITION_CALLS_OR_SETTINGS && dropCallsFragmentAfterPageScroll) {
-                dropFragmentAtPosition(POSITION_CALLS_OR_SETTINGS);
-                dropCallsFragmentAfterPageScroll = false;
-            }
             if (currentPosition != POSITION_PROFILE) {
                 dropFragmentAtPosition(POSITION_PROFILE);
             }
@@ -784,6 +783,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private DialogsActivity dialogsActivity;
+    private BaseFragment telepremiumMediaTab, telepremiumCloudTab;
 
     @Override
     public boolean onBackPressed(boolean invoked) {
@@ -820,16 +820,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             args.putBoolean("needFinishFragment", false);
             args.putBoolean("hasMainTabs", true);
             return new ContactsActivity(args);
-        } else if (position == POSITION_CALLS_OR_SETTINGS) {
-            if (getUserConfig().showCallsTab) {
-                Bundle args = new Bundle();
-                args.putBoolean("needFinishFragment", false);
-                args.putBoolean("hasMainTabs", true);
-                return new CallLogActivity(args);
-            }
-            Bundle args = new Bundle();
-            args.putBoolean("hasMainTabs", true);
-            return new SettingsActivity(args);
+        } else if (position == POSITION_CLOUD) {
+            return telepremiumCloudTab = new TelePremiumCloudActivity(currentAccount).asMainTab(() -> viewPager.scrollToPosition(POSITION_CHATS));
+        } else if (position == POSITION_MEDIA) {
+            return telepremiumMediaTab = new TelePremiumMediaCenterFragment(() -> viewPager.scrollToPosition(POSITION_CHATS));
         } else if (position == POSITION_CHATS) {
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
@@ -999,15 +993,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         } else if (id == NotificationCenter.needSetDayNightTheme) {
             clearAllHiddenFragments();
         } else if (id == NotificationCenter.callTabsVisibleToggled) {
-            final boolean callTabsVisible = getUserConfig().showCallsTab;
-            checkUi_callTabVisible(callTabsVisible, true);
-            if (viewPager != null && viewPager.getCurrentPosition() == POSITION_CALLS_OR_SETTINGS) {
-                viewPager.scrollToPosition(POSITION_CHATS);
-                selectTab(POSITION_CHATS, true);
-                dropCallsFragmentAfterPageScroll = true;
-            } else {
-                dropFragmentAtPosition(POSITION_CALLS_OR_SETTINGS);
-            }
+            checkUi_callTabVisible(false, false);
         } else if (id == NotificationCenter.mainUserInfoChanged) {
             if (tabs != null && tabs[INDEX_PROFILE] != null) {
                 tabs[INDEX_PROFILE].updateUserAvatar(currentAccount);
@@ -1095,8 +1081,21 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     private void checkUi_callTabVisible(boolean callTabsVisible, boolean animated) {
         if (tabsView != null) {
-            tabsView.setViewVisible(tabs[INDEX_SETTINGS], !callTabsVisible, animated);
-            tabsView.setViewVisible(tabs[INDEX_CALLS], callTabsVisible, animated);
+            tabsView.setViewVisible(tabs[INDEX_CLOUD], true, animated);
+            tabsView.setViewVisible(tabs[INDEX_MEDIA], true, animated);
+        }
+    }
+
+    @Override
+    public void onActivityResultFragment(int requestCode, int resultCode, android.content.Intent data) {
+        if (requestCode == 7720 || requestCode == 7721) {
+            final BaseFragment media = telepremiumMediaTab;
+            if (media != null) media.onActivityResultFragment(requestCode, resultCode, data);
+        } else if (requestCode >= 7301 && requestCode <= 7303) {
+            if (telepremiumCloudTab != null) telepremiumCloudTab.onActivityResultFragment(requestCode,resultCode,data);
+        } else {
+            final BaseFragment current = getCurrentVisibleFragment();
+            if (current != null) current.onActivityResultFragment(requestCode, resultCode, data);
         }
     }
 

@@ -8,6 +8,9 @@ public class JSONArray {
     final List<Object> values = new ArrayList<>();
 
     public JSONArray() {}
+    public JSONArray(String raw) throws JSONException {JSONArray parsed=new JSONObject("{\"array\":"+raw+"}").getJSONArray("array");values.addAll(parsed.values);}
+    public int getInt(int index) throws JSONException {return (int)getLong(index);}
+    public String getString(int index) throws JSONException {Object value=opt(index);if(value==null)throw new JSONException("Missing string");return String.valueOf(value);}
 
     public JSONArray put(Object value) { values.add(value); return this; }
     public long getLong(int index) throws JSONException {

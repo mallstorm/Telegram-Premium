@@ -75,6 +75,14 @@ public final class TelePremiumAudioEffects {
 
     private TelePremiumAudioEffects() {}
 
+    public static void reloadFromPreferences() {
+        SharedPreferences p=prefs();eqEnabled=p.getBoolean("eq_enabled",false);
+        for(int i=0;i<BANDS;i++)bands[i]=Math.max(-MAX_DB,Math.min(MAX_DB,p.getFloat("band_"+i,0)));
+        preampDb=Math.max(-MAX_DB,Math.min(MAX_DB,p.getFloat("preamp",0)));bassDb=Math.max(-MAX_DB,Math.min(MAX_DB,p.getFloat("bass",0)));trebleDb=Math.max(-MAX_DB,Math.min(MAX_DB,p.getFloat("treble",0)));
+        widthPercent=Math.max(0,Math.min(200,p.getInt("width",100)));balance=Math.max(-100,Math.min(100,p.getInt("balance",0)));
+        mono=p.getBoolean("mono",false);limiter=p.getBoolean("limiter",true);skipSilence=p.getBoolean("skip_silence",false);preset=Math.max(-1,Math.min(PRESETS.length-1,p.getInt("preset",PRESET_CUSTOM)));version++;
+    }
+
     private static SharedPreferences prefs() {
         return ApplicationLoader.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }

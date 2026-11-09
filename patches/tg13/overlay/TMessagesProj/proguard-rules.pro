@@ -69,3 +69,7 @@
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
 -dontwarn org.schabi.newpipe.extractor.**
 -dontwarn com.google.re2j.**
+
+# gomobile/JNI entrypoints; shrink the rest of the app normally.
+-keep class go.** { *; }
+-keep class libXray.** { *; }

@@ -155,6 +155,10 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
     private ExoPlayer audioPlayer;
     private DefaultBandwidthMeter bandwidthMeter;
     private MappingTrackSelector trackSelector;
+    public void setExternalHttpDataSourceFactory(androidx.media3.datasource.DataSource.Factory factory) {
+        mediaDataSourceFactory = new ExtendedDefaultDataSourceFactory(ApplicationLoader.applicationContext, null, factory);
+    }
+
     private ExtendedDefaultDataSourceFactory mediaDataSourceFactory;
     private TextureView textureView;
     private SurfaceView surfaceView;

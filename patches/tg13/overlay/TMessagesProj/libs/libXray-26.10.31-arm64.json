@@ -1,0 +1,12 @@
+{
+  "version": "v26.10.31",
+  "upstream": "https://github.com/XTLS/libXray",
+  "source_asset_sha256": "fb99f04acf379cc2957c1e1d0ce2b3c0005d3f49974a44c09a11242a0562c1ca",
+  "aar_sha256": "b3e89595a15a1247689c21ada2ded67b0c552aab8ed598a81992aa78e076ffd5",
+  "aar_bytes": 11763301,
+  "abis": [
+    "arm64-v8a"
+  ],
+  "native_bytes": 34065456,
+  "native_unchanged": true
+}

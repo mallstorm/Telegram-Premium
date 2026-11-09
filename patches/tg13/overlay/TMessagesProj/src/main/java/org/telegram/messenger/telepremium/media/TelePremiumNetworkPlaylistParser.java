@@ -208,7 +208,7 @@ public final class TelePremiumNetworkPlaylistParser {
         if (lower.endsWith(".m3u") || lower.endsWith(".m3u8") || lower.endsWith(".txt") || lower.endsWith(".pls") || lower.endsWith(".xspf")) return null;
         HttpURLConnection c = null;
         try {
-            c = (HttpURLConnection) new URL(url).openConnection();
+            c = (HttpURLConnection) new URL(url).openConnection(org.telegram.messenger.telepremium.xray.XrayRuntime.mediaProxy());
             c.setConnectTimeout(10000);
             c.setReadTimeout(10000);
             c.setInstanceFollowRedirects(true);
@@ -235,7 +235,17 @@ public final class TelePremiumNetworkPlaylistParser {
         return url != null && (url.startsWith("content://") || url.startsWith("file://"));
     }
 
+    public static String readPlaylistForSync(String url)throws Exception {
+        if(!isLocal(url))return downloadText(url,4*1024*1024);
+        try(java.io.InputStream input=org.telegram.messenger.ApplicationLoader.applicationContext.getContentResolver().openInputStream(android.net.Uri.parse(url));java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()) {
+            if(input==null)throw new java.io.IOException("Не удалось открыть плейлист");byte[] bytes=new byte[8192];int n;
+            while((n=input.read(bytes))!=-1){if(out.size()+n>4*1024*1024)throw new java.io.IOException("Файл больше 4 МБ: добавьте ссылку на плейлист");out.write(bytes,0,n);}
+            String text=new String(out.toByteArray(),java.nio.charset.StandardCharsets.UTF_8);return text.startsWith("\uFEFF")?text.substring(1):text;
+        }
+    }
+
     private static String downloadText(String url, int maxChars) throws Exception {
+        String saved=TelePremiumNetworkLibrary.inlinePlaylist(url);if(saved!=null)return saved;
         if (isLocal(url)) {
             StringBuilder b = new StringBuilder();
             java.io.InputStream raw = org.telegram.messenger.ApplicationLoader.applicationContext.getContentResolver().openInputStream(android.net.Uri.parse(url));
@@ -247,7 +257,7 @@ public final class TelePremiumNetworkPlaylistParser {
             String text = b.toString();
             return text.startsWith("\uFEFF") ? text.substring(1) : text;
         }
-        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection(org.telegram.messenger.telepremium.xray.XrayRuntime.mediaProxy());
         c.setConnectTimeout(12000);
         c.setReadTimeout(15000);
         c.setInstanceFollowRedirects(true);

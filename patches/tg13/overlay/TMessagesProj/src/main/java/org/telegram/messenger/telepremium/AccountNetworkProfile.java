@@ -9,6 +9,8 @@ public class AccountNetworkProfile {
     public static final int MODE_AUTO = 2;
     public static final int MODE_MTPROTO = 3;
     public static final int MODE_SOCKS5 = 4;
+    public static final int MODE_XRAY = 5;
+    public String xrayProfileId = "";
 
     public int mode = MODE_INHERIT;
     public String displayName = "";
@@ -24,6 +26,7 @@ public class AccountNetworkProfile {
     public AccountNetworkProfile copy() {
         AccountNetworkProfile out = new AccountNetworkProfile();
         out.mode = mode;
+        out.xrayProfileId = xrayProfileId;
         out.displayName = displayName;
         out.locationName = locationName;
         out.address = address;
@@ -41,11 +44,13 @@ public class AccountNetworkProfile {
     }
 
     public boolean isConfiguredProxy() {
-        return isProxyMode() && address != null && !address.trim().isEmpty() && port > 0;
+        return isProxyMode() && address != null && !address.trim().isEmpty() && port > 0 && port <= 65535 && (mode != MODE_MTPROTO || secret != null && !secret.trim().isEmpty());
     }
 
     public static String modeLabel(int mode) {
         switch (mode) {
+            case MODE_XRAY:
+                return "Xray";
             case MODE_DIRECT:
                 return "Прямое";
             case MODE_AUTO:
