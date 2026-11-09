@@ -171,6 +171,14 @@ public class IndexRuntimeTest {
   store=reset();TelePremiumVaultKeyManager.fail=true;load(store);check(error!=null&&latest()==0,"provider exceptions without a message must never report a successful catalog load");var failedSave=new ArrayList<String>();store.save(snapshot(1),failedSave::add);check(failedSave.size()==1&&failedSave.get(0)!=null&&SendMessagesHelper.sends==0,"provider exceptions without a message must never report a successful encrypted save");
   store=reset();SendMessagesHelper.autoAck=true;var manager=TelePremiumCloudManager.getInstance(0);var result=new ArrayList<String>();manager.bootstrap(result::add);
   check(result.size()==1&&result.get(0)==null&&manager.isRemoteReady(),"fresh cloud bootstrap completes without V2 migration or setup");check(manager.getSnapshot()!=null&&manager.getSnapshot().nodes.size()==1&&SendMessagesHelper.sends==1,"first root-only catalog is sent as one authenticated ciphertext document");
+  ConnectionsManager.history.messages.add(index(manager.getSnapshot(),TelePremiumVaultKeyManager.key,10));
+  CloudNode newImage=CloudNode.file("root","file_0123456789abcdef0123456789abcdef.png","image/png",100,"a".repeat(64));newImage.encryptionVersion=1;newImage.telegramMessageId=100;newImage.telegramDocumentId=1000;var added=new ArrayList<String>();manager.addFile(newImage,added::add);
+  check(added.size()==1&&added.get(0)==null&&newImage.name.startsWith("Image_1."),"successful image upload is committed under a short numbered display name");
+  check(newImage.originalName.equals("file_0123456789abcdef0123456789abcdef.png")&&newImage.telegramDocumentId==1000&&newImage.sha256.equals("a".repeat(64)),"shortening upload metadata preserves original name and encrypted payload references");
+  store=reset();SendMessagesHelper.autoAck=true;CloudSnapshot legacyNames=snapshot(1);CloudNode generic=CloudNode.file("root","file_fedcba98765432100123456789abcdef.png","image/png",100,"b".repeat(64));generic.encryptionVersion=1;generic.telegramMessageId=200;generic.telegramDocumentId=2000;legacyNames.nodes.add(generic);ConnectionsManager.history.messages.add(index(legacyNames,TelePremiumVaultKeyManager.key,20));var migrated=new ArrayList<String>();manager.bootstrap(migrated::add);CloudNode renamed=manager.getSnapshot().nodes.stream().filter(n->n.type==CloudNode.TYPE_FILE).findFirst().orElseThrow();
+  check(migrated.size()==1&&migrated.get(0)==null&&renamed.name.startsWith("Image_1.")&&SendMessagesHelper.sends==1,"bootstrap shortens a generic old image name with one encrypted catalog commit");
+  check(renamed.originalName.equals(generic.name)&&renamed.telegramDocumentId==2000&&renamed.sha256.equals("b".repeat(64)),"existing file normalization changes metadata without touching payload identity");
+  ConnectionsManager.history.messages.add(index(manager.getSnapshot(),TelePremiumVaultKeyManager.key,21));int renamedSends=SendMessagesHelper.sends;manager.bootstrap(e->error=e);check(error==null&&SendMessagesHelper.sends==renamedSends,"a later bootstrap does not repeatedly rename or publish the same image");
   store=reset();var staleStore=store;var late=new ArrayList<String>();store.save(snapshot(1),late::add);
   long oldEpoch=TelePremiumCloudResetState.epoch();String resetId=java.util.UUID.randomUUID().toString();
   TelePremiumCloudResetState.begin(resetId,"test");TelePremiumCloudResetState.save(resetId,"clearing","test",false);TelePremiumCloudResetState.save(resetId,"creating","test",true);TelePremiumCloudResetState.complete(resetId);
@@ -194,7 +202,7 @@ def run():
             p = src / name
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(content, encoding="utf-8")
-        names = ["TelePremiumCloudResetState", "CloudNode", "CloudSnapshot", "CloudConflictResolver", "CloudIntegrityChecker", "CloudRecoveryEngine", "TelePremiumCloudManager", "TelegramCloudMetadataStore"]
+        names = ["CloudImageNames", "TelePremiumCloudResetState", "CloudNode", "CloudSnapshot", "CloudConflictResolver", "CloudIntegrityChecker", "CloudRecoveryEngine", "TelePremiumCloudManager", "TelegramCloudMetadataStore"]
         sources = [PROD / ("org/telegram/messenger/telepremium/cloud/" + n + ".java") for n in names]
         sources += [PROD / ("org/telegram/messenger/telepremium/cloud/vault/" + n + ".java") for n in ["TelePremiumVaultCrypto", "TelePremiumVaultIndexStore"]]
         sources += sorted((ROOT / "scripts/tests/stubs").rglob("*.java"))

@@ -450,6 +450,16 @@
       "sha256": "2a36a13ea31d218730721ea5a88a4831b0d374929e3b5ccb96bed67b9c24a808"
     },
     {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudImageDecoder.java",
+      "base_sha256": null,
+      "sha256": "00ff46efa24cffb817392848e096c6efc160f4f2710713e1af136e603b86709b"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudImageNames.java",
+      "base_sha256": null,
+      "sha256": "17ad643eadb2a8ab33a09e8746b611e0d91728fd6d5dfd84db0208fb8ca47830"
+    },
+    {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudIntegrityChecker.java",
       "base_sha256": null,
       "sha256": "6228a72c6a81adaa05e87d4b6509de3ec1db5a612803d19821a350d141b30802"
@@ -478,6 +488,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudPayloadRepository.java",
       "base_sha256": null,
       "sha256": "c272ab7ee00336a7655b7f44dd5347ffb970f3ccc2a89491bba604eeb0f7a130"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudPhotoThumbnailLoader.java",
+      "base_sha256": null,
+      "sha256": "6fa30671d74550e07616dad417e8340ed2fabd195dbe1db80e4b0dee2ca542da"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudRecoveryEngine.java",
@@ -522,7 +537,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java",
       "base_sha256": null,
-      "sha256": "35b4543305f1e86388425d70c077d580af014bd5c549d15b98ca03032dd33252"
+      "sha256": "c7516b19093a29400cb4b5423f6ef85bacbd08dbe3205adcc4ae49ca113ecc90"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudPeerManager.java",
@@ -880,6 +895,16 @@
       "sha256": "9f549409f5be6056623bb4e84ea4497fd601f24082fcde1ce9a66fcca8490bd0"
     },
     {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/Components/TelePremiumCloudImageDisplay.java",
+      "base_sha256": null,
+      "sha256": "d3c2e74de055106067460ee9e486123b263230e93c4b5e72a7fe2563e803739f"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/Components/TelePremiumCloudThumbnailView.java",
+      "base_sha256": null,
+      "sha256": "e2a4873ac95e00e8f83f58edba650eea935d4eb48c23a0fa866cc5f961fb167f"
+    },
+    {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/Components/TranscribeButton.java",
       "base_sha256": "8fe7b3e296b9e2f8867cdb997591470ddef306863eed96848b4a1ce71889abf4",
       "sha256": "388f562320c975d0acec14fe7891875515f5d3f134108d0e4baf8893f5139a73"
@@ -1002,7 +1027,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
       "base_sha256": null,
-      "sha256": "7f73f6c7ecd0a440042abf4a3b04711c5370706b9fff7e79d9ec382368d4d212"
+      "sha256": "19ae6048fe35e293aa9fe75ab187460137b4d8fe04e1ced65c3d005197116ba9"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudDiagnosticsActivity.java",
@@ -1017,7 +1042,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudGalleryActivity.java",
       "base_sha256": null,
-      "sha256": "909e38df56b0d2b9683330ca1c6858abeac0b7007ec9d0ffefbd3dcb72db42fc"
+      "sha256": "01504a433c1b138004bbdca8b64599c4f937a0151606399a93735773e922b618"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudSecurityActivity.java",
@@ -1627,7 +1652,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "c29dc65582168cf98aaf3cc5d55d7b4f7715b1ff6c5940224705bfe91dc5dbc5"
+      "sha256": "cc6f4c3764ffcdac5beeba0bc52791a5481242d1505ec5445e77f53c8549ea5d"
     },
     {
       "path": "settings.gradle",

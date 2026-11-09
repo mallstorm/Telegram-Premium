@@ -83,18 +83,12 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
             if(state!=CloudDownloadManager.OFFLINE_AVAILABLE||file==null)return;
             DECODE.execute(()->{Bitmap result=null;try{result=decode(file);}catch(Throwable failure){org.telegram.messenger.FileLog.e(failure);}final Bitmap decoded=result;
                 main.post(()->{if(closed||token!=generation||!active()){if(decoded!=null)decoded.recycle();if(!closed&&!active())finish();return;}if(decoded==null){failed(t("Image could not be decoded. Tap to retry.","Не удалось открыть изображение. Нажмите для повтора."));return;}
-                    Bitmap prior=bitmap;bitmap=decoded;image.setImageBitmap(bitmap);image.setAlpha(1);progress.setVisibility(View.GONE);fit();if(prior!=null&&prior!=decoded)prior.recycle();prefetchNext();
+                    Bitmap prior=bitmap;bitmap=decoded;org.telegram.ui.Components.TelePremiumCloudImageDisplay.show(image,bitmap,ImageView.ScaleType.FIT_CENTER);progress.setVisibility(View.GONE);fit();if(prior!=null&&prior!=decoded)prior.recycle();prefetchNext();
                 });
             });
         });
     }
-    private Bitmap decode(File file)throws Exception{
-        BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;BitmapFactory.decodeFile(file.getAbsolutePath(),options);
-        if(options.outWidth<=0||options.outHeight<=0)throw new IllegalArgumentException("Image format");int sample=1;
-        while((long)((options.outWidth+sample-1)/sample)*((options.outHeight+sample-1)/sample)*4>16L*1024*1024||Math.max(options.outWidth,options.outHeight)/sample>4096)sample*=2;
-        options.inJustDecodeBounds=false;options.inSampleSize=sample;options.inPreferredConfig=Bitmap.Config.ARGB_8888;Bitmap result=BitmapFactory.decodeFile(file.getAbsolutePath(),options);if(result==null)return null;
-        try{ExifInterface exif=new ExifInterface(file.getAbsolutePath());Matrix rotate=new Matrix();if(exif.isFlipped())rotate.postScale(-1,1);rotate.postRotate(exif.getRotationDegrees());if(!rotate.isIdentity()){Bitmap oriented=Bitmap.createBitmap(result,0,0,result.getWidth(),result.getHeight(),rotate,true);if(oriented!=result)result.recycle();result=oriented;}}catch(java.io.IOException ignored){}return result;
-    }
+    private Bitmap decode(File file)throws Exception{return CloudImageDecoder.decode(file,4096,16L*1024*1024);}
     private void failed(String message){progress.setVisibility(View.GONE);error.setText(message==null?t("Image unavailable. Tap to retry.","Изображение недоступно. Нажмите для повтора."):message);error.setVisibility(View.VISIBLE);}
     private void prefetchNext(){if(position+1>=entries.size()||!active())return;Entry next=entries.get(position+1);if(!valid(next))return;prefetch=new CloudDownloadManager(next.account,true);prefetch.download(next.node,(s,f,e)->{});}
     private void beginTransform(){

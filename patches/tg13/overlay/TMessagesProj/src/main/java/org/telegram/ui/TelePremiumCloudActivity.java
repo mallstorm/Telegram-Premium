@@ -41,6 +41,7 @@ import org.telegram.messenger.UserObject;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.telepremium.cloud.CloudDownloadManager;
+import org.telegram.messenger.telepremium.cloud.CloudImageNames;
 import org.telegram.messenger.telepremium.cloud.CloudNode;
 import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;
 import org.telegram.messenger.telepremium.cloud.CloudTransferManager;
@@ -705,9 +706,12 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
     private void addFileRow(AccountNode item, ViewGroup target) {
         CloudNode node=item.node;
         LinearLayout row=new LinearLayout(context); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(AndroidUtilities.dp(4),AndroidUtilities.dp(7),AndroidUtilities.dp(4),AndroidUtilities.dp(7)); row.setBackgroundColor(visualTheme.surfaceElevated);
-        ImageView icon=new ImageView(context); icon.setImageResource(node.type==CloudNode.TYPE_FOLDER?R.drawable.tp_cloud_folder:fileIcon(node)); icon.setPadding(AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12)); icon.setBackground(roundRect(visualTheme.searchBackground,10)); row.addView(icon,new LinearLayout.LayoutParams(AndroidUtilities.dp(50),AndroidUtilities.dp(50)));
+        ImageView icon;
+        if(CloudImageNames.isImage(node))icon=new org.telegram.ui.Components.TelePremiumCloudThumbnailView(context,item.account,node,fileIcon(node),visualTheme.searchBackground);
+        else{icon=new ImageView(context);icon.setImageResource(node.type==CloudNode.TYPE_FOLDER?R.drawable.tp_cloud_folder:fileIcon(node));icon.setPadding(AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12));icon.setBackground(roundRect(visualTheme.searchBackground,10));}
+        row.addView(icon,new LinearLayout.LayoutParams(AndroidUtilities.dp(50),AndroidUtilities.dp(50)));
         LinearLayout labels=new LinearLayout(context);labels.setOrientation(LinearLayout.VERTICAL);labels.setPadding(AndroidUtilities.dp(12),0,AndroidUtilities.dp(8),0);
-        TextView name=label(node.name,16,true);TextView detail=label(node.type==CloudNode.TYPE_FOLDER?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_108", org.telegram.messenger.R.string.TP_L10N_108):(node.isMultipart()?humanSize(node.size)+" · "+org.telegram.messenger.telepremium.TPStrings.format("TP_CLOUD_PARTS_FMT", org.telegram.messenger.R.string.TP_CLOUD_PARTS_FMT, node.partCount()):humanSize(node.size)),13,false);detail.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));labels.addView(name);labels.addView(detail);row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
+        TextView name=label(node.name,16,true);name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);TextView detail=label(node.type==CloudNode.TYPE_FOLDER?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_108", org.telegram.messenger.R.string.TP_L10N_108):(node.isMultipart()?humanSize(node.size)+" · "+org.telegram.messenger.telepremium.TPStrings.format("TP_CLOUD_PARTS_FMT", org.telegram.messenger.R.string.TP_CLOUD_PARTS_FMT, node.partCount()):humanSize(node.size)),13,false);detail.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));labels.addView(name);labels.addView(detail);row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
         BackupImageView ownerAvatar = accountAvatar(item.account, 32);
         row.addView(ownerAvatar, new LinearLayout.LayoutParams(AndroidUtilities.dp(32),AndroidUtilities.dp(32)));
         TextView more=label("⋮",26,false);more.setGravity(Gravity.CENTER);more.setOnClickListener(v->showNodeMenu(item));row.addView(more,new LinearLayout.LayoutParams(AndroidUtilities.dp(42),AndroidUtilities.dp(50)));
@@ -771,10 +775,10 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         String mime = resolvedMime(item.node);
         quietPreviewDownload = true;
         if (transferStrip != null) transferStrip.setVisibility(View.GONE);
-        if (mime.startsWith("image/")) {
+        if (CloudImageNames.isImage(item.node)) {
             try {
                 ArrayList<TelePremiumCloudGalleryActivity.Entry> images = new ArrayList<>();int selected=0;boolean found=false;
-                for(AccountNode candidate:previewSiblings())if(candidate.node.type==CloudNode.TYPE_FILE&&resolvedMime(candidate.node).startsWith("image/")){
+                for(AccountNode candidate:previewSiblings())if(candidate.node.type==CloudNode.TYPE_FILE&&CloudImageNames.isImage(candidate.node)){
                     if(candidate.account==item.account&&candidate.node.id.equals(item.node.id)){selected=images.size();found=true;}
                     images.add(new TelePremiumCloudGalleryActivity.Entry(candidate.account,candidate.node));
                 }
