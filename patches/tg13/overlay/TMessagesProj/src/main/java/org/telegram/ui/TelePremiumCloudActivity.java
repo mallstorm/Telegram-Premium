@@ -44,6 +44,7 @@ import org.telegram.messenger.telepremium.cloud.CloudDownloadManager;
 import org.telegram.messenger.telepremium.cloud.CloudImageNames;
 import org.telegram.messenger.telepremium.cloud.CloudNode;
 import org.telegram.messenger.telepremium.cloud.CloudPayloadRepository;
+import org.telegram.messenger.telepremium.cloud.CloudSnapshot;
 import org.telegram.messenger.telepremium.cloud.CloudTransferManager;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudAccessGate;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudSecuritySession;
@@ -146,7 +147,9 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         syncState.setPadding(AndroidUtilities.dp(18), 0, AndroidUtilities.dp(18), 0);
         syncState.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         syncState.setBackgroundColor(Color.TRANSPARENT);
-        page.addView(syncState, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(52)));
+        syncState.setMinHeight(AndroidUtilities.dp(52));
+        syncState.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(8), AndroidUtilities.dp(18), AndroidUtilities.dp(8));
+        page.addView(syncState, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
         createTransferStrip(page);
 
         search = new EditText(context);
@@ -254,7 +257,8 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         transferDetails = label("", 12, false);
         transferDetails.setTextColor(visualTheme.textSecondary);
         transferDetails.setSingleLine(true);
-        transferStrip.addView(transferDetails, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(20)));
+        transferDetails.setMinHeight(AndroidUtilities.dp(20));
+        transferStrip.addView(transferDetails, new LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         transferProgress = new ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
         transferProgress.setMax(1000);
@@ -299,6 +303,10 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         } else if (task.error != null && !task.error.isEmpty()) {
             details.append("  ·  ").append(task.error);
         }
+        // An error (e.g. why the Vault index was not saved) must be readable in full.
+        boolean hasError = task.error != null && !task.error.isEmpty() && task.speedBytesPerSec <= 1;
+        transferDetails.setSingleLine(!hasError);
+        transferDetails.setMaxLines(hasError ? 12 : 1);
         transferDetails.setText(details.toString());
         if (task.state == CloudTransferManager.COMPLETED) {
             transferProgress.setProgress(1000);
@@ -313,45 +321,78 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         }
     }
 
+    /**
+     * Called only after a successful remote sync of {@code account}: the snapshot is the
+     * confirmed remote catalog. Interrupted Vault uploads are reconciled against it —
+     * never against the local progress (100%) or a local thumbnail:
+     * <ul>
+     * <li>record present in the remote catalog → the upload is finished, the journal entry goes;</li>
+     * <li>record missing but the encrypted pending journal has it → only the index entry is
+     *     written again (the payload is already in Telegram and is never re-sent);</li>
+     * <li>missing in both → the user is told the record has to be restored (no re-upload).</li>
+     * </ul>
+     * Cloud channels and keys are never recreated here.
+     */
     private void resumePendingTransfer(int account) {
         if (transferManager == null) return;
-        // A payload receipt means the file is already in Telegram. Retry ONLY
-        // encrypted metadata; never re-send the original document by mistake.
         if (TelePremiumVaultKeyManager.isEnabled(context)) {
+            CloudSnapshot remote = cloud == null ? null : cloud.getSnapshot();
+            if (remote == null) return; // no confirmed catalog → nothing can be proven
+            List<CloudNode> pending;
             try {
-                List<CloudNode> unindexed=TelePremiumVaultPendingIndexStore.load(account);
-                if(!unindexed.isEmpty()) {
-                    CloudNode node=unindexed.get(0);
-                    // A previous index publish may have succeeded just before a
-                    // process crash. Remove the outbox only after a clean remote sync.
-                    boolean alreadyIndexed=false;
-                    if(cloud!=null && cloud.getSnapshot()!=null)
-                        for(CloudNode saved:cloud.getSnapshot().nodes)
-                            if(node.id.equals(saved.id) && saved.telegramMessageId==node.telegramMessageId) {
-                                alreadyIndexed=true;break;
-                            }
-                    if(alreadyIndexed) {
-                        TelePremiumVaultPendingIndexStore.remove(account,node.id);
-                        transferManager.complete();
-                        resumePendingTransfer(account);
-                        return;
-                    }
-                    commitUploadedVaultNode(account,node,cloud,transferManager);
-                    return;
-                }
-            } catch(Exception recoveryError) {
+                pending = new java.util.ArrayList<>(TelePremiumVaultPendingIndexStore.load(account));
+            } catch (Exception recoveryError) {
                 org.telegram.messenger.FileLog.e(recoveryError);
-                setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_075", org.telegram.messenger.R.string.TP_L10N_075),false);
+                setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_075", org.telegram.messenger.R.string.TP_L10N_075)
+                        + ": " + fullError(recoveryError), false);
                 return;
             }
+            // Journal records whose index entry the confirmed catalog already holds are done.
+            for (java.util.Iterator<CloudNode> it = pending.iterator(); it.hasNext(); ) {
+                CloudNode record = it.next();
+                if (findIndexed(remote, record.id, record.telegramMessageId) != null) {
+                    TelePremiumVaultPendingIndexStore.remove(account, record.id);
+                    it.remove();
+                }
+            }
+            CloudTransferManager.Task task = transferManager.getTask();
+            boolean acknowledgedUpload = task != null && task.type == CloudTransferManager.TYPE_UPLOAD
+                    && task.messageId > 0 && task.nodeId != null && task.state != CloudTransferManager.CANCELLED;
+            if (acknowledgedUpload) {
+                if (findIndexed(remote, task.nodeId, task.messageId) != null) {
+                    // Confirmed by the remote catalog: finish the task (also if it was left at 100%).
+                    if (task.state != CloudTransferManager.COMPLETED) transferManager.complete();
+                } else {
+                    CloudNode record = null;
+                    for (CloudNode n : pending) {
+                        if (task.nodeId.equals(n.id) && n.telegramMessageId == task.messageId) { record = n; break; }
+                    }
+                    if (record != null) {
+                        // Payload acknowledged by Telegram, index entry lost: write the index only.
+                        pending.remove(record);
+                        commitUploadedVaultNode(account, record, cloud, transferManager, () -> resumePendingTransfer(account));
+                        return;
+                    }
+                    if (task.state == CloudTransferManager.COMPLETED) {
+                        // COMPLETED is set only after a confirmed index commit; the entry has since
+                        // been removed from the catalog by the user. Nothing to restore.
+                        transferManager.clear();
+                    } else {
+                        setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_076", org.telegram.messenger.R.string.TP_L10N_076), false);
+                        return; // Do not re-upload the same .tpv payload.
+                    }
+                }
+            }
+            if (!pending.isEmpty()) {
+                // Older acknowledged payloads without a live task: restore their index entries
+                // one by one without touching the current transfer task.
+                commitUploadedVaultNode(account, pending.get(0), cloud, null, () -> resumePendingTransfer(account));
+                return;
+            }
+            if (acknowledgedUpload) return; // reconciled above
         }
         CloudTransferManager.Task task = transferManager.getTask();
         if (task == null) return;
-        if (TelePremiumVaultKeyManager.isEnabled(context) && task.type==CloudTransferManager.TYPE_UPLOAD &&
-                task.messageId>0 && task.nodeId!=null) {
-            setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_076", org.telegram.messenger.R.string.TP_L10N_076),false);
-            return; // Do not re-upload the same .tpv payload.
-        }
         if (task.state == CloudTransferManager.INDEXING) {
             setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_077", org.telegram.messenger.R.string.TP_L10N_077),false);
             return;
@@ -364,7 +405,7 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
                         commitUploadedVaultNode(account,node,cloud,transferManager);
                     } else {
                         cloud.addFile(node,e->{
-                            setSyncText(e==null?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_078", org.telegram.messenger.R.string.TP_L10N_078):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_079", org.telegram.messenger.R.string.TP_L10N_079)+shortError(e),e==null);
+                            setSyncText(e==null?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_078", org.telegram.messenger.R.string.TP_L10N_078):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_079", org.telegram.messenger.R.string.TP_L10N_079)+fullError(e),e==null);
                             renderBody();
                         });
                     }
@@ -391,6 +432,25 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
     }
 
     /** The upload is successful ONLY after the encrypted catalog is acknowledged. */
+    /** Node of the confirmed catalog with this id and Telegram message (any part of a multipart file). */
+    private static CloudNode findIndexed(CloudSnapshot remote, String nodeId, long messageId) {
+        if (remote == null || nodeId == null) return null;
+        for (CloudNode saved : remote.nodes) {
+            if (saved == null || !nodeId.equals(saved.id)) continue;
+            if (messageId <= 0 || saved.telegramMessageId == messageId) return saved;
+            if (saved.partMessageIds != null) for (long part : saved.partMessageIds) if (part == messageId) return saved;
+        }
+        return null;
+    }
+
+    /** Index save errors are shown in full (they explain what to fix), never shortened. */
+    private static String fullError(Object error) {
+        String text = error instanceof Throwable
+                ? (((Throwable) error).getMessage() == null ? error.getClass().getSimpleName() : ((Throwable) error).getMessage())
+                : error == null ? null : String.valueOf(error);
+        return text == null || text.trim().isEmpty() ? "неизвестная ошибка" : text.trim();
+    }
+
     private void commitUploadedVaultNode(int account, CloudNode node,
                                          TelePremiumCloudManager targetCloud,
                                          CloudTransferManager targetTransfer) {
@@ -405,16 +465,16 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         targetCloud.addFile(node,error->{
             if(error==null) {
                 TelePremiumVaultPendingIndexStore.remove(account,node.id);
-                targetTransfer.complete();
+                if(targetTransfer!=null) targetTransfer.complete();
                 if(!disposed && (selectedAccount==account || selectedAccount==-1)) {
                     setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_084", org.telegram.messenger.R.string.TP_L10N_084),true);
                     renderBody();
                 }
                 if(onCommitted!=null)onCommitted.run();
             } else {
-                targetTransfer.failRetryable(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_085", org.telegram.messenger.R.string.TP_L10N_085)+shortError(error));
+                if(targetTransfer!=null) targetTransfer.failRetryable(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_085", org.telegram.messenger.R.string.TP_L10N_085)+fullError(error));
                 if(!disposed && (selectedAccount==account || selectedAccount==-1)) {
-                    setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_086", org.telegram.messenger.R.string.TP_L10N_086)+shortError(error),false);
+                    setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_086", org.telegram.messenger.R.string.TP_L10N_086)+fullError(error),false);
                     renderBody();
                 }
             }
@@ -1050,7 +1110,7 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
             } else {
                 uploadCloud.addFile(node,e->{
                     if(!disposed && (selectedAccount==uploadAccount || selectedAccount==-1)) {
-                        setSyncText(e==null?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_089", org.telegram.messenger.R.string.TP_L10N_089):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_079", org.telegram.messenger.R.string.TP_L10N_079)+shortError(e),e==null);
+                        setSyncText(e==null?org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_089", org.telegram.messenger.R.string.TP_L10N_089):org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_079", org.telegram.messenger.R.string.TP_L10N_079)+fullError(e),e==null);
                         renderBody();
                     }
                     if(e==null) onUploaded.run(); else uploadQueue.clear();
