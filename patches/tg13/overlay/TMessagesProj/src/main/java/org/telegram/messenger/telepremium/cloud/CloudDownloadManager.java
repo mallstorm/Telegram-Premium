@@ -24,7 +24,9 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
     public static void cancelAllForReset() {
         synchronized (LIVE) { for (CloudDownloadManager operation : new java.util.ArrayList<>(LIVE)) operation.cancel(); }
     }
-    private boolean active() { return TelePremiumCloudResetState.allowed(epoch) && ownerUserId == org.telegram.messenger.UserConfig.getInstance(account).getClientUserId(); }
+    private volatile boolean cancelled;
+    private final boolean preview;
+    private boolean active() { return !cancelled && TelePremiumCloudResetState.allowed(epoch) && ownerUserId == org.telegram.messenger.UserConfig.getInstance(account).getClientUserId(); }
     private final int account;
     private final TelePremiumCloudPeerManager peerManager;
     private final CloudTransferManager transferManager;
@@ -45,19 +47,24 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
 
     public interface Callback { void onState(int state, File file, String error); }
 
-    public CloudDownloadManager(int account){
+    public CloudDownloadManager(int account){this(account,false);}
+
+    /** Preview fetches never create, update or cancel user-visible transfer notifications. */
+    public CloudDownloadManager(int account,boolean preview){
+        this.preview=preview;
         this.account=account;
         this.ownerUserId=org.telegram.messenger.UserConfig.getInstance(account).getClientUserId();
         synchronized (LIVE) { LIVE.add(this); }
         this.peerManager=TelePremiumVaultKeyManager.isEnabled(ApplicationLoader.applicationContext)
                 ? TelePremiumCloudPeerManager.getVaultInstance(account)
                 : TelePremiumCloudPeerManager.getInstance(account);
-        this.transferManager=CloudTransferManager.getInstance(account);
+        this.transferManager=preview?null:CloudTransferManager.getInstance(account);
     }
 
     public void download(CloudNode node, Callback callback) {
         if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
         if(node==null || node.telegramMessageId==0){callback.onState(ERROR,null,"У файла нет Telegram payload");return;}
+        if(preview && !node.isMultipart() && tryLocalVaultReplica(node,callback))return;
         if(node.isMultipart()){downloadMultipart(node,callback);return;}
         peerManager.ensure((dialogId,error)->{
             if (!active()) { callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
@@ -88,16 +95,16 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                 File existing=resolveFile(d);
                 if(existing!=null && existing.exists()){
                     node.offlineState=OFFLINE_AVAILABLE;
-                    transferManager.beginDownload(node.id,node.name,node.size,node.telegramMessageId);
-                    transferManager.complete();
+                    if(transferManager!=null)transferManager.beginDownload(node.id,node.name,node.size,node.telegramMessageId);
+                    if(transferManager!=null)transferManager.complete();
                     deliverAvailable(node,existing,callback);
                     return;
                 }
                 activeNode=node;activeDocument=d;activeMessage=m;activeCallback=callback;node.offlineState=DOWNLOADING;
-                transferManager.beginDownload(node.id,node.name,node.size>0?node.size:d.size,node.telegramMessageId);
+                if(transferManager!=null)transferManager.beginDownload(node.id,node.name,node.size>0?node.size:d.size,node.telegramMessageId);
                 startObservers();
-                FileLoader.getInstance(account).loadFile(d,m,FileLoader.PRIORITY_NORMAL,0);
                 callback.onState(DOWNLOADING,null,null);
+                FileLoader.getInstance(account).loadFile(d,m,FileLoader.PRIORITY_NORMAL,0);
             }));
         });
     }
@@ -108,7 +115,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
         if(node==null || node.encryptionVersion!=1 || node.localBackupId==null)return false;
         File replica=TelePremiumVaultBackupStore.find(ApplicationLoader.applicationContext,node.localBackupId);
         if(replica==null)return false;
-        transferManager.beginDownload(node.id,node.name,node.size,node.telegramMessageId);
+        if(transferManager!=null)transferManager.beginDownload(node.id,node.name,node.size,node.telegramMessageId);
         deliverAvailable(node,replica,callback);
         return true;
     }
@@ -129,13 +136,13 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                     File file=VaultFileOps.decryptToVerifiedFile(encryptedOrPlain,folder,node.name,master,node.sha256,node.size);
                     AndroidUtilities.runOnUIThread(()->{
                         if (!active()) { file.delete(); callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
-                        transferManager.complete();node.offlineState=OFFLINE_AVAILABLE;
+                        if(transferManager!=null)transferManager.complete();node.offlineState=OFFLINE_AVAILABLE;
                         callback.onState(OFFLINE_AVAILABLE,file,null);
                     });
                 } catch(Exception e) {
                     FileLog.e(e);
                     AndroidUtilities.runOnUIThread(()->{
-                        transferManager.failRetryable("Vault authentication failed");node.offlineState=ERROR;
+                        if(transferManager!=null)transferManager.failRetryable("Vault authentication failed");node.offlineState=ERROR;
                         callback.onState(ERROR,null,"Не удалось проверить подлинность Vault-файла");
                     });
                 } finally {Arrays.fill(master,(byte)0);}
@@ -186,15 +193,15 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
         if(multiNode!=null){
             if(id==NotificationCenter.fileLoadProgressChanged){
                 long loaded=args.length>1 && args[1] instanceof Long?(Long)args[1]:0;
-                transferManager.updateProgress(multiDoneBytes+loaded,multiTotalBytes);
+                if(transferManager!=null)transferManager.updateProgress(multiDoneBytes+loaded,multiTotalBytes);
             } else if(id==NotificationCenter.fileLoaded){
                 multiDoneBytes+=activeDocument.size;
                 multiIndex++;
                 retryCount=0;
-                transferManager.updateProgress(multiDoneBytes,multiTotalBytes);
+                if(transferManager!=null)transferManager.updateProgress(multiDoneBytes,multiTotalBytes);
                 nextMultipartPart();
             } else if(id==NotificationCenter.fileLoadFailed){
-                transferManager.waitingNetwork("Соединение прервано — скачивание продолжится автоматически");
+                if(transferManager!=null)transferManager.waitingNetwork("Соединение прервано — скачивание продолжится автоматически");
                 scheduleRetry();
             }
             return;
@@ -202,7 +209,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
         if(id==NotificationCenter.fileLoadProgressChanged){
             long loaded=args.length>1 && args[1] instanceof Long?(Long)args[1]:0;
             long total=args.length>2 && args[2] instanceof Long?(Long)args[2]:(activeNode.size>0?activeNode.size:activeDocument.size);
-            transferManager.updateProgress(loaded,total);
+            if(transferManager!=null)transferManager.updateProgress(loaded,total);
         } else if(id==NotificationCenter.fileLoaded){
             File f=args.length>1 && args[1] instanceof File?(File)args[1]:resolveFile(activeDocument);
             if(f!=null && f.exists()){
@@ -212,15 +219,15 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                     activeNode=null;activeCallback=null;activeDocument=null;activeMessage=null;
                     stopObservers();retryScheduled=false;retryCount=0;
                     deliverAvailable(node,f,cb);
-                } else {transferManager.complete();finish(OFFLINE_AVAILABLE,f,null);}
+                } else {if(transferManager!=null)transferManager.complete();finish(OFFLINE_AVAILABLE,f,null);}
             }else{
                 activeNode.offlineState=ERROR;
-                transferManager.failRetryable("Скачанный файл не найден в хранилище");
+                if(transferManager!=null)transferManager.failRetryable("Скачанный файл не найден в хранилище");
                 finish(ERROR,null,"Скачанный файл не найден в хранилище");
             }
         } else if(id==NotificationCenter.fileLoadFailed){
             activeNode.offlineState=DOWNLOADING;
-            transferManager.waitingNetwork("Соединение прервано — скачивание продолжится автоматически");
+            if(transferManager!=null)transferManager.waitingNetwork("Соединение прервано — скачивание продолжится автоматически");
             scheduleRetry();
         }
     }
@@ -236,19 +243,22 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                 return;
             }
             if(retryCount>=8){
-                transferManager.failRetryable("Автоматическая докачка приостановлена");
+                if(transferManager!=null)transferManager.failRetryable("Автоматическая докачка приостановлена");
                 finish(ERROR,null,"Автоматическая докачка приостановлена");
                 return;
             }
             retryCount++;
-            transferManager.retrying();
+            if(transferManager!=null)transferManager.retrying();
             FileLoader.getInstance(account).loadFile(activeDocument,activeMessage,FileLoader.PRIORITY_NORMAL,0);
         },2500);
     }
 
     public void cancel(){
-        if(activeDocument!=null)FileLoader.getInstance(account).cancelLoadFile(activeDocument);
-        transferManager.cancel();
+        cancelled=true;
+        stopObservers();
+        // FileLoader also serves explicit downloads; dismissing a preview must not cancel those.
+        if(!preview && activeDocument!=null)FileLoader.getInstance(account).cancelLoadFile(activeDocument);
+        if(transferManager!=null)transferManager.cancel();
         if(activeCallback!=null)finish(ERROR,null,"Отменено");
     }
 
@@ -308,7 +318,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                 }
                 multiNode=node;multiDocs=docs;multiMessages=messages;multiIndex=0;multiDoneBytes=0;multiTotalBytes=total;
                 activeNode=node;activeCallback=callback;node.offlineState=DOWNLOADING;
-                transferManager.beginDownload(node.id,node.name,total,node.telegramMessageId);
+                if(transferManager!=null)transferManager.beginDownload(node.id,node.name,total,node.telegramMessageId);
                 startObservers();
                 callback.onState(DOWNLOADING,null,null);
                 nextMultipartPart();
@@ -323,7 +333,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
             if(f!=null && f.exists()){
                 multiDoneBytes+=multiDocs[multiIndex].size;
                 multiIndex++;
-                transferManager.updateProgress(multiDoneBytes,multiTotalBytes);
+                if(transferManager!=null)transferManager.updateProgress(multiDoneBytes,multiTotalBytes);
                 continue;
             }
             activeDocument=multiDocs[multiIndex];activeMessage=multiMessages[multiIndex];
@@ -377,7 +387,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                             if(key!=null)plain.delete();
                         }
                         final long done=tmp.length();
-                        AndroidUtilities.runOnUIThread(()->transferManager.updateProgress(Math.min(done,node.size),node.size));
+                        AndroidUtilities.runOnUIThread(()->{if(transferManager!=null)transferManager.updateProgress(Math.min(done,node.size),node.size);});
                     }
                     os.getFD().sync();
                 }
@@ -391,7 +401,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                 File result=out;
                 AndroidUtilities.runOnUIThread(()->{
                     if (!active()) { result.delete(); cb.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
-                    transferManager.complete();node.offlineState=OFFLINE_AVAILABLE;
+                    if(transferManager!=null)transferManager.complete();node.offlineState=OFFLINE_AVAILABLE;
                     cb.onState(OFFLINE_AVAILABLE,result,null);
                 });
             }catch(Exception e){
@@ -399,7 +409,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                 if(out!=null)new File(out.getPath()+".part").delete();
                 String message=e instanceof SecurityException?e.getMessage():(key!=null?"Не удалось проверить подлинность Vault-файла":"Не удалось собрать файл из частей");
                 AndroidUtilities.runOnUIThread(()->{
-                    transferManager.failRetryable(message);node.offlineState=ERROR;
+                    if(transferManager!=null)transferManager.failRetryable(message);node.offlineState=ERROR;
                     cb.onState(ERROR,null,message);
                 });
             }finally{

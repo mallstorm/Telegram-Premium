@@ -90,12 +90,10 @@ import me.vkryl.android.animator.FactorAnimator;
 
 public class MainTabsActivity extends ViewPagerActivity implements NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target {
 
-    public static final int TABS_COUNT = 5;
+    public static final int TABS_COUNT = 3;
     private static final int POSITION_CHATS = 0;
     private static final int POSITION_CONTACTS = 1;
-    private static final int POSITION_CLOUD = 2;
-    private static final int POSITION_MEDIA = 3;
-    private static final int POSITION_PROFILE = 4;
+    private static final int POSITION_PROFILE = 2;
 
     private static final int INDEX_CHATS = 0;
     private static final int INDEX_CONTACTS = 1;
@@ -104,7 +102,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private static final int INDEX_PROFILE = 4;
 
     private static int indexToPosition(int index) {
-        return index;
+        return index == INDEX_PROFILE ? POSITION_PROFILE : index <= INDEX_CONTACTS ? index : -1;
     }
 
     private static final int ANIMATOR_ID_TABS_VISIBLE = 0;
@@ -341,8 +339,16 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             final GlassTabView view = tabs[index];
 
             final int position = indexToPosition(index);
+            final int item = index;
             tabs[index].setOnClickListener(v -> {
                 if (viewPager.isManualScrolling() || viewPager.isTouch()) {
+                    return;
+                }
+
+                // These entries open full screens, as before the five-item menu.
+                if (item == INDEX_CLOUD) { presentFragment(new TelePremiumCloudActivity(currentAccount)); return; }
+                if (item == INDEX_MEDIA) {
+                    if (getParentActivity() != null) getParentActivity().startActivity(new android.content.Intent(getParentActivity(), TelePremiumMediaCenterActivity.class));
                     return;
                 }
 
@@ -783,7 +789,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private DialogsActivity dialogsActivity;
-    private BaseFragment telepremiumMediaTab, telepremiumCloudTab;
 
     @Override
     public boolean onBackPressed(boolean invoked) {
@@ -820,10 +825,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             args.putBoolean("needFinishFragment", false);
             args.putBoolean("hasMainTabs", true);
             return new ContactsActivity(args);
-        } else if (position == POSITION_CLOUD) {
-            return telepremiumCloudTab = new TelePremiumCloudActivity(currentAccount).asMainTab(() -> viewPager.scrollToPosition(POSITION_CHATS));
-        } else if (position == POSITION_MEDIA) {
-            return telepremiumMediaTab = new TelePremiumMediaCenterFragment(() -> viewPager.scrollToPosition(POSITION_CHATS));
+
         } else if (position == POSITION_CHATS) {
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
@@ -859,7 +861,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     public void setGestureSelectedOverride(float animatedPosition, boolean allow) {
         for (int index = 0; index < tabs.length; index++) {
             final int position = indexToPosition(index);
-            final float visibility = Math.max(0, 1f - Math.abs(position - animatedPosition));
+            final float visibility = position < 0 ? 0 : Math.max(0, 1f - Math.abs(position - animatedPosition));
             tabs[index].setGestureSelectedOverride(visibility, allow);
         }
         tabsView.invalidate();
@@ -1088,15 +1090,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     public void onActivityResultFragment(int requestCode, int resultCode, android.content.Intent data) {
-        if (requestCode == 7720 || requestCode == 7721) {
-            final BaseFragment media = telepremiumMediaTab;
-            if (media != null) media.onActivityResultFragment(requestCode, resultCode, data);
-        } else if (requestCode >= 7301 && requestCode <= 7303) {
-            if (telepremiumCloudTab != null) telepremiumCloudTab.onActivityResultFragment(requestCode,resultCode,data);
-        } else {
-            final BaseFragment current = getCurrentVisibleFragment();
-            if (current != null) current.onActivityResultFragment(requestCode, resultCode, data);
-        }
+        final BaseFragment current = getCurrentVisibleFragment();
+        if (current != null) current.onActivityResultFragment(requestCode, resultCode, data);
     }
 
     @Override

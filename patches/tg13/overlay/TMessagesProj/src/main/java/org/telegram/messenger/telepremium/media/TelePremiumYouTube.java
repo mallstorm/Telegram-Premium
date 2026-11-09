@@ -78,6 +78,7 @@ public final class TelePremiumYouTube {
     public static final class Feed {
         public String title;
         public String url;
+        public String artworkUri;
         public final ArrayList<TelePremiumMediaItem> items = new ArrayList<>();
         Page nextPage;
         ListLinkHandler tab;
@@ -183,6 +184,7 @@ public final class TelePremiumYouTube {
                 channelExtractor.fetchPage();
                 ChannelInfo channel = ChannelInfo.getInfo(channelExtractor);
                 feed.title = channel.getName();
+                feed.artworkUri = bestImage(channel.getAvatars());
                 ListLinkHandler videos = null;
                 for (ListLinkHandler tab : channel.getTabs()) {
                     if (tab.getContentFilters().contains(ChannelTabs.VIDEOS)) { videos = tab; break; }
@@ -201,6 +203,7 @@ public final class TelePremiumYouTube {
                 playlistExtractor.fetchPage();
                 PlaylistInfo playlist = PlaylistInfo.getInfo(playlistExtractor);
                 feed.title = playlist.getName();
+                feed.artworkUri = bestImage(playlist.getThumbnails());
                 feed.kind = 1;
                 addItems(feed, new ArrayList<InfoItem>(playlist.getRelatedItems()), playlist.getUploaderName());
                 feed.nextPage = playlist.getNextPage();
@@ -214,6 +217,17 @@ public final class TelePremiumYouTube {
             if (feed.items.isEmpty()) throw new IllegalStateException("Видео не найдены");
             return feed;
         }, callback);
+    }
+
+    /** Fetch channel identity without requiring its video tab to load successfully. */
+    public static TelePremiumMediaRequest loadArtwork(String input,Callback<String> callback){
+        return async(()->{
+            String url=normalize(input);StreamingService service=yt();StreamingService.LinkType type=service.getLinkTypeByUrl(url);
+            if(type==StreamingService.LinkType.CHANNEL){ChannelExtractor e=force(service.getChannelExtractor(url));e.fetchPage();return bestImage(ChannelInfo.getInfo(e).getAvatars());}
+            if(type==StreamingService.LinkType.PLAYLIST){PlaylistExtractor e=force(service.getPlaylistExtractor(url));e.fetchPage();return bestImage(PlaylistInfo.getInfo(e).getThumbnails());}
+            if(type==StreamingService.LinkType.STREAM)return bestImage(streamInfo(url).getUploaderAvatars());
+            return null;
+        },callback);
     }
 
     /** Appends the next page of the feed; the callback gets only the new items. */

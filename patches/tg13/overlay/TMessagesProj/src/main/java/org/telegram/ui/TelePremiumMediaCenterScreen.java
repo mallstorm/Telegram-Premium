@@ -790,6 +790,7 @@ final class TelePremiumMediaCenterScreen extends android.content.ContextWrapper 
             }
             ytFeed = feed;
             TelePremiumNetworkLibrary.updateYoutubeTitle(url, feed.title);
+            TelePremiumNetworkLibrary.updateYoutubeArtwork(org.telegram.messenger.telepremium.media.TelePremiumMediaLibraryStore.owner(),url,feed.artworkUri);
             rebuildChips();
             setSource(feed.items, TelePremiumNetworkLibrary.youtubeName(feed.url,feed.title), null);
         });

@@ -7,11 +7,11 @@ import java.util.*;
 /** All entries are per-library-owner records in the encrypted V3 settings catalog. */
 public final class TelePremiumNetworkLibrary {
     public static final class IptvPlaylist {
-        public final String name,url;
-        IptvPlaylist(String name,String url){this.name=name;this.url=url;}
+        public final String name,url,artworkUri;
+        IptvPlaylist(String name,String url,String artworkUri){this.name=name;this.url=url;this.artworkUri=artworkUri;}
     }
     private TelePremiumNetworkLibrary(){}
-    private static List<IptvPlaylist> list(String kind){ArrayList<IptvPlaylist> out=new ArrayList<>();for(JSONObject row:TelePremiumMediaLibraryStore.values(kind))out.add(new IptvPlaylist(row.optString("name"),row.optString("url")));return out;}
+    private static List<IptvPlaylist> list(String kind){ArrayList<IptvPlaylist> out=new ArrayList<>();for(JSONObject row:TelePremiumMediaLibraryStore.values(kind))out.add(new IptvPlaylist(row.optString("name"),row.optString("url"),row.optString("artworkUri",null)));return out;}
     public static List<IptvPlaylist> getIptvPlaylists(){return list("iptv");}
     public static List<IptvPlaylist> getYoutubeChannels(){return list("youtube");}
     private static void add(String kind,String name,String url){try{TelePremiumMediaLibraryStore.readd(kind,url,new JSONObject().put("name",TextUtils.isEmpty(name)?url:name).put("url",url));}catch(Exception e){TelePremiumMediaLibrarySync.localError("Не удалось сохранить источник");}}
@@ -35,6 +35,12 @@ public final class TelePremiumNetworkLibrary {
     public static void removeIptvPlaylist(String url){TelePremiumMediaLibraryStore.remove("iptv",url);}
     public static void updateYoutubeTitle(String url,String name){for(JSONObject row:TelePremiumMediaLibraryStore.values("youtube"))if(url.equals(row.optString("url"))&&!row.optBoolean("customName")){try{row.put("name",name);TelePremiumMediaLibraryStore.put("youtube",url,row,false);}catch(Exception ignored){}return;}}
     public static void renameYoutube(String url,String name){for(JSONObject row:TelePremiumMediaLibraryStore.values("youtube"))if(url.equals(row.optString("url"))){try{row.put("name",name).put("customName",true);TelePremiumMediaLibraryStore.put("youtube",url,row,false);}catch(Exception ignored){}return;}}
+    public static void updateYoutubeArtwork(long owner,String url,String artworkUri){
+        if(owner<=0||owner!=TelePremiumMediaLibraryStore.owner()||artworkUri==null||!artworkUri.startsWith("https://"))return;
+        for(JSONObject row:TelePremiumMediaLibraryStore.values("youtube"))if(url.equals(row.optString("url"))){
+            try{row.put("artworkUri",artworkUri);TelePremiumMediaLibraryStore.put("youtube",url,row,false);}catch(Exception ignored){}return;
+        }
+    }
     public static String youtubeName(String url,String fallback){for(IptvPlaylist p:getYoutubeChannels())if(p.url.equals(url))return p.name;return fallback;}
     public static List<TelePremiumMediaItem> getRadioFavorites(){ArrayList<TelePremiumMediaItem> out=new ArrayList<>();for(JSONObject row:TelePremiumMediaLibraryStore.values("radio"))try{TelePremiumMediaItem item=TelePremiumMediaItem.fromJson(row);item.mediaType=TelePremiumMediaItem.TYPE_STREAM;item.live=true;out.add(item);}catch(Exception ignored){}return out;}
     public static boolean isRadioFavorite(TelePremiumMediaItem item){for(TelePremiumMediaItem f:getRadioFavorites())if(f.uri!=null&&f.uri.equals(item.uri))return true;return false;}

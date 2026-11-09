@@ -43,7 +43,7 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         if(TelePremiumCloudSecurityStore.isProtectionEnabled(this))getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);image=new ImageView(this);image.setScaleType(ImageView.ScaleType.MATRIX);root.addView(image,new FrameLayout.LayoutParams(-1,-1));
+        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);image=new ImageView(this);image.setScaleType(ImageView.ScaleType.FIT_CENTER);root.addView(image,new FrameLayout.LayoutParams(-1,-1));
         progress=new ProgressBar(this);FrameLayout.LayoutParams spinner=new FrameLayout.LayoutParams(dp(48),dp(48),Gravity.CENTER);root.addView(progress,spinner);
         error=new TextView(this);error.setTextColor(Color.WHITE);error.setTextSize(16);error.setGravity(Gravity.CENTER);error.setPadding(dp(24),dp(20),dp(24),dp(20));error.setVisibility(View.GONE);root.addView(error,new FrameLayout.LayoutParams(-1,-1));error.setOnTouchListener((v,event)->{
             if(event.getActionMasked()==MotionEvent.ACTION_DOWN){downX=event.getX();downY=event.getY();return true;}
@@ -53,14 +53,14 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
         TextView back=new TextView(this);back.setText("‹");back.setTextSize(42);back.setTextColor(Color.WHITE);back.setGravity(Gravity.CENTER);back.setContentDescription(t("Close","Закрыть"));back.setOnClickListener(v->finish());chrome.addView(back,new LinearLayout.LayoutParams(dp(52),dp(48)));
         title=new TextView(this);title.setTextColor(Color.WHITE);title.setTextSize(15);title.setMaxLines(2);chrome.addView(title,new LinearLayout.LayoutParams(0,-2,1));root.addView(chrome,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP));
         ScaleGestureDetector pinch=new ScaleGestureDetector(this,new ScaleGestureDetector.SimpleOnScaleGestureListener(){
-            @Override public boolean onScaleBegin(ScaleGestureDetector d){scaling=true;return bitmap!=null;}
+            @Override public boolean onScaleBegin(ScaleGestureDetector d){if(bitmap==null)return false;beginTransform();scaling=true;return true;}
             @Override public boolean onScale(ScaleGestureDetector d){float next=Math.max(1,Math.min(6,zoom*d.getScaleFactor()));float factor=next/zoom;zoom=next;matrix.postScale(factor,factor,d.getFocusX(),d.getFocusY());clamp();return true;}
-            @Override public void onScaleEnd(ScaleGestureDetector d){scaling=false;suppressSwipeUntil=SystemClock.elapsedRealtime()+250;}
+            @Override public void onScaleEnd(ScaleGestureDetector d){scaling=false;if(zoom<=1.05f)fit();suppressSwipeUntil=SystemClock.elapsedRealtime()+250;}
         });
         GestureDetector gestures=new GestureDetector(this,new GestureDetector.SimpleOnGestureListener(){
             @Override public boolean onDown(android.view.MotionEvent e){return true;}
             @Override public boolean onSingleTapConfirmed(MotionEvent e){chrome.setVisibility(chrome.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);return true;}
-            @Override public boolean onDoubleTap(MotionEvent e){if(bitmap!=null){if(zoom>1.1f)fit();else{zoom=2.8f;matrix.postScale(zoom,zoom,e.getX(),e.getY());clamp();}}return true;}
+            @Override public boolean onDoubleTap(MotionEvent e){if(bitmap!=null){if(zoom>1.1f)fit();else{beginTransform();zoom=2.8f;matrix.postScale(zoom,zoom,e.getX(),e.getY());clamp();}}return true;}
             @Override public boolean onScroll(MotionEvent first,MotionEvent current,float dx,float dy){if(zoom>1.05f&&!scaling){matrix.postTranslate(-dx,-dy);clamp();}return true;}
         });
         image.setOnTouchListener((v,event)->{
@@ -68,21 +68,22 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
             pinch.onTouchEvent(event);gestures.onTouchEvent(event);
             if(event.getActionMasked()==MotionEvent.ACTION_UP&&!scaling&&zoom<=1.05f&&SystemClock.elapsedRealtime()>suppressSwipeUntil){float dx=event.getX()-downX,dy=event.getY()-downY;if(Math.abs(dx)>dp(70)&&Math.abs(dx)>Math.abs(dy)*1.3f)showPosition(position+(dx<0?1:-1));}
             return true;
-        });setContentView(root);showPosition(position);main.post(lockCheck);
+        });image.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol||b-t!=ob-ot)fit();});setContentView(root);showPosition(position);main.post(lockCheck);
     }
     private boolean valid(Entry e){return !closed&&e.account>=0&&UserConfig.getInstance(e.account).isClientActivated()&&UserConfig.getInstance(e.account).getClientUserId()==e.user&&TelePremiumCloudResetState.allowed(e.epoch)&&e.node.state!=CloudNode.STATE_DELETED;}
     private boolean active(){return entries!=null&&position>=0&&position<entries.size()&&valid(entries.get(position))&&TelePremiumCloudAccessGate.canExposeNode(this,entries.get(position).node);}
     private void showPosition(int next){
         if(next<0||next>=entries.size()||closed)return;position=next;if(!active()){finish();return;}TelePremiumCloudSecuritySession.touch(this);int token=++generation;
         if(download!=null)download.cancel();if(prefetch!=null)prefetch.cancel();Entry entry=entries.get(position);
-        title.setText((position+1)+" / "+entries.size()+"  ·  "+entry.node.name);progress.setVisibility(View.VISIBLE);error.setVisibility(View.GONE);image.setAlpha(.35f);zoom=1;
-        download=new CloudDownloadManager(entry.account);download.download(entry.node,(state,file,message)->{
+        title.setText((position+1)+" / "+entries.size()+"  ·  "+entry.node.name);progress.setVisibility(View.VISIBLE);error.setVisibility(View.GONE);image.setAlpha(1f);zoom=1;image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        main.postDelayed(()->{if(!closed&&token==generation&&progress.getVisibility()==View.VISIBLE){++generation;if(download!=null)download.cancel();failed(t("Photo is taking too long to load. Tap to retry.","Фото не загрузилось. Нажмите для повтора."));}},45000);
+        download=new CloudDownloadManager(entry.account,true);download.download(entry.node,(state,file,message)->{
             if(closed||token!=generation)return;if(!active()){finish();return;}
             if(state==CloudDownloadManager.ERROR){failed(message);return;}
             if(state!=CloudDownloadManager.OFFLINE_AVAILABLE||file==null)return;
-            DECODE.execute(()->{Bitmap result=null;try{result=decode(file);}catch(Throwable ignored){}final Bitmap decoded=result;
+            DECODE.execute(()->{Bitmap result=null;try{result=decode(file);}catch(Throwable failure){org.telegram.messenger.FileLog.e(failure);}final Bitmap decoded=result;
                 main.post(()->{if(closed||token!=generation||!active()){if(decoded!=null)decoded.recycle();if(!closed&&!active())finish();return;}if(decoded==null){failed(t("Image could not be decoded. Tap to retry.","Не удалось открыть изображение. Нажмите для повтора."));return;}
-                    Bitmap prior=bitmap;bitmap=decoded;image.setImageBitmap(bitmap);image.setAlpha(1);progress.setVisibility(View.GONE);image.post(this::fit);if(prior!=null&&prior!=decoded)prior.recycle();prefetchNext();
+                    Bitmap prior=bitmap;bitmap=decoded;image.setImageBitmap(bitmap);image.setAlpha(1);progress.setVisibility(View.GONE);fit();if(prior!=null&&prior!=decoded)prior.recycle();prefetchNext();
                 });
             });
         });
@@ -95,9 +96,13 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
         try{ExifInterface exif=new ExifInterface(file.getAbsolutePath());Matrix rotate=new Matrix();if(exif.isFlipped())rotate.postScale(-1,1);rotate.postRotate(exif.getRotationDegrees());if(!rotate.isIdentity()){Bitmap oriented=Bitmap.createBitmap(result,0,0,result.getWidth(),result.getHeight(),rotate,true);if(oriented!=result)result.recycle();result=oriented;}}catch(java.io.IOException ignored){}return result;
     }
     private void failed(String message){progress.setVisibility(View.GONE);error.setText(message==null?t("Image unavailable. Tap to retry.","Изображение недоступно. Нажмите для повтора."):message);error.setVisibility(View.VISIBLE);}
-    private void prefetchNext(){if(position+1>=entries.size()||!active())return;Entry next=entries.get(position+1);if(!valid(next))return;prefetch=new CloudDownloadManager(next.account);prefetch.download(next.node,(s,f,e)->{});}
-    private void fit(){if(bitmap==null||image.getWidth()==0||image.getHeight()==0)return;zoom=1;matrix.reset();float scale=Math.min(image.getWidth()/(float)bitmap.getWidth(),image.getHeight()/(float)bitmap.getHeight());matrix.postScale(scale,scale);matrix.postTranslate((image.getWidth()-bitmap.getWidth()*scale)/2,(image.getHeight()-bitmap.getHeight()*scale)/2);image.setImageMatrix(matrix);}
-    private void clamp(){if(bitmap==null)return;RectF bounds=new RectF(0,0,bitmap.getWidth(),bitmap.getHeight());matrix.mapRect(bounds);float dx=bounds.width()<image.getWidth()?(image.getWidth()-bounds.width())/2-bounds.left:bounds.left>0?-bounds.left:bounds.right<image.getWidth()?image.getWidth()-bounds.right:0;float dy=bounds.height()<image.getHeight()?(image.getHeight()-bounds.height())/2-bounds.top:bounds.top>0?-bounds.top:bounds.bottom<image.getHeight()?image.getHeight()-bounds.bottom:0;matrix.postTranslate(dx,dy);image.setImageMatrix(matrix);}
+    private void prefetchNext(){if(position+1>=entries.size()||!active())return;Entry next=entries.get(position+1);if(!valid(next))return;prefetch=new CloudDownloadManager(next.account,true);prefetch.download(next.node,(s,f,e)->{});}
+    private void beginTransform(){
+        if(image.getScaleType()!=ImageView.ScaleType.MATRIX){matrix.set(image.getImageMatrix());image.setScaleType(ImageView.ScaleType.MATRIX);image.setImageMatrix(matrix);}
+    }
+    /** ImageView fits only after its drawable and viewport are ready; no one-shot post/layout race. */
+    private void fit(){zoom=1;if(image!=null){image.setScaleType(ImageView.ScaleType.FIT_CENTER);image.invalidate();}}
+    private void clamp(){if(bitmap==null)return;android.graphics.drawable.Drawable drawable=image.getDrawable();if(drawable==null)return;RectF bounds=new RectF(0,0,drawable.getIntrinsicWidth(),drawable.getIntrinsicHeight());matrix.mapRect(bounds);float dx=bounds.width()<image.getWidth()?(image.getWidth()-bounds.width())/2-bounds.left:bounds.left>0?-bounds.left:bounds.right<image.getWidth()?image.getWidth()-bounds.right:0;float dy=bounds.height()<image.getHeight()?(image.getHeight()-bounds.height())/2-bounds.top:bounds.top>0?-bounds.top:bounds.bottom<image.getHeight()?image.getHeight()-bounds.bottom:0;matrix.postTranslate(dx,dy);image.setImageMatrix(matrix);}
     @Override public void onConfigurationChanged(android.content.res.Configuration c){super.onConfigurationChanged(c);if(image!=null)image.post(this::fit);}
     @Override protected void onDestroy(){closed=true;generation++;main.removeCallbacksAndMessages(null);if(download!=null)download.cancel();if(prefetch!=null)prefetch.cancel();if(image!=null)image.setImageDrawable(null);if(bitmap!=null){bitmap.recycle();bitmap=null;}super.onDestroy();}
 }
