@@ -992,7 +992,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/MainTabsActivity.java",
       "base_sha256": "8b9f92008595c4769a004d718d1ee96bafea34b91c1a34ba7d8836c24032f62a",
-      "sha256": "8e1d05a0e678bd39ed7cbee6cca32f3027e850ba9f2a1a4eb960de898d0a52db"
+      "sha256": "a2569783ae37a0299ed170cf7b85c95ea0ed15978469dc852f5c087dd6518e58"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/PeerColorActivity.java",
@@ -1067,7 +1067,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumClassicDrawer.java",
       "base_sha256": null,
-      "sha256": "56eb2e4620c9dee174d26492f17e35517160bd9951ddc3f14eb5a6419929110b"
+      "sha256": "046b8fa52b26b7ba8b7309e5a02bf0bd14e7420cca12b59819e6d423fc5dbce3"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumClassicSettingsActivity.java",
