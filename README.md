@@ -57,6 +57,10 @@ TelePremium includes ten global presets integrated through Telegram theme keys r
 
 The Drawer day/night control is replaced by the current-theme pictogram and a compact quick selector. Long press opens the full Appearance screen. Drawer profile headers and Cloud use lightweight runtime artwork so the selected theme affects both color tokens and the surrounding visual atmosphere without large bitmap bundles.
 
+## Classic Telegram 11.x / Modern Telegram 13.1.1
+
+The `feature/classic-telegram-11x` branch adds a **classic Telegram 11.x shell as default**, including a left account drawer and classic settings presentation. The original Telegram 13.1.1 tabs/settings remain available through the interface selector. Both shells run against the same Telegram 13.1.1 backend and installed account data. Release signing compatibility is verified during CI, and the arm64 update versionCode is increased to 723789. See [classic shell details](docs/CLASSIC_TELEGRAM_11X.md).
+
 ## Telegram 13.1.1 port
 
 Branch `port/tg-13.1.1`: TelePremium on Telegram Android 13.1.1 as one SHA-checked overlay (`patches/tg13`). See `docs/TG13_PORT.md`.
