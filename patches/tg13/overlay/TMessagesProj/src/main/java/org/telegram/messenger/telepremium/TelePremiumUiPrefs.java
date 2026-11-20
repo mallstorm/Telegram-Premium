@@ -13,6 +13,15 @@ public final class TelePremiumUiPrefs {
         return ApplicationLoader.applicationContext.getSharedPreferences("telepremium_ui", Context.MODE_PRIVATE);
     }
 
+    /** Classic Telegram 11.x is the default shell; Telegram 13.1.1 remains the engine. */
+    public static boolean classicUiEnabled() {
+        return prefs().getBoolean("classic_ui_11x_enabled", true);
+    }
+
+    public static void setClassicUiEnabled(boolean enabled) {
+        prefs().edit().putBoolean("classic_ui_11x_enabled", enabled).apply();
+    }
+
     /** Telegram Premium / Stars / Business / Gift rows in Settings (off: they duplicated TelePremium). */
     public static boolean showTelegramPremiumBlock() { return prefs().getBoolean("show_tg_premium", false); }
 
