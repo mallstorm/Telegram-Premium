@@ -128,6 +128,7 @@ import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
+import org.telegram.messenger.telepremium.TelePremiumUiPrefs;
 import org.telegram.messenger.telepremium.cloud.TelePremiumServicePeerRegistry;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudAccessGate;
 import org.telegram.messenger.XiaomiUtilities;
@@ -2824,11 +2825,35 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private MainTabsActivityController mainTabsActivityController;
+    private Runnable classicDrawerAction;
 
     public void setMainTabsActivityController(MainTabsActivityController controller) {
         mainTabsActivityController = controller;
     }
 
+    void setClassicDrawerAction(Runnable action) {
+        classicDrawerAction = action;
+    }
+
+    boolean canOpenClassicDrawer() {
+        return classicDrawerAction != null && actionBar != null && !searching
+                && !actionBar.isActionModeShowed()
+                && (filterTabsView == null || !filterTabsView.isEditing())
+                && (rightSlidingDialogContainer == null || !rightSlidingDialogContainer.hasFragment());
+    }
+
+    private void setClassicDrawerButton(ActionBar bar) {
+        MenuDrawable menu = new MenuDrawable();
+        bar.setBackButtonDrawable(menu);
+        bar.setBackButtonContentDescription(getString(R.string.AccDescrOpenMenu));
+    }
+
+    private void updateClassicActionBar(float searchProgress) {
+        actionBar.setBackgroundColor(ColorUtils.blendARGB(TelePremiumClassicDrawer.HEADER_COLOR, Color.TRANSPARENT, searchProgress));
+        actionBar.setTitleColor(Color.WHITE);
+        actionBar.setItemsColor(ColorUtils.blendARGB(Color.WHITE, getThemedColor(Theme.key_actionBarActionModeDefaultIcon), searchProgress), false);
+        actionBar.setItemsBackgroundColor(ColorUtils.blendARGB(0x33ffffff, getThemedColor(Theme.key_actionBarActionModeDefaultSelector), searchProgress), false);
+    }
 
     private NotificationCenter.ObserversGroup observersGroup;
 
@@ -3162,6 +3187,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
             @Override
             public void showActionMode(boolean animated, View extraView, View showingView, View[] hidingViews, boolean[] hideView, View translationView, int translation) {
+                if (classicDrawerAction != null && getBackButtonDrawable() instanceof MenuDrawable) {
+                    setBackButtonDrawable(new BackDrawable(false));
+                    setBackButtonContentDescription(getString(R.string.AccDescrGoBack));
+                }
                 super.showActionMode(animated, extraView, showingView, hidingViews, hideView, translationView, translation);
                 animatorActionModeVisible.setValue(true, animated);
             }
@@ -3169,6 +3198,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             @Override
             public void hideActionMode() {
                 super.hideActionMode();
+                if (classicDrawerAction != null && !searching) {
+                    setClassicDrawerButton(this);
+                }
                 animatorActionModeVisible.setValue(false, true);
             }
         };
@@ -3385,6 +3417,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
                 searching = false;
                 searchWas = false;
+                if (classicDrawerAction != null && !actionBar.isActionModeShowed()) {
+                    setClassicDrawerButton(actionBar);
+                }
                 if (viewPages[0] != null) {
                     viewPages[0].listView.setEmptyView(folderId == 0 ? viewPages[0].progressView : null);
                     showSearch(false, false, true);
@@ -3515,12 +3550,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else {
                 statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
                 statusDrawable.center = true;
-                logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();
-                logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());
-                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
-                SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));
-                ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                actionBar.setTitle(ssb, statusDrawable);
+                if (classicDrawerAction != null && searchString == null) {
+                    setClassicDrawerButton(actionBar);
+                    actionBar.setTitle(getString(R.string.AppName), statusDrawable);
+                } else {
+                    logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();
+                    logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());
+                    logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
+                    SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));
+                    ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    actionBar.setTitle(ssb, statusDrawable);
+                }
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
             }
             if (folderId == 0) {
@@ -3897,6 +3937,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         }
                     } else if (onlySelect || folderId != 0 || communityId != 0) {
                         finishFragment();
+                    } else if (searching && classicDrawerAction != null) {
+                        actionBar.closeSearchField();
+                    } else if (canOpenClassicDrawer()) {
+                        classicDrawerAction.run();
                     }
                 } else if (id == 1) {
                     if (getParentActivity() == null) {
@@ -5427,7 +5471,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             FilesMigrationService.checkBottomSheet(this);
         }
-        actionBar.setDrawBlurBackground(contentView);
+        if (classicDrawerAction == null) {
+            actionBar.setDrawBlurBackground(contentView);
+        } else {
+            updateClassicActionBar(searchAnimationProgress);
+        }
 
         rightSlidingDialogContainer = new RightSlidingDialogContainer(context) {
 
@@ -7742,6 +7790,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             int color2 = getThemedColor(Theme.key_actionBarActionModeDefaultSelector);
             actionBar.setItemsBackgroundColor(ColorUtils.blendARGB(color1, color2, searchAnimationProgress), false);
         }
+        if (classicDrawerAction != null && actionBar != null) {
+            updateClassicActionBar(progress);
+        }
         if (fragmentView != null) {
             fragmentView.invalidate();
         }
@@ -8071,7 +8122,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     searchObject = null;
                 }
             }
-            boolean canOpenInRightSlidingView = !(LocaleController.isRTL || searching || (AndroidUtilities.isTablet() && folderId != 0)) && LiteMode.isEnabled(LiteMode.FLAG_CHAT_FORUM_TWOCOLUMN) && !TMP_DISABLE_TOPICS_TWO_COLUMNS && communityId == 0;
+            boolean useTwoColumnTopics = !TelePremiumUiPrefs.classicUiEnabled()
+                    && LiteMode.isEnabled(LiteMode.FLAG_CHAT_FORUM_TWOCOLUMN)
+                    && !TMP_DISABLE_TOPICS_TWO_COLUMNS && communityId == 0;
+            boolean canOpenInRightSlidingView = useTwoColumnTopics
+                    && !(LocaleController.isRTL || searching || AndroidUtilities.isTablet() && folderId != 0);
             args.putInt("dialog_folder_id", folderId);
             args.putInt("dialog_filter_id", filterId);
             if (AndroidUtilities.isTablet() && (!getMessagesController().isForum(dialogId) || !canOpenInRightSlidingView)) {
@@ -8145,7 +8200,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                             ChatActivity activity = new ChatActivity(args);
                             ForumUtilities.applyTopic(activity, MessagesStorage.TopicKey.of(-chat.id, getMessagesController().getForumLastTopicId(chat.id)));
                             presentFragment(activity);
-                        } else if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_FORUM_TWOCOLUMN) || TMP_DISABLE_TOPICS_TWO_COLUMNS || communityId != 0) {
+                        } else if (!useTwoColumnTopics) {
                             if (needOpenChatActivity) {
                                 presentFragment(highlightFoundQuote(new ChatActivity(args), msg));
                             } else {
@@ -12751,6 +12806,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public boolean isLightStatusBar() {
+        if (classicDrawerAction != null && !searching && actionBar != null && !actionBar.isActionModeShowed()) {
+            return false;
+        }
         if (!searching && rightSlidingDialogContainer != null && rightSlidingDialogContainer.getFragment() != null) {
             return rightSlidingDialogContainer.getFragment().isLightStatusBar();
         }

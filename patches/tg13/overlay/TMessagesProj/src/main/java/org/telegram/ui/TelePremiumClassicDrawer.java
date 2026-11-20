@@ -32,7 +32,7 @@ import org.telegram.messenger.telepremium.cloud.TelePremiumCloudAccessGate;
  * No old protocol, database or user-account implementation is reinstated.
  */
 public final class TelePremiumClassicDrawer extends FrameLayout {
-    private static final int BLUE = 0xff598fbd;
+    static final int HEADER_COLOR = 0xff598fbd;
     private static final int INK = 0xff454545;
     private static final int ICON = 0xff92999d;
     private final MainTabsActivity host;
@@ -40,6 +40,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
     private final LinearLayout rows;
     private final View scrim;
     private final int width;
+    private int statusBarPadding;
     private boolean expanded;
     private boolean open;
 
@@ -172,11 +173,21 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         });
     }
 
+    void setStatusBarPadding(int padding) {
+        if (statusBarPadding != padding) {
+            statusBarPadding = padding;
+            if (open) {
+                rebuild();
+            }
+        }
+    }
+
     public void rebuild() {
         rows.removeAllViews();
         FrameLayout head = new FrameLayout(getContext());
-        head.setBackgroundColor(BLUE);
-        rows.addView(head, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(205)));
+        head.setBackgroundColor(HEADER_COLOR);
+        head.setPadding(0, statusBarPadding, 0, 0);
+        rows.addView(head, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(205) + statusBarPadding));
         int active = UserConfig.selectedAccount;
         TLRPC.User user = UserConfig.getInstance(active).getCurrentUser();
         FrameLayout.LayoutParams photo = new FrameLayout.LayoutParams(AndroidUtilities.dp(69), AndroidUtilities.dp(69), Gravity.TOP | Gravity.LEFT);
@@ -214,7 +225,11 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         }
         row("Мой профиль", android.R.drawable.ic_menu_myplaces, () -> host.presentFragment(new UserInfoActivity()));
         row("Создать группу", android.R.drawable.ic_menu_add, () -> host.presentFragment(new GroupCreateActivity(new Bundle())));
-        row("Контакты", android.R.drawable.ic_menu_agenda, () -> host.classicOpenTab(1));
+        row("Контакты", android.R.drawable.ic_menu_agenda, () -> {
+            Bundle args = new Bundle();
+            args.putBoolean("needPhonebook", true);
+            host.presentFragment(new ContactsActivity(args));
+        });
         row("Звонки", android.R.drawable.ic_menu_call, () -> {
             Bundle args = new Bundle();
             args.putBoolean("needFinishFragment", false);

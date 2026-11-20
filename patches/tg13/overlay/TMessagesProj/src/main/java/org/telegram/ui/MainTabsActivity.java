@@ -205,7 +205,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         Bulletin.Delegate delegate = new Bulletin.Delegate() {
             @Override
             public int getBottomOffset(int tag) {
-                return navigationBarHeight + dp(DialogsActivity.MAIN_TABS_HEIGHT + DialogsActivity.MAIN_TABS_MARGIN);
+                return navigationBarHeight + (classicDrawer == null ? dp(DialogsActivity.MAIN_TABS_HEIGHT + DialogsActivity.MAIN_TABS_MARGIN) : 0);
             }
         };
 
@@ -216,6 +216,50 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     @Override
     protected FrameLayout createContentView(Context context) {
         return new FrameLayout(context) {
+            private boolean trackDrawerSwipe;
+            private float drawerSwipeStartX;
+            private float drawerSwipeStartY;
+
+            @Override
+            public boolean onInterceptTouchEvent(MotionEvent event) {
+                if (classicDrawer != null && !classicDrawer.isOpened()) {
+                    switch (event.getActionMasked()) {
+                        case MotionEvent.ACTION_DOWN:
+                            drawerSwipeStartX = event.getX();
+                            drawerSwipeStartY = event.getY();
+                            trackDrawerSwipe = drawerSwipeStartX <= insetLeft + dp(22)
+                                    && dialogsActivity != null && getCurrentVisibleFragment() == dialogsActivity
+                                    && dialogsActivity.canOpenClassicDrawer();
+                            break;
+                        case MotionEvent.ACTION_MOVE:
+                            if (trackDrawerSwipe) {
+                                float dx = event.getX() - drawerSwipeStartX;
+                                float dy = Math.abs(event.getY() - drawerSwipeStartY);
+                                if (dx > dp(32) && dx > 2 * dy) {
+                                    trackDrawerSwipe = false;
+                                    classicDrawer.open();
+                                    return true;
+                                }
+                                if (dy > dp(16) || dx < -dp(16)) {
+                                    trackDrawerSwipe = false;
+                                }
+                            }
+                            break;
+                        case MotionEvent.ACTION_POINTER_DOWN:
+                        case MotionEvent.ACTION_UP:
+                        case MotionEvent.ACTION_CANCEL:
+                            trackDrawerSwipe = false;
+                            break;
+                    }
+                }
+                return super.onInterceptTouchEvent(event);
+            }
+
+            @Override
+            public boolean onTouchEvent(MotionEvent event) {
+                return (classicDrawer != null && classicDrawer.isOpened()) || super.onTouchEvent(event);
+            }
+
             @Override
             protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
                 super.onLayout(changed, left, top, right, bottom);
@@ -413,53 +457,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         updateLayout();
         checkUnreadCount(false);
         if (TelePremiumUiPrefs.classicUiEnabled()) {
-            // Preserve Telegram 13 MainTabs engine; replace only the visible chrome.
             tabsViewWrapper.setVisibility(View.GONE);
             fadeView.setVisibility(View.GONE);
-            FrameLayout classicHeader = new FrameLayout(context);
-            classicHeader.setBackgroundColor(0xff598fbd);
-            FrameLayout.LayoutParams barParams = new FrameLayout.LayoutParams(-1, dp(56), Gravity.TOP);
-            barParams.topMargin = AndroidUtilities.statusBarHeight;
-            contentView.addView(classicHeader, barParams);
-            TextView hamburger = new TextView(context);
-            hamburger.setText("☰");
-            hamburger.setTextColor(0xffffffff);
-            hamburger.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
-            hamburger.setGravity(Gravity.CENTER);
-            classicHeader.addView(hamburger, new FrameLayout.LayoutParams(dp(56), -1, Gravity.LEFT));
-            TextView title = new TextView(context);
-            title.setText("Telegram");
-            title.setTextColor(0xffffffff);
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-            title.setGravity(Gravity.CENTER_VERTICAL);
-            title.setTypeface(null, android.graphics.Typeface.BOLD);
-            FrameLayout.LayoutParams titleParams = new FrameLayout.LayoutParams(-1, -1);
-            titleParams.leftMargin = dp(68);
-            titleParams.rightMargin = dp(52);
-            classicHeader.addView(title, titleParams);
             classicDrawer = new TelePremiumClassicDrawer(this, context);
-            // Slim edge gesture zone: swipe right to open the classic Telegram drawer.
-            View swipeEdge = new View(context);
-            FrameLayout.LayoutParams edgeParams = new FrameLayout.LayoutParams(dp(22), -1, Gravity.LEFT);
-            contentView.addView(swipeEdge, edgeParams);
-            swipeEdge.setOnTouchListener(new View.OnTouchListener() {
-                private float startX, startY;
-                @Override public boolean onTouch(View view, MotionEvent event) {
-                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                        startX = event.getRawX();
-                        startY = event.getRawY();
-                        return true;
-                    }
-                    if (event.getActionMasked() == MotionEvent.ACTION_UP) {
-                        if (event.getRawX() - startX > dp(44)
-                                && Math.abs(event.getRawY() - startY) < dp(80)) classicDrawer.open();
-                        return true;
-                    }
-                    return true;
-                }
-            });
-            contentView.addView(classicDrawer, new FrameLayout.LayoutParams(-1, -1));
-            hamburger.setOnClickListener(v -> classicDrawer.open());
+            contentView.addView(classicDrawer, LayoutHelper.createFrameMatchParent());
         }
         return contentView;
     }
@@ -860,27 +861,28 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         return result;
     }
 
-    /** Called by the classic drawer without altering Telegram 13 session/navigation state. */
-    public void classicOpenTab(int position) {
-        if (position == POSITION_PROFILE) {
-            presentFragment(new TelePremiumClassicSettingsActivity());
-            return;
+    private void openClassicDrawer() {
+        if (classicDrawer != null) {
+            classicDrawer.open();
         }
-        if (position != POSITION_CHATS && position != POSITION_CONTACTS) return;
-        selectTab(position, true);
-        viewPager.scrollToPosition(position);
     }
 
     public DialogsActivity prepareDialogsActivity(Bundle bundle) {
-        if (bundle == null) {
-            bundle = new Bundle();
-        }
-
-        bundle.putBoolean("hasMainTabs", true);
-        dialogsActivity = new DialogsActivity(bundle);
-        dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
+        dialogsActivity = createDialogsActivity(bundle == null ? new Bundle() : bundle);
         putFragmentAtPosition(POSITION_CHATS, dialogsActivity);
         return dialogsActivity;
+    }
+
+    private DialogsActivity createDialogsActivity(Bundle args) {
+        boolean classic = TelePremiumUiPrefs.classicUiEnabled();
+        args.putBoolean("hasMainTabs", !classic);
+        DialogsActivity dialogs = new DialogsActivity(args);
+        if (classic) {
+            dialogs.setClassicDrawerAction(this::openClassicDrawer);
+        } else {
+            dialogs.setMainTabsActivityController(new MainTabsActivityControllerImpl());
+        }
+        return dialogs;
     }
 
     @Override
@@ -893,10 +895,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             return new ContactsActivity(args);
 
         } else if (position == POSITION_CHATS) {
-            Bundle args = new Bundle();
-            args.putBoolean("hasMainTabs", true);
-            dialogsActivity = new DialogsActivity(args);
-            dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
+            dialogsActivity = createDialogsActivity(new Bundle());
             return dialogsActivity;
         } else if (position == POSITION_PROFILE) {
             Bundle args = new Bundle();
@@ -961,6 +960,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private boolean canScrollInternal(MotionEvent ev, boolean forward) {
+        if (classicDrawer != null) {
+            return false;
+        }
         final BaseFragment fragment = getCurrentVisibleFragment();
         if (fragment instanceof TabFragmentDelegate) {
             final TabFragmentDelegate delegate = (TabFragmentDelegate) fragment;
@@ -1015,6 +1017,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
 
         tabsViewWrapper.setPadding(systemInsets.left, 0, systemInsets.right, navigationBarHeight);
+        if (classicDrawer != null) {
+            classicDrawer.setPadding(systemInsets.left, 0, systemInsets.right, navigationBarHeight);
+            classicDrawer.setStatusBarPadding(systemInsets.top);
+        }
 
         final WindowInsetsCompat consumed = isUpdateLayoutVisible ?
             insets.inset(0, 0, 0, navigationBarHeight) : insets;

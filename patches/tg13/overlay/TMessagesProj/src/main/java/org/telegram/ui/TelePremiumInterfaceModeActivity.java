@@ -35,8 +35,8 @@ public final class TelePremiumInterfaceModeActivity extends BaseFragment {
         explanation.setTextColor(0xff666666);
         explanation.setPadding(dp(24), dp(20), dp(24), dp(20));
         body.addView(explanation);
-        addChoice(body, context, "Классический Telegram 11.x", "Боковое меню и классические настройки — по умолчанию", true);
-        addChoice(body, context, "Современный Telegram 13.1.1", "Пять нижних вкладок и новые настройки", false);
+        addChoice(body, context, "Классический Telegram 11.x", "Боковое меню, отдельный список тем и классические настройки", true);
+        addChoice(body, context, "Современный Telegram 13.1.1", "Нижняя навигация, новые настройки и вкладки тем в поддерживаемых группах", false);
         fragmentView = body;
         return fragmentView;
     }

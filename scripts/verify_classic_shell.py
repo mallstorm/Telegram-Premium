@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Guard the optional Telegram-11 classic renderer on the Telegram-13.1.1 source."""
 from pathlib import Path
-import json
 import re
 
 root = Path(__file__).resolve().parents[1]
@@ -11,7 +10,9 @@ def src(rel):
     return (java / rel).read_text(encoding="utf-8")
 
 prefs = src("org/telegram/messenger/telepremium/TelePremiumUiPrefs.java")
+chat_object = src("org/telegram/messenger/ChatObject.java")
 main = src("org/telegram/ui/MainTabsActivity.java")
+dialogs = src("org/telegram/ui/DialogsActivity.java")
 settings = src("org/telegram/ui/SettingsActivity.java")
 drawer = src("org/telegram/ui/TelePremiumClassicDrawer.java")
 classic = src("org/telegram/ui/TelePremiumClassicSettingsActivity.java")
@@ -22,7 +23,18 @@ checks = {
     "classic preference can persist": 'setClassicUiEnabled(boolean enabled)' in prefs,
     "classic drawer is attached conditionally": 'if (TelePremiumUiPrefs.classicUiEnabled())' in main and 'new TelePremiumClassicDrawer(this, context)' in main,
     "classic hides modern tabs": 'tabsViewWrapper.setVisibility(View.GONE)' in main,
+    "classic chat list omits the bottom tab inset": 'args.putBoolean("hasMainTabs", !classic)' in main,
+    "classic drawer opens from the native dialog toolbar": 'dialogs.setClassicDrawerAction(this::openClassicDrawer)' in main
+        and 'bar.setBackButtonDrawable(menu)' in dialogs and 'classicDrawerAction.run()' in dialogs,
     "drawer has a working back route": 'classicDrawer.isOpened()' in main,
+    "forum tabs use the modern preference for regular group forums":
+        'tabsEnabled && (!isForum(chat) || isMonoForum(chat) || !TelePremiumUiPrefs.classicUiEnabled())' in chat_object,
+    "classic opens a standalone topics list and honors view-as-messages":
+        re.search(r'boolean useTwoColumnTopics = !TelePremiumUiPrefs\.classicUiEnabled\(\).*?'
+                  r'boolean needOpenChatActivity = dialog != null && dialog\.view_forum_as_messages;.*?'
+                  r'else if \(!useTwoColumnTopics\) \{\s*'
+                  r'if \(needOpenChatActivity\) \{[^}]*ChatActivity\(args\)[^}]*\}\s*'
+                  r'else \{[^}]*TopicsFragment\(args\)', dialogs, re.DOTALL) is not None,
     "account switching retains Telegram 13 native path": 'LaunchActivity.instance.switchToAccount(account, true)' in drawer,
     "up to ten accounts by native account count": 'UserConfig.MAX_ACCOUNT_COUNT' in drawer,
     "core settings route to native screens": all(v in classic for v in ('PrivacySettingsActivity()', 'NotificationsSettingsActivity()', 'DataSettingsActivity()', 'FiltersSetupActivity()', 'SessionsActivity(0)', 'LanguageSelectActivity()')),

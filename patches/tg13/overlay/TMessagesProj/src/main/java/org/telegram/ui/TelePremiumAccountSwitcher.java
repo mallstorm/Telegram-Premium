@@ -17,6 +17,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
+import org.telegram.messenger.telepremium.TelePremiumUiPrefs;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -104,8 +105,15 @@ final class TelePremiumAccountSwitcher {
         box.setOnClickListener(v -> {
             if (selected) return;
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            // Stay in Settings: rebuild the tabs for the new account but open them on the Settings page.
-            if (LaunchActivity.instance != null) LaunchActivity.instance.switchToAccount(account, true, obj -> MainTabsActivity.openedOnSettings());
+            LaunchActivity activity = LaunchActivity.instance;
+            if (activity != null) {
+                if (TelePremiumUiPrefs.classicUiEnabled()) {
+                    activity.switchToAccount(account, true);
+                    activity.presentFragment(new SettingsActivity());
+                } else {
+                    activity.switchToAccount(account, true, obj -> MainTabsActivity.openedOnSettings());
+                }
+            }
         });
         box.setOnLongClickListener(v -> {
             fragment.presentFragment(new TelePremiumNetworkProfileActivity(account));

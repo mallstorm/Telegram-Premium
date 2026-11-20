@@ -4,18 +4,18 @@ Branch: `feature/classic-telegram-11x`. The branch derives from `port/tg-13.1.1`
 
 ## UI variants
 
-- **Classic (default):** the 11.x blue toolbar, swipe-out left account drawer, account list/unread badges, classic settings rows and entry points to the existing Telegram 13.1.1 screens.
-- **Modern:** existing Telegram 13.1.1 five-tab interface and `SettingsActivity`.
+- **Classic (default):** the blue chat list toolbar, swipe-out left account drawer, account list/unread badges and classic settings. Regular group forums open a separate, full-width topics list. Opening a topic from that list shows its conversation with a back route to the list. Groups set to **View as Messages** open the message view.
+- **Modern:** the Telegram 13.1.1 five-item navigation, `SettingsActivity`, and the usual forum layouts, including tabs in groups that support them.
 - Selection: `telepremium_ui / classic_ui_11x_enabled` in Android SharedPreferences, default `true`. The selector is available in both shells and recreates only the Activity to rebuild visible UI.
-- There is no Telegram protocol rollback. Both modes use the same app package, Telegram accounts and storage, Vault V3, media, proxy networks, and messages.
+- Both modes use the Telegram 13.1.1 protocol, app package, Telegram accounts and storage, Vault V3, media, and proxy networks. Switching modes preserves the group's **View as Messages** setting.
 
 ## Source integration
 
-- `TelePremiumClassicDrawer.java` overlays the new `MainTabsActivity`; it does not reinstate the removed `DrawerLayoutContainer` of Telegram 11.
+- `MainTabsActivity.java` hosts `TelePremiumClassicDrawer.java`. The drawer button sits in the native dialog action bar with the existing search controls, and the classic dialog screen uses normal navigation bar insets without space for the hidden tabs.
+- `DialogsActivity.java` routes regular group forums to the separate topic list in Classic mode. The group tab check in `ChatObject.java` also applies inside conversations reached through links and search. Both modes use the 13.1.1 topic list, message composer, unread state and drafts.
 - `TelePremiumClassicSettingsActivity.java` provides the classic settings presentation, routing to the existing Telegram 13 settings activities rather than copying logic.
 - `TelePremiumInterfaceModeActivity.java` controls the mode.
 - Modern `SettingsActivity.java` retains access to the selector.
-- The original five-tab UI code is retained unchanged for modern mode. In classic mode its **visual panel** is hidden, and the classic toolbar/drawer provide navigation.
 
 ## Update and signing compatibility
 
@@ -27,4 +27,4 @@ The build retains the release keystore selection already present in `.github/wor
 
 ## Validation
 
-Run `python3 scripts/verify_classic_shell.py` and `python3 scripts/verify_tg13.py` after applying the overlay, followed by full Java/resources and release APK build. The automated source check is not a substitute for an Android on-device test: verify screen insets, account switch, drawer gestures, cloud security, media, and mode switching.
+Run `python3 scripts/verify_classic_shell.py` and `python3 scripts/verify_tg13.py` after applying the overlay, followed by Java/resources compilation and a release APK build. On Android, open the same forum in both modes, open a topic and go back, check **View as Messages**, and open a topic from search or a link. Check search, multi-select, the drawer gesture, system bar insets, account switching and persistence after reopening the app.
