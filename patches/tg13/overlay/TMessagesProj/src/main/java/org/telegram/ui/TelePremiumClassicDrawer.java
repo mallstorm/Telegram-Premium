@@ -213,6 +213,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
             line();
         }
         row("Мой профиль", android.R.drawable.ic_menu_myplaces, () -> host.presentFragment(new UserInfoActivity()));
+        row("Создать группу", android.R.drawable.ic_menu_add, () -> host.presentFragment(new GroupCreateActivity(new Bundle())));
         row("Контакты", android.R.drawable.ic_menu_agenda, () -> host.classicOpenTab(1));
         row("Звонки", android.R.drawable.ic_menu_call, () -> {
             Bundle args = new Bundle();
@@ -236,6 +237,14 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         row("Центр TelePremium", android.R.drawable.ic_menu_manage, () -> host.presentFragment(new TelePremiumCenterActivity()));
         row("Внешний вид", android.R.drawable.ic_menu_edit, () -> host.presentFragment(new TelePremiumAppearanceActivity()));
         line();
+        row("Пригласить друзей", android.R.drawable.ic_menu_share, () -> {
+            if (host.getParentActivity() != null) {
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_TEXT, "Telegram: https://telegram.org/");
+                host.getParentActivity().startActivity(Intent.createChooser(send, "Пригласить друзей"));
+            }
+        });
         row("Выбрать интерфейс", android.R.drawable.ic_menu_set_as, () -> host.presentFragment(new TelePremiumInterfaceModeActivity()));
     }
 
