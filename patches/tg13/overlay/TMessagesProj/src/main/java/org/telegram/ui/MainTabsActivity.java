@@ -53,6 +53,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
+import org.telegram.messenger.telepremium.TelePremiumUiPrefs;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -115,6 +116,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     private UpdateLayoutWrapper updateLayoutWrapper;
     private FrameLayout tabsViewWrapper;
+    private TelePremiumClassicDrawer classicDrawer;
     private MainTabsLayout tabsView;
     private BlurredBackgroundDrawable tabsViewBackground;
     private View fadeView;
@@ -410,6 +412,35 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         updateLayout();
         checkUnreadCount(false);
+        if (TelePremiumUiPrefs.classicUiEnabled()) {
+            // Preserve Telegram 13 MainTabs engine; replace only the visible chrome.
+            tabsViewWrapper.setVisibility(View.GONE);
+            fadeView.setVisibility(View.GONE);
+            FrameLayout classicHeader = new FrameLayout(context);
+            classicHeader.setBackgroundColor(0xff598fbd);
+            FrameLayout.LayoutParams barParams = new FrameLayout.LayoutParams(-1, dp(56), Gravity.TOP);
+            barParams.topMargin = AndroidUtilities.statusBarHeight;
+            contentView.addView(classicHeader, barParams);
+            TextView hamburger = new TextView(context);
+            hamburger.setText("☰");
+            hamburger.setTextColor(0xffffffff);
+            hamburger.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
+            hamburger.setGravity(Gravity.CENTER);
+            classicHeader.addView(hamburger, new FrameLayout.LayoutParams(dp(56), -1, Gravity.LEFT));
+            TextView title = new TextView(context);
+            title.setText("Telegram");
+            title.setTextColor(0xffffffff);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            title.setGravity(Gravity.CENTER_VERTICAL);
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            FrameLayout.LayoutParams titleParams = new FrameLayout.LayoutParams(-1, -1);
+            titleParams.leftMargin = dp(68);
+            titleParams.rightMargin = dp(52);
+            classicHeader.addView(title, titleParams);
+            classicDrawer = new TelePremiumClassicDrawer(this, context);
+            contentView.addView(classicDrawer, new FrameLayout.LayoutParams(-1, -1));
+            hamburger.setOnClickListener(v -> classicDrawer.open());
+        }
         return contentView;
     }
 
@@ -792,6 +823,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     public boolean onBackPressed(boolean invoked) {
+        if (classicDrawer != null && classicDrawer.isOpened()) {
+            if (invoked) classicDrawer.close();
+            return false;
+        }
         final boolean result = super.onBackPressed(invoked);
         if (result) {
             final int startPosition = getStartPosition();
@@ -803,6 +838,17 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             }
         }
         return result;
+    }
+
+    /** Called by the classic drawer without altering Telegram 13 session/navigation state. */
+    public void classicOpenTab(int position) {
+        if (position == POSITION_PROFILE) {
+            presentFragment(new TelePremiumClassicSettingsActivity());
+            return;
+        }
+        if (position != POSITION_CHATS && position != POSITION_CONTACTS) return;
+        selectTab(position, true);
+        viewPager.scrollToPosition(position);
     }
 
     public DialogsActivity prepareDialogsActivity(Bundle bundle) {
