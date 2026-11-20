@@ -438,6 +438,26 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             titleParams.rightMargin = dp(52);
             classicHeader.addView(title, titleParams);
             classicDrawer = new TelePremiumClassicDrawer(this, context);
+            // Slim edge gesture zone: swipe right to open the classic Telegram drawer.
+            View swipeEdge = new View(context);
+            FrameLayout.LayoutParams edgeParams = new FrameLayout.LayoutParams(dp(22), -1, Gravity.LEFT);
+            contentView.addView(swipeEdge, edgeParams);
+            swipeEdge.setOnTouchListener(new View.OnTouchListener() {
+                private float startX, startY;
+                @Override public boolean onTouch(View view, MotionEvent event) {
+                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                        startX = event.getRawX();
+                        startY = event.getRawY();
+                        return true;
+                    }
+                    if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                        if (event.getRawX() - startX > dp(44)
+                                && Math.abs(event.getRawY() - startY) < dp(80)) classicDrawer.open();
+                        return true;
+                    }
+                    return true;
+                }
+            });
             contentView.addView(classicDrawer, new FrameLayout.LayoutParams(-1, -1));
             hamburger.setOnClickListener(v -> classicDrawer.open());
         }
@@ -1094,6 +1114,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void checkUi_fadeView() {
+        if (TelePremiumUiPrefs.classicUiEnabled()) {
+            if (fadeView != null) fadeView.setVisibility(View.GONE);
+            return;
+        }
         if (viewPager == null || fadeView == null) {
             return;
         }
