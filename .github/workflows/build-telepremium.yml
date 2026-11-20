@@ -2,14 +2,14 @@ name: Build TelePremium APK
 
 on:
   push:
-    branches: [ port/tg-13.1.1 ]
+    branches: [ port/tg-13.1.1, feature/classic-telegram-11x ]
     tags: [ 'v*' ]
     paths-ignore:
       - "**.md"
       - "docs/**"
   workflow_dispatch:
   pull_request:
-    branches: [ main, port/tg-13.1.1 ]
+    branches: [ main, port/tg-13.1.1, feature/classic-telegram-11x ]
 
 concurrency:
   group: build-telepremium-${{ github.ref }}
@@ -94,6 +94,7 @@ jobs:
           test "$(git -C upstream/Telegram rev-parse HEAD)" = "$(python3 -c "import json;print(json.load(open('patches/tg13/manifest.json'))['upstream_revision'])")"
           python3 scripts/apply_overlay.py patches/tg13
           python3 scripts/verify_tg13.py
+          python3 scripts/verify_classic_shell.py
           java scripts/CheckJavaSyntax.java upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium
 
       - name: Pure-Java tests
@@ -226,6 +227,14 @@ jobs:
           if [ "$ABIS" != "arm64-v8a" ]; then echo "::error::APK must contain only arm64-v8a native libraries, got: $ABIS"; exit 1; fi
           aapt2 dump badging "artifacts/$APK_NAME" | head -n 3 | tee diagnostics/apk-badging.txt
           apksigner verify --print-certs "artifacts/$APK_NAME" | tee diagnostics/apk-signature.txt
+          # Prevent accidental key rotation: an APK with a different signer cannot update
+          # the installed com.telepremium.messenger without losing app data.
+          EXPECTED_CERT_SHA256="a08d7dc323ddf71ef3201944397e0d3cce7d40847263e11f328b68bbe19229ab"
+          ACTUAL_CERT_SHA256="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' diagnostics/apk-signature.txt | head -n 1 | tr -d '\r')"
+          if [ "$ACTUAL_CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::Release signing certificate differs from the installed TelePremium builds"
+            exit 1
+          fi
           sha256sum "artifacts/$APK_NAME" | tee "artifacts/$APK_NAME.sha256"
           if [ "${{ steps.api.outputs.configured }}" != "true" ]; then
             ls -lh artifacts > diagnostics/validation-build.txt
