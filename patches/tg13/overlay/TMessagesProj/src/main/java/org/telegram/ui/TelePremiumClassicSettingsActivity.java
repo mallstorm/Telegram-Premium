@@ -23,6 +23,7 @@ import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.Stars.StarsIntroActivity;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudAccessGate;
 
 /** Classic Telegram 11 settings presentation routing into Telegram 13 handlers. */
