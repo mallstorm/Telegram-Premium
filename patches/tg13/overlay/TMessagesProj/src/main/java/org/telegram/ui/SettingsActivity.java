@@ -737,6 +737,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         items.add(SettingCell.Factory.of(TP_ITEM_CLOUD, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.tp_ic_cloud, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCloud", org.telegram.messenger.R.string.TP_SettingsCloud), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsCloudInfo", org.telegram.messenger.R.string.TP_SettingsCloudInfo)));
         items.add(SettingCell.Factory.of(TP_ITEM_MEDIA, IconBackgroundColors.RED.top, IconBackgroundColors.RED.bottom, R.drawable.tp_ic_music, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsMedia", org.telegram.messenger.R.string.TP_SettingsMedia), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsMediaInfo", org.telegram.messenger.R.string.TP_SettingsMediaInfo)));
         items.add(SettingCell.Factory.of(TP_ITEM_APPEARANCE, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.tp_ic_palette, org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsAppearance", org.telegram.messenger.R.string.TP_SettingsAppearance), org.telegram.messenger.telepremium.TPStrings.get("TP_SettingsAppearanceInfo", org.telegram.messenger.R.string.TP_SettingsAppearanceInfo)));
+        items.add(SettingCell.Factory.of(TP_ITEM_MODE, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.tp_ic_tune, "Интерфейс приложения", org.telegram.messenger.telepremium.TelePremiumUiPrefs.classicUiEnabled() ? "Классический Telegram 11.x" : "Современный Telegram 13.1.1"));
 
         items.add(UItem.asShadow(null));
         if (!walletAbove && getMessagesController().config.walletAvailable.get()) {
@@ -816,6 +817,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
     private static final int TP_ITEM_CLOUD = 9002;
     private static final int TP_ITEM_MEDIA = 9003;
     private static final int TP_ITEM_APPEARANCE = 9004;
+    private static final int TP_ITEM_MODE = 9005;
 
     private boolean onTelePremiumClick(UItem item) {
         if (item.object != null || !item.instanceOf(SettingCell.Factory.class)) {
@@ -835,6 +837,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
                 return true;
             case TP_ITEM_APPEARANCE:
                 presentSettingFragment(new TelePremiumAppearanceActivity());
+                return true;
+            case TP_ITEM_MODE:
+                presentSettingFragment(new TelePremiumInterfaceModeActivity());
                 return true;
         }
         return false;
