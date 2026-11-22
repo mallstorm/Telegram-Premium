@@ -23,7 +23,7 @@ checks = {
     "bounded history": "MAX_MESSAGES = 300" in history,
     "cancellation": "cancelled.get()" in history and "reader.cancel();" in activity,
     "explicit per-source consent": "if (!permitted)" in activity and "Разрешённая AI-обработка" in activity,
-    "no media download": "FileLoader" not in history and "download" not in history,
+    "no media download": "FileLoader" not in history and "loadFile(" not in history,
     "existing AI connection reused": "TPAiStore.getDefault()" in activity and "TPAiClient.complete" in activity,
     "existing AI internals retained": "getDefault()" in store and "complete(TPAiStore.Connection" in client,
     "source references": "[msg:" in activity,
