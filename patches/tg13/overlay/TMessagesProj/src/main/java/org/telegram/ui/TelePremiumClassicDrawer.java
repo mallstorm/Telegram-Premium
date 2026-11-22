@@ -250,7 +250,6 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
             }
         });
         row("Центр TelePremium", android.R.drawable.ic_menu_manage, () -> host.presentFragment(new TelePremiumCenterActivity()));
-        row("Telegram AI Analyzer", android.R.drawable.ic_menu_search, () -> host.presentFragment(new TelePremiumAnalyzerActivity()));
         row("Внешний вид", android.R.drawable.ic_menu_edit, () -> host.presentFragment(new TelePremiumAppearanceActivity()));
         line();
         row("Пригласить друзей", android.R.drawable.ic_menu_share, () -> {
@@ -262,6 +261,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
             }
         });
         row("Выбрать интерфейс", android.R.drawable.ic_menu_set_as, () -> host.presentFragment(new TelePremiumInterfaceModeActivity()));
+        row("Telegram AI Analyzer", android.R.drawable.ic_menu_search, () -> host.presentFragment(new TelePremiumAnalyzerActivity()));
     }
 
     public boolean isOpened() { return open; }
