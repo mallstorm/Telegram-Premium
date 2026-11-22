@@ -25,6 +25,7 @@ jobs:
           python3 scripts/verify_classic_shell.py
           python3 scripts/verify_ai_analyzer.py
           java scripts/CheckJavaSyntax.java upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium
+          java scripts/CheckJavaSyntax.java upstream/Telegram/TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAnalyzerActivity.java
       - name: Pure-Java tests
         run: |
           OUT="$RUNNER_TEMP/tp-tests"; mkdir -p "$OUT"
