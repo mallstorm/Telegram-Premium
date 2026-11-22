@@ -293,6 +293,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         }
         ArrayList<AnalyzerHistoryReader.Entry> images = mediaEntries("image");
         ArrayList<AnalyzerHistoryReader.Entry> videos = mediaEntries("video");
+        ArrayList<AnalyzerHistoryReader.Entry> pdfs = mediaEntries("pdf");
         if (!images.isEmpty()) {
             int start = mediaBatch * 4;
             if (start >= images.size()) {
@@ -323,7 +324,13 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             }
             if (videos.size() > 5) ui.note("Отображены 5 последних видео; доступны дополнительные фильтры периода/автора.");
         }
-        if (images.isEmpty() && videos.isEmpty()) ui.note("В выбранных сообщениях нет фото или видео.");
+        for (int i = 0; i < Math.min(3, pdfs.size()); i++) {
+            AnalyzerHistoryReader.Entry document = pdfs.get(i);
+            ui.row("PDF · публикация " + document.messageId, "Проанализировать первые 5 страниц",
+                    R.drawable.tp_ic_folder, TelePremiumSettingsUi.TEAL, null, v -> analyzePdf(document));
+        }
+        if (images.isEmpty() && videos.isEmpty() && pdfs.isEmpty())
+            ui.note("В выбранных сообщениях нет фото, видео или PDF.");
         ui.section("Исходные сообщения");
         int shown = 0;
         for (int i = evidence.size() - 1; i >= 0 && shown < 8; i--) {
@@ -391,6 +398,26 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             }
             sendVision("Визуальный анализ " + entries.size() + " публикаций", context.toString(),
                     frames, model, epoch, source);
+        });
+    }
+
+    private void analyzePdf(AnalyzerHistoryReader.Entry entry) {
+        if (!mediaAllowed() || busy) return;
+        TPAiStore.Connection model = TPAiStore.getDefault();
+        AnalyzerHistoryReader.Source source = selected;
+        int epoch = screenEpoch;
+        busy = true;
+        render();
+        TPAiClient.async(() -> AnalyzerMediaProcessor.pdfPages(entry), (pages, error) -> {
+            if (epoch != screenEpoch || selected != source) return;
+            if (error != null) { busy = false; toast(error); render(); return; }
+            String prompt = "Проанализируй страницы PDF [msg:" + entry.messageId + "] " +
+                    "и подпись: " + trim(entry.caption, 600) + ". " +
+                    "Изучены только первые " + pages.size() + " страниц. " +
+                    "Дай " + (detail == 0 ? "краткую" : "подробную") +
+                    " сводку, факты и ссылки на страницу, не делай выводов об остальных страницах.";
+            sendVision("PDF " + entry.messageId + " · первые " + pages.size() + " стр.",
+                    prompt, pages, model, epoch, source);
         });
     }
 

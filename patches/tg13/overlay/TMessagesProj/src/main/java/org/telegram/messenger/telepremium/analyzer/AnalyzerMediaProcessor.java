@@ -3,6 +3,9 @@ package org.telegram.messenger.telepremium.analyzer;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
+import android.graphics.pdf.PdfRenderer;
+import android.graphics.Color;
+import android.os.ParcelFileDescriptor;
 
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.telepremium.analyzer.AnalyzerHistoryReader.Entry;
@@ -31,16 +34,23 @@ public final class AnalyzerMediaProcessor {
         public final long timeMs;
         public final int messageId;
         public final byte[] jpeg;
+        public final String label;
 
         Frame(int messageId, long timeMs, byte[] jpeg) {
+            this(messageId, timeMs, jpeg, "");
+        }
+
+        Frame(int messageId, long timeMs, byte[] jpeg, String label) {
             this.messageId = messageId;
             this.timeMs = timeMs;
             this.jpeg = jpeg;
+            this.label = label;
         }
 
         public String citation() {
             return "[msg:" + messageId + "] " +
-                    String.format(Locale.ROOT, "%02d:%02d", timeMs / 60000, (timeMs / 1000) % 60);
+                    (label.isEmpty() ?
+                            String.format(Locale.ROOT, "%02d:%02d", timeMs / 60000, (timeMs / 1000) % 60) : label);
         }
     }
 
@@ -61,7 +71,8 @@ public final class AnalyzerMediaProcessor {
             throw new IOException("Недоступное сообщение");
         }
         if (!("photo".equals(entry.mediaType) || "image".equals(entry.mediaType) ||
-                "video".equals(entry.mediaType) || "audio".equals(entry.mediaType))) {
+                "video".equals(entry.mediaType) || "audio".equals(entry.mediaType) ||
+                "pdf".equals(entry.mediaType))) {
             throw new IOException("Это не поддерживаемый формат медиа");
         }
         if (entry.sourceMessage.noforwards) throw new IOException("Автор запретил пересылку этого материала");
@@ -87,6 +98,38 @@ public final class AnalyzerMediaProcessor {
             frames.add(new Frame(e.messageId, 0, jpeg));
         }
         return frames;
+    }
+
+    /** Local PDF-to-JPEG conversion; at most five pages, no remote fetch. */
+    public static List<Frame> pdfPages(Entry entry) throws IOException {
+        if (entry == null || !"pdf".equals(entry.mediaType))
+            throw new IOException("Выберите PDF-документ");
+        File file = localMedia(entry);
+        if (file.length() > 30L * 1024L * 1024L)
+            throw new IOException("PDF больше 30 МБ: уменьшите размер документа");
+        ArrayList<Frame> pages = new ArrayList<>();
+        try (ParcelFileDescriptor descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+             PdfRenderer pdf = new PdfRenderer(descriptor)) {
+            int count = Math.min(5, pdf.getPageCount());
+            for (int i = 0; i < count; i++) {
+                try (PdfRenderer.Page page = pdf.openPage(i)) {
+                    int width = Math.min(1280, Math.max(1, page.getWidth() * 2));
+                    int height = Math.max(1, Math.min(1800,
+                            Math.round(page.getHeight() * ((float) width / Math.max(1, page.getWidth())))));
+                    Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                    try {
+                        bitmap.eraseColor(Color.WHITE);
+                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+                        pages.add(new Frame(entry.messageId, 0, jpegFromBitmap(bitmap),
+                                "страница " + (i + 1)));
+                    } finally {
+                        bitmap.recycle();
+                    }
+                }
+            }
+        }
+        if (pages.isEmpty()) throw new IOException("PDF не содержит страниц для анализа");
+        return pages;
     }
 
     /** At most five bounded JPEG frames from a local downloaded video. */

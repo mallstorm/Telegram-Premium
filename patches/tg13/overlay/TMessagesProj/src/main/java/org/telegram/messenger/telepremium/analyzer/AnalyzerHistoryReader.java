@@ -74,6 +74,7 @@ public final class AnalyzerHistoryReader {
             if (mime.startsWith("video/")) return "video";
             if (mime.startsWith("audio/")) return "audio";
             if (mime.startsWith("image/")) return "image";
+            if ("application/pdf".equals(mime)) return "pdf";
             return "document";
         }
         return "text";
