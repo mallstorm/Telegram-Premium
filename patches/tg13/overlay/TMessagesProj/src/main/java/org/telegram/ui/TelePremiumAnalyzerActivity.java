@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * User-invoked, read-only, source-grounded AI chat.
@@ -52,6 +53,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     private boolean mediaPermitted;
     private int mediaBatch;
     private int screenEpoch;
+    private AtomicBoolean mediaCancellation = new AtomicBoolean(false);
     private boolean busy;
     private boolean historyLoaded;
     private String search = "";
@@ -80,8 +82,15 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     @Override
     public void onFragmentDestroy() {
         screenEpoch++;
+        mediaCancellation.set(true);
         reader.cancel();
         super.onFragmentDestroy();
+    }
+
+    private void resetMediaJob() {
+        mediaCancellation.set(true);
+        mediaCancellation = new AtomicBoolean(false);
+        screenEpoch++;
     }
 
     private void render() {
@@ -161,7 +170,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         reader.cancel();
         reader = new AnalyzerHistoryReader();
         selected = source;
-        screenEpoch++;
+        resetMediaJob();
         authorFilter = 0;
         mediaBatch = 0;
         mediaPermitted = false;
@@ -181,7 +190,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     reader.cancel();
                     reader = new AnalyzerHistoryReader();
                     selected = null;
-                    screenEpoch++;
+                    resetMediaJob();
                     mediaPermitted = false;
                     historyLoaded = false;
                     permitted = false;
@@ -203,7 +212,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     permitted = checked;
                     if (!checked) {
                         mediaPermitted = false;
-                        screenEpoch++;
+                        resetMediaJob();
                         evidence.clear(); historyLoaded = false; thread.clear();
                     }
                     render();
@@ -396,6 +405,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             if (epoch != screenEpoch || selected != source) return;
             if (error != null) { busy = false; toast(error); render(); return; }
             TelePremiumLocalTranscriber.transcribeMediaFile(prepared.source, entry.account, entry.messageId,
+                    mediaCancellation,
                     new TelePremiumLocalTranscriber.Callback() {
                         @Override public void onSuccess(String transcript) {
                             if (epoch == screenEpoch && selected == source)
@@ -501,7 +511,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     private void invalidateHistory() {
         reader.cancel();
         reader = new AnalyzerHistoryReader();
-        screenEpoch++;
+        resetMediaJob();
         mediaBatch = 0;
         historyLoaded = false;
         busy = false;

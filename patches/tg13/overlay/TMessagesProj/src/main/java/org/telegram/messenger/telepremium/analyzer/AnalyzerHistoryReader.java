@@ -83,7 +83,7 @@ public final class AnalyzerHistoryReader {
         void onResult(List<Entry> entries, String error);
     }
 
-    /** Enumerate only already loaded group/channel dialogs in each activated account. */
+    /** Enumerate all already loaded ordinary/archived group/channel dialogs in activated accounts. */
     public static List<Source> listLoadedGroups(int accountFilter) {
         ArrayList<Source> result = new ArrayList<>();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
@@ -92,7 +92,7 @@ public final class AnalyzerHistoryReader {
             TLRPC.User owner = UserConfig.getInstance(a).getCurrentUser();
             String accountName = owner == null ? "Аккаунт " + (a + 1)
                     : org.telegram.messenger.UserObject.getUserName(owner);
-            ArrayList<TLRPC.Dialog> dialogs = MessagesController.getInstance(a).getDialogs(0);
+            ArrayList<TLRPC.Dialog> dialogs = MessagesController.getInstance(a).getAllDialogs();
             if (dialogs == null) continue;
             for (TLRPC.Dialog dialog : dialogs) {
                 // Telegram uses negative dialog IDs for group chats and channels.

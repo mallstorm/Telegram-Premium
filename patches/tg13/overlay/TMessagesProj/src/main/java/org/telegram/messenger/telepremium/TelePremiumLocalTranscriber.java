@@ -99,6 +99,12 @@ public final class TelePremiumLocalTranscriber {
      * No audio samples are sent to the selected LLM.
      */
     public static void transcribeMediaFile(File source, int account, int messageId, Callback callback) {
+        transcribeMediaFile(source, account, messageId, new AtomicBoolean(false), callback);
+    }
+
+    /** Cancellation is observed between frames/segments and during the decode loop. */
+    public static void transcribeMediaFile(File source, int account, int messageId,
+                                           AtomicBoolean cancellation, Callback callback) {
         if (source == null || !source.isFile() || source.length() == 0) {
             postError(callback, "Сначала загрузите видео в Telegram");
             return;
@@ -113,19 +119,21 @@ public final class TelePremiumLocalTranscriber {
             return;
         }
         Utilities.globalQueue.postRunnable(() -> {
+            if (cancellation.get()) return;
             DecodedAudio pcm = null;
             try {
-                pcm = decodeToPcm(source, account, messageId);
+                pcm = decodeToPcm(source, account, messageId, cancellation);
                 if (pcm.file.length() > MAX_PCM_BYTES) {
                     pcm.file.delete();
                     postError(callback, "Недостаточно ресурсов для расшифровки длинного видео");
                     return;
                 }
                 final DecodedAudio decoded = pcm;
-                AndroidUtilities.runOnUIThread(() -> transcribeSegments(decoded, 0, new StringBuilder(), 0, callback));
+                AndroidUtilities.runOnUIThread(() -> transcribeSegments(decoded, 0, new StringBuilder(), 0, cancellation, callback));
             } catch (Throwable failure) {
-                FileLog.e(failure);
                 if (pcm != null) pcm.file.delete();
+                if (cancellation.get()) return;
+                FileLog.e(failure);
                 postError(callback, "Не удалось декодировать аудиодорожку видео");
             }
         });
@@ -139,7 +147,8 @@ public final class TelePremiumLocalTranscriber {
     }
 
     private static void transcribeSegments(DecodedAudio full, int index, StringBuilder result,
-                                           int successes, Callback callback) {
+                                           int successes, AtomicBoolean cancellation, Callback callback) {
+        if (cancellation.get()) { full.file.delete(); return; }
         int width = sampleBytes(full.encoding);
         if (width == 0 || full.sampleRate <= 0 || full.channelCount <= 0) {
             full.file.delete();
@@ -165,6 +174,7 @@ public final class TelePremiumLocalTranscriber {
         File segment = new File(ApplicationLoader.applicationContext.getCacheDir(),
                 "tp_ai_segment_" + System.nanoTime() + ".pcm");
         Utilities.globalQueue.postRunnable(() -> {
+            if (cancellation.get()) { full.file.delete(); return; }
             try (RandomAccessFile input = new RandomAccessFile(full.file, "r");
                  FileOutputStream output = new FileOutputStream(segment)) {
                 long start = index * bytesPerSegment;
@@ -185,20 +195,21 @@ public final class TelePremiumLocalTranscriber {
                 return;
             }
             AndroidUtilities.runOnUIThread(() -> {
+                if (cancellation.get()) { segment.delete(); full.file.delete(); return; }
                 int seconds = index * VIDEO_SEGMENT_SECONDS;
                 String stamp = String.format(Locale.ROOT, "[%02d:%02d] ", seconds / 60, seconds % 60);
                 Callback next = new Callback() {
                     @Override public void onSuccess(String text) {
                         if (!TextUtils.isEmpty(text)) {
                             result.append(stamp).append(text.trim()).append('\n');
-                            transcribeSegments(full, index + 1, result, successes + 1, callback);
+                            transcribeSegments(full, index + 1, result, successes + 1, cancellation, callback);
                         } else {
-                            transcribeSegments(full, index + 1, result, successes, callback);
+                            transcribeSegments(full, index + 1, result, successes, cancellation, callback);
                         }
                     }
                     @Override public void onError(String reason) {
                         result.append(stamp).append("[речь не распознана]\n");
-                        transcribeSegments(full, index + 1, result, successes, callback);
+                        transcribeSegments(full, index + 1, result, successes, cancellation, callback);
                     }
                 };
                 try {
@@ -221,6 +232,11 @@ public final class TelePremiumLocalTranscriber {
     }
 
     private static DecodedAudio decodeToPcm(File source, int account, int messageId) throws Exception {
+        return decodeToPcm(source, account, messageId, null);
+    }
+
+    private static DecodedAudio decodeToPcm(File source, int account, int messageId,
+                                             AtomicBoolean cancellation) throws Exception {
         MediaExtractor extractor = new MediaExtractor();
         MediaCodec decoder = null;
         FileOutputStream output = null;
@@ -274,6 +290,7 @@ public final class TelePremiumLocalTranscriber {
             boolean outputDone = false;
 
             while (!outputDone) {
+                if (cancellation != null && cancellation.get()) throw new java.io.IOException("Cancelled");
                 if (!inputDone) {
                     int inputIndex = decoder.dequeueInputBuffer(CODEC_TIMEOUT_US);
                     if (inputIndex >= 0) {
@@ -338,6 +355,9 @@ public final class TelePremiumLocalTranscriber {
                 throw new IllegalStateException("Decoded PCM is empty");
             }
             return new DecodedAudio(pcm, sampleRate, channelCount, pcmEncoding);
+        } catch (Exception failure) {
+            pcm.delete();
+            throw failure;
         } finally {
             if (output != null) {
                 try {
