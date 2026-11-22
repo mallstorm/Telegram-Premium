@@ -134,10 +134,12 @@ public final class TPAiClient {
                                         List<byte[]> jpegImages) throws IOException {
         if (c == null || TextUtils.isEmpty(c.model)) throw new IOException("Выберите AI-подключение с поддержкой изображений");
         if (TPOmni.AUTH.equals(c.authType)) {
-            throw new IOException("Этот способ входа пока не поддерживает отправку изображений из Analyzer. Выберите подключение по API-ключу с Vision.");
+            return TPOmni.completeVision(c, system, user, jpegImages);
         }
         if (jpegImages == null || jpegImages.isEmpty() || jpegImages.size() > 5)
             throw new IOException("Для анализа выберите от 1 до 5 изображений");
+        if (!TPAiProvider.CHAT.equals(c.protocol) && !TPAiProvider.ANTHROPIC.equals(c.protocol))
+            throw new IOException("Выбранный API-протокол не поддерживает этот формат Vision");
         long size = 0;
         for (byte[] bytes : jpegImages) {
             if (bytes == null || bytes.length == 0 || bytes.length > 1_400_000)
