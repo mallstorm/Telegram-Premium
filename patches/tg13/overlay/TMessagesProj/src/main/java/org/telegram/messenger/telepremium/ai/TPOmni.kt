@@ -5,6 +5,7 @@ import com.omnichat.app.data.MessageEntity
 import com.omnichat.app.data.ProviderEntity
 import com.omnichat.app.network.ApiFailure
 import com.omnichat.app.network.ApiGateway
+import com.omnichat.app.network.LocalAttachment
 import com.omnichat.app.network.ChatGptPlanClient
 import com.omnichat.app.network.ClineAccountClient
 import com.omnichat.app.network.ClineAccountRepository
@@ -29,6 +30,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.telegram.messenger.ApplicationLoader
+import java.io.File
+import java.util.UUID
 
 /**
  * Bridge between TelePremium (Java UI, TPAiStore connections) and OmniChat's connection layer
@@ -391,17 +394,57 @@ object TPOmni {
         list.filter(String::isNotBlank).distinct()
     }
 
-    /** One-shot completion through OmniChat's transports (streams internally, returns final text). */
+    /** Existing one-shot text completion; preserved for the article editor. */
     @JvmStatic
     fun complete(c: TPAiStore.Connection, system: String?, user: String): String = runBlocking(Dispatchers.IO) {
-        val sys = system.orEmpty()
         val history = listOf(MessageEntity(chatId = 1L, role = "user", content = user, model = c.model.orEmpty()))
+        runHistory(c, system.orEmpty(), history)
+    }
+
+    /**
+     * Vision via the existing OmniChat private attachment transports (including
+     * subscription-based Responses providers if their model supports image input).
+     * All temporary JPEGs are deleted after each user-authorized call.
+     */
+    @JvmStatic
+    fun completeVision(c: TPAiStore.Connection, system: String?, user: String,
+                       jpegImages: List<ByteArray>): String = runBlocking(Dispatchers.IO) {
+        require(jpegImages.isNotEmpty() && jpegImages.size <= 5) { "Ожидается от 1 до 5 изображений" }
+        require(jpegImages.all { it.isNotEmpty() && it.size <= 1_400_000 }) {
+            "Изображение превышает лимит 1.4 МБ"
+        }
+        require(jpegImages.sumOf { it.size.toLong() } <= 5_000_000L) {
+            "Общий размер изображений превышает 5 МБ"
+        }
+        val root = File(context.filesDir, "attachments")
+        if (!root.isDirectory && !root.mkdirs()) throw ApiFailure("Не удалось создать приватный каталог изображений")
+        val temporary = mutableListOf<File>()
+        try {
+            val items = jpegImages.map { bytes ->
+                val file = File.createTempFile("tp_analyzer_" + UUID.randomUUID(), ".jpg", root)
+                temporary += file
+                file.outputStream().use { it.write(bytes) }
+                LocalAttachment(name = file.name, mime = "image/jpeg",
+                    path = file.absolutePath, size = file.length(), replayToModel = true)
+            }
+            val history = listOf(MessageEntity(chatId = 1L, role = "user",
+                content = user, model = c.model.orEmpty(),
+                attachmentsJson = LocalAttachment.encode(items)))
+            runHistory(c, system.orEmpty(), history)
+        } finally {
+            temporary.forEach { runCatching { it.delete() } }
+        }
+    }
+
+    private suspend fun runHistory(c: TPAiStore.Connection, system: String,
+                                   history: List<MessageEntity>): String {
         val type = c.providerId.orEmpty()
-        val provider = entity(c, sys)
+        val provider = entity(c, system)
         val source = repository.sourceFromProviderType(type)
-        if (source != null) {
+        return if (source != null) {
             repository.executeAuthenticated(source) { auth ->
-                api.stream(provider.copy(baseUrl = auth.baseUrl, authScope = auth.accountScope), auth.accessToken, history, { })
+                api.stream(provider.copy(baseUrl = auth.baseUrl, authScope = auth.accountScope),
+                    auth.accessToken, history, { })
             }
         } else if (type == ProviderCatalog.OPENAI_CODEX_ID) {
             val account = codexRepository.currentCredentials() ?: throw ApiFailure("Сначала войдите в OpenAI Codex")
