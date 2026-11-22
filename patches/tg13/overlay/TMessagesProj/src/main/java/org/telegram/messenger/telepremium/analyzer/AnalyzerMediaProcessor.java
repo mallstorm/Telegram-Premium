@@ -21,7 +21,7 @@ import java.util.Locale;
  */
 public final class AnalyzerMediaProcessor {
     private static final int MAX_DIMENSION = 1280;
-    private static final int MAX_JPEG_BYTES = 1_400_000;
+    private static final int MAX_JPEG_BYTES = 850_000;
     private static final long MAX_VIDEO_BYTES = 400L * 1024L * 1024L;
     private static final long MAX_VIDEO_MS = 40L * 60L * 1000L;
 
@@ -64,6 +64,7 @@ public final class AnalyzerMediaProcessor {
                 "video".equals(entry.mediaType) || "audio".equals(entry.mediaType))) {
             throw new IOException("Это не поддерживаемый формат медиа");
         }
+        if (entry.sourceMessage.noforwards) throw new IOException("Автор запретил пересылку этого материала");
         File file = FileLoader.getInstance(entry.account).getPathToMessage(entry.sourceMessage);
         if (file == null || !file.isFile() || file.length() < 100) {
             throw new IOException("Сначала откройте и загрузите файл в Telegram, затем повторите анализ");
