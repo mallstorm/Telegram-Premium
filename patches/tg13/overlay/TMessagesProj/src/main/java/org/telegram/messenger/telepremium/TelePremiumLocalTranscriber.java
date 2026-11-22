@@ -22,6 +22,7 @@ import org.telegram.messenger.Utilities;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -43,6 +44,9 @@ public final class TelePremiumLocalTranscriber {
     }
 
     private static final long CODEC_TIMEOUT_US = 10_000L;
+    private static final int VIDEO_SEGMENT_SECONDS = 35;
+    private static final int VIDEO_MAX_SEGMENTS = 60;
+    private static final long MAX_PCM_BYTES = 360L * 1024L * 1024L;
 
     private TelePremiumLocalTranscriber() {
     }
@@ -85,6 +89,127 @@ public final class TelePremiumLocalTranscriber {
                 FileLog.e(e);
                 postError(callback, "TelePremium: не удалось декодировать голосовое сообщение");
             }
+        });
+    }
+
+    /**
+     * Explicit local-video speech recognition; requires on-device Android recognizer.
+     * Audio is decoded to temporary PCM, split into bounded segments and each segment
+     * transcribed sequentially. The timestamps mark segment starts, not word alignment.
+     * No audio samples are sent to the selected LLM.
+     */
+    public static void transcribeMediaFile(File source, int account, int messageId, Callback callback) {
+        if (source == null || !source.isFile() || source.length() == 0) {
+            postError(callback, "Сначала загрузите видео в Telegram");
+            return;
+        }
+        if (source.length() > 400L * 1024L * 1024L) {
+            postError(callback, "Видео слишком большое для локальной транскрипции (лимит 400 МБ)");
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                !SpeechRecognizer.isOnDeviceRecognitionAvailable(ApplicationLoader.applicationContext)) {
+            postError(callback, "Нет локального распознавания речи Android. Сводка возможна только по кадрам.");
+            return;
+        }
+        Utilities.globalQueue.postRunnable(() -> {
+            DecodedAudio pcm = null;
+            try {
+                pcm = decodeToPcm(source, account, messageId);
+                if (pcm.file.length() > MAX_PCM_BYTES) {
+                    pcm.file.delete();
+                    postError(callback, "Недостаточно ресурсов для расшифровки длинного видео");
+                    return;
+                }
+                final DecodedAudio decoded = pcm;
+                AndroidUtilities.runOnUIThread(() -> transcribeSegments(decoded, 0, new StringBuilder(), 0, callback));
+            } catch (Throwable failure) {
+                FileLog.e(failure);
+                if (pcm != null) pcm.file.delete();
+                postError(callback, "Не удалось декодировать аудиодорожку видео");
+            }
+        });
+    }
+
+    private static int sampleBytes(int encoding) {
+        if (encoding == AudioFormat.ENCODING_PCM_8BIT) return 1;
+        if (encoding == AudioFormat.ENCODING_PCM_16BIT) return 2;
+        if (encoding == AudioFormat.ENCODING_PCM_FLOAT) return 4;
+        return 0;
+    }
+
+    private static void transcribeSegments(DecodedAudio full, int index, StringBuilder result,
+                                           int successes, Callback callback) {
+        int width = sampleBytes(full.encoding);
+        if (width == 0 || full.sampleRate <= 0 || full.channelCount <= 0) {
+            full.file.delete();
+            postError(callback, "Формат декодированного аудио не поддерживается распознавателем");
+            return;
+        }
+        long frameSize = (long) width * full.channelCount;
+        long bytesPerSegment = (long) VIDEO_SEGMENT_SECONDS * full.sampleRate * frameSize;
+        int count = (int) Math.min(VIDEO_MAX_SEGMENTS,
+                (full.file.length() + bytesPerSegment - 1L) / bytesPerSegment);
+        if (index >= count) {
+            boolean truncated = full.file.length() > (long) count * bytesPerSegment;
+            full.file.delete();
+            if (successes == 0) {
+                postError(callback, "Распознавание речи не вернуло текста");
+                return;
+            }
+            if (truncated) result.append("\\n[Остальная аудиодорожка не обработана: достигнут лимит]");
+            if (callback != null) callback.onSuccess(result.toString().trim());
+            return;
+        }
+
+        File segment = new File(ApplicationLoader.applicationContext.getCacheDir(),
+                "tp_ai_segment_" + System.nanoTime() + ".pcm");
+        Utilities.globalQueue.postRunnable(() -> {
+            try (RandomAccessFile input = new RandomAccessFile(full.file, "r");
+                 FileOutputStream output = new FileOutputStream(segment)) {
+                long start = index * bytesPerSegment;
+                input.seek(start);
+                long remaining = Math.min(bytesPerSegment, input.length() - start);
+                byte[] buffer = new byte[32768];
+                while (remaining > 0) {
+                    int read = input.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                    if (read < 0) break;
+                    output.write(buffer, 0, read);
+                    remaining -= read;
+                }
+            } catch (Exception failure) {
+                FileLog.e(failure);
+                segment.delete();
+                full.file.delete();
+                postError(callback, "Не удалось прочитать сегмент видеозаписи");
+                return;
+            }
+            AndroidUtilities.runOnUIThread(() -> {
+                int seconds = index * VIDEO_SEGMENT_SECONDS;
+                String stamp = String.format(Locale.ROOT, "[%02d:%02d] ", seconds / 60, seconds % 60);
+                Callback next = new Callback() {
+                    @Override public void onSuccess(String text) {
+                        if (!TextUtils.isEmpty(text)) {
+                            result.append(stamp).append(text.trim()).append('\\n');
+                            transcribeSegments(full, index + 1, result, successes + 1, callback);
+                        } else {
+                            transcribeSegments(full, index + 1, result, successes, callback);
+                        }
+                    }
+                    @Override public void onError(String reason) {
+                        result.append(stamp).append("[речь не распознана]\\n");
+                        transcribeSegments(full, index + 1, result, successes, callback);
+                    }
+                };
+                try {
+                    new RecognitionSession(
+                            new DecodedAudio(segment, full.sampleRate, full.channelCount, full.encoding),
+                            next, true).start();
+                } catch (Exception failure) {
+                    segment.delete();
+                    next.onError(failure.getMessage());
+                }
+            });
         });
     }
 
@@ -259,15 +384,22 @@ public final class TelePremiumLocalTranscriber {
 
         private SpeechRecognizer recognizer;
         private ParcelFileDescriptor descriptor;
+        private final boolean onDevice;
 
         RecognitionSession(DecodedAudio audio, Callback callback) {
+            this(audio, callback, false);
+        }
+
+        RecognitionSession(DecodedAudio audio, Callback callback, boolean onDevice) {
             this.audio = audio;
             this.callback = callback;
+            this.onDevice = onDevice;
         }
 
         void start() throws Exception {
             descriptor = ParcelFileDescriptor.open(audio.file, ParcelFileDescriptor.MODE_READ_ONLY);
-            recognizer = SpeechRecognizer.createSpeechRecognizer(ApplicationLoader.applicationContext);
+            recognizer = onDevice ? SpeechRecognizer.createOnDeviceSpeechRecognizer(ApplicationLoader.applicationContext)
+                    : SpeechRecognizer.createSpeechRecognizer(ApplicationLoader.applicationContext);
             recognizer.setRecognitionListener(this);
 
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
