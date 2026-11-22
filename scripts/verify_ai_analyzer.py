@@ -8,6 +8,7 @@ def file(path):
     return (java / path).read_text(encoding="utf-8")
 
 activity = file("org/telegram/ui/TelePremiumAnalyzerActivity.java")
+chat = file("org/telegram/ui/TelePremiumAnalyzerChatActivity.java")
 history = file("org/telegram/messenger/telepremium/analyzer/AnalyzerHistoryReader.java")
 center = file("org/telegram/ui/TelePremiumCenterActivity.java")
 drawer = file("org/telegram/ui/TelePremiumClassicDrawer.java")
@@ -33,6 +34,13 @@ checks = {
     "existing AI internals retained": "getDefault()" in store and "complete(TPAiStore.Connection" in client,
     "source references": "[msg:" in activity,
     "contextual dialog": "private final ArrayList<Turn> thread" in activity,
+    "full screen chat": "TelePremiumAnalyzerChatActivity extends BaseFragment" in chat
+        and "new TelePremiumAnalyzerChatActivity(this)" in activity,
+    "readable chat typography": 'outgoing ? 16 : 17' in chat,
+    "compact fixed composer": 'composer.setMaxLines(4)' in chat,
+    "swipe navigation": "SwipeHostFrame" in activity and "onInterceptTouchEvent" in activity,
+    "clickable message references": "workspace.openEvidenceById(messageId)" in chat,
+
     "all loaded including archived groups": "getAllDialogs()" in history,
     "author filter": "authorFilter" in activity and "selectAuthor()" in activity,
     "local relevance ranking": "AnalyzerRetrieval.select" in activity and "class AnalyzerRetrieval" in retrieval,

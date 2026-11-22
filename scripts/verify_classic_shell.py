@@ -17,6 +17,9 @@ settings = src("org/telegram/ui/SettingsActivity.java")
 drawer = src("org/telegram/ui/TelePremiumClassicDrawer.java")
 classic = src("org/telegram/ui/TelePremiumClassicSettingsActivity.java")
 picker = src("org/telegram/ui/TelePremiumInterfaceModeActivity.java")
+theme_resources = src("org/telegram/messenger/telepremium/theme/TelePremiumThemeResources.java")
+theme_store = src("org/telegram/messenger/telepremium/theme/TelePremiumThemeStore.java")
+
 
 checks = {
     "classic preference is default": 'getBoolean("classic_ui_11x_enabled", true)' in prefs,
@@ -41,6 +44,21 @@ checks = {
     "Vault and Media remain accessible": 'TelePremiumCloudAccessGate.openCloud' in drawer and 'TelePremiumMediaCenterActivity.class' in drawer,
     "modern Settings includes UI selector": 'TP_ITEM_MODE' in settings and 'new TelePremiumInterfaceModeActivity()' in settings,
     "mode selection recreates Activity": 'activity.recreate()' in picker,
+    "same theme after classic/modern switch": "TelePremiumThemeController.ensureShellTheme(activity)" in picker,
+    "drawer's background is native theme": "Theme.key_chats_menuBackground" in drawer and
+        "panel.setBackgroundColor(Color.WHITE)" not in drawer and "HEADER_COLOR" not in drawer,
+    "classic settings follow native Telegram theme": "Theme.key_windowBackgroundWhite" in classic
+        and "private static final int BLUE" not in classic and "private static final int INK" not in classic,
+    "permanent classic hamburger": "FragmentFloatingButton.setAnimatedVisibility(actionBar.getBackButton(), 1f)" in dialogs
+        and "setClassicDrawerButton(actionBar)" in dialogs,
+    "collapsed stories do not cover hamburger": "storyStripAlpha" in dialogs
+        and "classicDrawerAction != null ? dp(68)" in dialogs,
+    "drawer protects navigation bar area": "setSystemInsets(int left, int right, int bottom)" in drawer
+        and "classicDrawer.setSystemInsets(" in main,
+    "all presets feed one Telegram native theme generator": "buildAttheme" in theme_resources
+        and 'c.put("chats_menuBackground", p.drawerBackground)' in theme_resources,
+    "theming selection kept separate from UI mode": "TelePremiumThemeStore" in theme_store,
+
     "same Android package": 'APP_PACKAGE=com.telepremium.messenger' in (overlay / 'gradle.properties').read_text(),
     "new version code supports in-place update": int(re.search(r'APP_VERSION_CODE=(\d+)', (overlay / 'gradle.properties').read_text()).group(1)) * 10 + 9 > 723769,
 }
