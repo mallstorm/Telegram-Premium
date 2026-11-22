@@ -111,3 +111,19 @@ For trading analysis: identify instrument, timeframe, entry, stop, take-profit, 
 ## 7. Non-goals
 
 No new Telegram login stack, no replacing media player, no unrestricted group scraping, no auto-trading, no automated posts into the source group, no promise that ChatGPT subscription is equivalent to OpenAI API, no claim that one-shot text completion can already process multimedia.
+
+## 8. Implementation snapshot — 2026-11-22
+
+**Implemented in the feature branch (source only, uncompiled):**
+- New Analyzer entry in modern TelePremium Center and classic 11.x drawer.
+- `AnalyzerHistoryReader`: activated-account enumeration, selected-dialog history via the existing Telegram session, period selection, bounded pagination (100/page; up to 6 pages and 300 stored messages), media-type metadata and text/captions; cancelable callbacks.
+- `TelePremiumAnalyzerActivity`: group/source picker, account filter, period 1/7/30 days, explicit per-source AI processing gate, short/full summaries, selected-author filter, follow-up questions.
+- Reuses `TPAiStore.getDefault()` and `TPAiClient.complete()`; serializes last conversation turns as bounded context (real multi-role API upgrade remains a subsequent task).
+- Scoped encrypted local conversational history via `TPAiStore.putPrivate/getPrivate` (account user id + dialog id + period + author) with clear control.
+- Static source verification script and Actions branch triggers.
+
+**Not implemented yet:** raw-image vision/OCR, frame-level video understanding, video transcription/timestamps, arbitrary-history search beyond loaded dialogs and current capped pages, source hyperlink navigation, model-capability negotiation, background monitoring, long-term evidence index. Media entries are currently classified by type and caption only.
+
+**Build/validation blocker:** GitHub Actions Build TelePremium APK and Source Check both return a failure before reporting executable steps or accessible job logs. The same fast-failure pattern exists on the parent `feature/classic-telegram-11x` branch before Analyzer changes (2026-11-20). Compilation, APK installation and runtime behavior are therefore **not verified**; no successful APK claimed. Check repository Actions settings / billing / runner availability and rerun. Do not merge to main before passing build and regressions.
+
+**Next development order:** restore functioning CI first, address compile errors, test text assistant on a permitted group, then add approved image vision and synchronized video speech/frame pipeline.
