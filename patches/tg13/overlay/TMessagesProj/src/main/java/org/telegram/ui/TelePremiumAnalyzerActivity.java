@@ -362,10 +362,10 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             if (epoch != screenEpoch || selected != source) return;
             if (error != null) { busy = false; toast(error); render(); return; }
             StringBuilder context = new StringBuilder("Сравни реальные изображения и подписи публикаций; " +
-                    "отделяй подтверждённые факты от предположений. Не выдумывай результаты сделок.\\n");
+                    "отделяй подтверждённые факты от предположений. Не выдумывай результаты сделок.\n");
             for (AnalyzerHistoryReader.Entry entry : entries) {
                 context.append("[msg:").append(entry.messageId).append("] автор=")
-                        .append(entry.senderId).append(" подпись: ").append(trim(entry.caption, 600)).append('\\n');
+                        .append(entry.senderId).append(" подпись: ").append(trim(entry.caption, 600)).append('\n');
             }
             sendVision("Визуальный анализ " + entries.size() + " публикаций", context.toString(),
                     frames, model, epoch, source);
@@ -401,12 +401,12 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                                 int epoch, AnalyzerHistoryReader.Source source) {
         String prompt = "Видео [msg:" + entry.messageId + "], автор=" + entry.senderId +
                 ", длительность=" + (video.durationMs / 1000) + "с. Подпись: " +
-                trim(entry.caption, 800) + "\\n" +
-                "Временные метки кадров: " + frameLabels(video.frames) + "\\n" +
+                trim(entry.caption, 800) + "\n" +
+                "Временные метки кадров: " + frameLabels(video.frames) + "\n" +
                 (TextUtils.isEmpty(transcript)
                         ? "Аудиотранскрипция недоступна: " + speechError +
-                        ". Не утверждай, что слышал речь.\\n"
-                        : "РАСШИФРОВКА (метки начала приблизительных фрагментов):\\n" + trim(transcript, 24000) + "\\n") +
+                        ". Не утверждай, что слышал речь.\n"
+                        : "РАСШИФРОВКА (метки начала приблизительных фрагментов):\n" + trim(transcript, 24000) + "\n") +
                 "Сделай " + (detail == 0 ? "краткую" : "подробную") +
                 " сводку. Раздели содержание речи, визуально наблюдаемые факты и предположения. " +
                 "При отсутствии речевых данных не придумывай их.";

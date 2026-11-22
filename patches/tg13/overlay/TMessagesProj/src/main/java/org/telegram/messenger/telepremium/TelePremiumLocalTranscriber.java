@@ -107,7 +107,7 @@ public final class TelePremiumLocalTranscriber {
             postError(callback, "Видео слишком большое для локальной транскрипции (лимит 400 МБ)");
             return;
         }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 !SpeechRecognizer.isOnDeviceRecognitionAvailable(ApplicationLoader.applicationContext)) {
             postError(callback, "Нет локального распознавания речи Android. Сводка возможна только по кадрам.");
             return;
@@ -157,7 +157,7 @@ public final class TelePremiumLocalTranscriber {
                 postError(callback, "Распознавание речи не вернуло текста");
                 return;
             }
-            if (truncated) result.append("\\n[Остальная аудиодорожка не обработана: достигнут лимит]");
+            if (truncated) result.append("\n[Остальная аудиодорожка не обработана: достигнут лимит]");
             if (callback != null) callback.onSuccess(result.toString().trim());
             return;
         }
@@ -190,14 +190,14 @@ public final class TelePremiumLocalTranscriber {
                 Callback next = new Callback() {
                     @Override public void onSuccess(String text) {
                         if (!TextUtils.isEmpty(text)) {
-                            result.append(stamp).append(text.trim()).append('\\n');
+                            result.append(stamp).append(text.trim()).append('\n');
                             transcribeSegments(full, index + 1, result, successes + 1, callback);
                         } else {
                             transcribeSegments(full, index + 1, result, successes, callback);
                         }
                     }
                     @Override public void onError(String reason) {
-                        result.append(stamp).append("[речь не распознана]\\n");
+                        result.append(stamp).append("[речь не распознана]\n");
                         transcribeSegments(full, index + 1, result, successes, callback);
                     }
                 };
