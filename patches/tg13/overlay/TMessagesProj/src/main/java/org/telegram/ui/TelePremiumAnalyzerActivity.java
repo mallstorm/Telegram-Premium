@@ -8,6 +8,9 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
@@ -154,6 +157,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         historyLoaded = false;
         evidence.clear();
         thread.clear();
+        restoreThread();
         render();
     }
 
@@ -203,6 +207,11 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 R.drawable.tp_ic_ai, TelePremiumSettingsUi.PURPLE, null,
                 v -> ask("Сделай подробный аналитический обзор группы за выбранный период. Раздели выводы на темы, события и типы материалов; приведи ссылки-идентификаторы исходных сообщений.", true));
         ui.section("Свободная беседа");
+        if (!thread.isEmpty()) ui.button("Очистить историю этого диалога", true, v -> {
+            thread.clear();
+            persistThread();
+            render();
+        });
         if (thread.isEmpty()) {
             ui.note("Спроси про автора, публикации, подписи или торговые скриншоты. На первом этапе AI получает текст и подписи, но не сами пиксели изображений и не видеодорожку.");
         } else {
@@ -255,6 +264,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 .setItems(titles.toArray(new String[0]), (d, choice) -> {
                     authorFilter = ids.get(choice);
                     thread.clear();
+                    restoreThread();
                     render();
                 }).show();
     }
@@ -267,6 +277,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         authorFilter = 0;
         evidence.clear();
         thread.clear();
+        restoreThread();
         render();
     }
 
@@ -326,9 +337,45 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             else {
                 thread.add(new Turn(question, answer));
                 while (thread.size() > 12) thread.remove(0);
+                persistThread();
             }
             render();
         });
+    }
+
+    /** The connected AI provider store already supplies encrypted Android Keystore storage. */
+    private String threadKey() {
+        if (selected == null) return "";
+        long ownerId = UserConfig.getInstance(selected.account).getClientUserId();
+        return "analyzer_chat_v1_" + ownerId + "_" + selected.dialogId + "_" + days + "_" + authorFilter;
+    }
+
+    private void restoreThread() {
+        if (selected == null) return;
+        try {
+            String json = TPAiStore.getPrivate(threadKey());
+            if (TextUtils.isEmpty(json)) return;
+            JSONArray data = new JSONArray(json);
+            for (int i = Math.max(0, data.length() - 12); i < data.length(); i++) {
+                JSONObject turn = data.optJSONObject(i);
+                if (turn != null) thread.add(new Turn(turn.optString("question"), turn.optString("answer")));
+            }
+        } catch (Exception ignored) {
+            // Corrupted/stale encrypted cache must not prevent chat access.
+        }
+    }
+
+    private void persistThread() {
+        if (selected == null) return;
+        try {
+            JSONArray data = new JSONArray();
+            for (Turn turn : thread) {
+                data.put(new JSONObject().put("question", turn.question).put("answer", turn.answer));
+            }
+            TPAiStore.putPrivate(threadKey(), data.toString());
+        } catch (Exception ignored) {
+            toast("Не удалось сохранить защищённую историю чата");
+        }
     }
 
     private String buildPrompt(String question, boolean detailed) {
