@@ -95,7 +95,7 @@ public final class AnalyzerMediaProcessor {
             if (file.length() > 60L * 1024L * 1024L)
                 throw new IOException("Слишком большой файл изображения");
             byte[] jpeg = jpegFromFile(file);
-            frames.add(new Frame(e.messageId, 0, jpeg));
+            frames.add(new Frame(e.messageId, 0, jpeg, "изображение"));
         }
         return frames;
     }
