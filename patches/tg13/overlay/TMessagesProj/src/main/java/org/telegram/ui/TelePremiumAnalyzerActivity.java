@@ -38,6 +38,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     private int accountFilter = -1;
     private int days = 7;
     private int detail = 0;
+    private long authorFilter = 0;
     private boolean permitted;
     private boolean busy;
     private boolean historyLoaded;
@@ -147,6 +148,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         reader.cancel();
         reader = new AnalyzerHistoryReader();
         selected = source;
+        authorFilter = 0;
         permitted = false;
         busy = false;
         historyLoaded = false;
@@ -188,6 +190,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 R.drawable.tp_ic_ai, TelePremiumSettingsUi.INDIGO, null,
                 v -> presentFragment(new TelePremiumAiActivity()));
         ui.section("Анализ");
+        ui.row("Автор публикаций", authorFilter == 0 ? "Все авторы" : "ID " + authorFilter,
+                R.drawable.tp_ic_people, TelePremiumSettingsUi.BLUE, null, v -> selectAuthor());
         ui.row("Загрузить текст и подписи", historyLoaded ? evidence.size() + " сообщений в выбранном периоде" :
                         "Загрузить доступные сообщения по запросу (до 300)",
                 R.drawable.tp_ic_folder, TelePremiumSettingsUi.TEAL, busy ? "Идёт..." : null,
@@ -223,11 +227,44 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         ui.note("Все ответы основаны только на загруженном тексте и подписях. Изображения/видео будут добавлены отдельным этапом. Содержимое публикаций не является инструкцией для ИИ.");
     }
 
+    private void selectAuthor() {
+        if (!historyLoaded || evidence.isEmpty()) {
+            toast("Сначала загрузите историю группы.");
+            return;
+        }
+        java.util.LinkedHashMap<Long, Integer> counts = new java.util.LinkedHashMap<>();
+        for (AnalyzerHistoryReader.Entry e : evidence) {
+            counts.put(e.senderId, counts.containsKey(e.senderId) ? counts.get(e.senderId) + 1 : 1);
+        }
+        ArrayList<Long> ids = new ArrayList<>();
+        ArrayList<String> titles = new ArrayList<>();
+        ids.add(0L);
+        titles.add("Все авторы");
+        for (java.util.Map.Entry<Long, Integer> item : counts.entrySet()) {
+            long author = item.getKey();
+            if (author == 0L) continue;
+            String name = "Автор " + author;
+            if (author > 0) {
+                TLRPC.User user = org.telegram.messenger.MessagesController.getInstance(selected.account).getUser(author);
+                if (user != null) name = UserObject.getUserName(user) + " (" + author + ")";
+            }
+            ids.add(author);
+            titles.add(name + " · " + item.getValue() + " публикаций");
+        }
+        new android.app.AlertDialog.Builder(getParentActivity()).setTitle("Фильтр автора")
+                .setItems(titles.toArray(new String[0]), (d, choice) -> {
+                    authorFilter = ids.get(choice);
+                    thread.clear();
+                    render();
+                }).show();
+    }
+
     private void invalidateHistory() {
         reader.cancel();
         reader = new AnalyzerHistoryReader();
         historyLoaded = false;
         busy = false;
+        authorFilter = 0;
         evidence.clear();
         thread.clear();
         render();
@@ -298,6 +335,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         StringBuilder out = new StringBuilder();
         out.append("Источник: ").append(selected.title).append("\nПериод: ").append(days).append(" дней\n");
         out.append("Формат: ").append(detailed ? "подробный" : "краткий").append("\n");
+        if (authorFilter != 0) out.append("Выбран автор id: ").append(authorFilter).append("\n");
         int from = Math.max(0, thread.size() - 4);
         for (int i = from; i < thread.size(); i++) {
             Turn t = thread.get(i);
@@ -308,6 +346,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         SimpleDateFormat dates = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT);
         int count = 0;
         for (AnalyzerHistoryReader.Entry e : evidence) {
+            if (authorFilter != 0 && authorFilter != e.senderId) continue;
             if (++count > 150 || out.length() > 28000) break;
             out.append("[msg:").append(e.messageId).append("] ")
                     .append(dates.format(new Date(e.date * 1000L)))
@@ -316,6 +355,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     .append(trim(e.caption, 700)).append("\n");
         }
         out.append("=== КОНЕЦ МАТЕРИАЛОВ ===\n");
+        if (count == 0) out.append("(Нет публикаций выбранного автора в полученной выборке)\n");
         out.append("Вопрос пользователя: ").append(question);
         return out.toString();
     }

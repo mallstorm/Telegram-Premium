@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class AnalyzerHistoryReader {
     private static final int PAGE_SIZE = 100;
     private static final int MAX_MESSAGES = 300;
+    private static final int MAX_PAGES = 6;
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
     public static final class Source {
@@ -58,9 +59,21 @@ public final class AnalyzerHistoryReader {
             }
             this.senderId = sender;
             this.caption = message.message == null ? "" : message.message;
-            this.mediaType = message.media instanceof TLRPC.TL_messageMediaPhoto ? "photo" :
-                    message.media instanceof TLRPC.TL_messageMediaDocument ? "document/video/audio" : "text";
+            this.mediaType = classifyMedia(message);
         }
+    }
+
+    private static String classifyMedia(TLRPC.Message message) {
+        if (message.media instanceof TLRPC.TL_messageMediaPhoto) return "photo";
+        if (message.media instanceof TLRPC.TL_messageMediaDocument) {
+            TLRPC.Document file = ((TLRPC.TL_messageMediaDocument) message.media).document;
+            String mime = file == null || file.mime_type == null ? "" : file.mime_type;
+            if (mime.startsWith("video/")) return "video";
+            if (mime.startsWith("audio/")) return "audio";
+            if (mime.startsWith("image/")) return "image";
+            return "document";
+        }
+        return "text";
     }
 
     public interface Callback {
@@ -108,10 +121,10 @@ public final class AnalyzerHistoryReader {
         int safeDays = Math.max(1, Math.min(days, 365));
         int since = (int) (System.currentTimeMillis() / 1000L - safeDays * 86400L);
         ArrayList<Entry> collected = new ArrayList<>();
-        fetchPage(source, since, 0, collected, callback);
+        fetchPage(source, since, 0, 0, collected, callback);
     }
 
-    private void fetchPage(Source source, int since, int offset, ArrayList<Entry> entries, Callback cb) {
+    private void fetchPage(Source source, int since, int offset, int pageIndex, ArrayList<Entry> entries, Callback cb) {
         if (cancelled.get()) return;
         TLRPC.InputPeer peer = MessagesController.getInstance(source.account).getInputPeer(source.dialogId);
         if (peer == null || peer instanceof TLRPC.TL_inputPeerEmpty) {
@@ -143,18 +156,21 @@ public final class AnalyzerHistoryReader {
                     reachedDate = true;
                     continue;
                 }
-                if (m.message != null && !m.message.trim().isEmpty()) {
+                if ((m.message != null && !m.message.trim().isEmpty()) ||
+                        m.media instanceof TLRPC.TL_messageMediaPhoto ||
+                        m.media instanceof TLRPC.TL_messageMediaDocument) {
                     entries.add(new Entry(source.account, source.dialogId, m));
                     if (entries.size() >= MAX_MESSAGES) break;
                 }
             }
             if (reachedDate || page.messages.size() < PAGE_SIZE ||
-                    entries.size() >= MAX_MESSAGES || oldest == Integer.MAX_VALUE || oldest == offset) {
+                    entries.size() >= MAX_MESSAGES || pageIndex >= MAX_PAGES - 1 ||
+                    oldest == Integer.MAX_VALUE || oldest == offset) {
                 Collections.sort(entries, Comparator.comparingInt(e -> e.date));
                 post(cb, entries, null);
                 return;
             }
-            fetchPage(source, since, oldest, entries, cb);
+            fetchPage(source, since, oldest, pageIndex + 1, entries, cb);
         });
     }
 
