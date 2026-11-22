@@ -95,7 +95,7 @@ public final class TelePremiumClassicSettingsActivity extends BaseFragment {
         TextView footer = new TextView(context);
         footer.setText("TelePremium · Telegram 13.1.1 · интерфейс 11.x");
         footer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        footer.setTextColor(GRAY);
+        footer.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         footer.setGravity(Gravity.CENTER);
         body.addView(footer, new LinearLayout.LayoutParams(-1, dp(54)));
         fragmentView = screen;

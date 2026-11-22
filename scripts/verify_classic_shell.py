@@ -49,6 +49,8 @@ checks = {
         "panel.setBackgroundColor(Color.WHITE)" not in drawer and "HEADER_COLOR" not in drawer,
     "classic settings follow native Telegram theme": "Theme.key_windowBackgroundWhite" in classic
         and "private static final int BLUE" not in classic and "private static final int INK" not in classic,
+    "footer uses dynamic secondary color": "footer.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText))" in classic,
+    "no undefined old classic palette": not re.search(r"\b(?:GRAY|INK|BLUE)\b", classic),
     "permanent classic hamburger": "FragmentFloatingButton.setAnimatedVisibility(actionBar.getBackButton(), 1f)" in dialogs
         and "setClassicDrawerButton(actionBar)" in dialogs,
     "collapsed stories do not cover hamburger": "storyStripAlpha" in dialogs
