@@ -45,6 +45,8 @@ public final class AnalyzerHistoryReader {
         public final long senderId;
         public final String caption;
         public final String mediaType;
+        /** In-memory only, never serialized or sent to the LLM. */
+        public final TLRPC.Message sourceMessage;
 
         Entry(int account, long dialogId, TLRPC.Message message) {
             this.account = account;
@@ -60,6 +62,7 @@ public final class AnalyzerHistoryReader {
             this.senderId = sender;
             this.caption = message.message == null ? "" : message.message;
             this.mediaType = classifyMedia(message);
+            this.sourceMessage = message;
         }
     }
 
