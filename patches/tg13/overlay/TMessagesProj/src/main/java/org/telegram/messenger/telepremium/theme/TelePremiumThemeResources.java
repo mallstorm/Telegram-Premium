@@ -14,7 +14,10 @@ public final class TelePremiumThemeResources {
         // Dark presets start from Telegram's complete night palette: keys a preset does not set
         // (popup menus, sheets, pickers, story UI…) must not fall back to the light defaults —
         // that was the white "⋮" menu on dark themes.
-        if (p.isDark) loadBase(context, "night.attheme", c);
+        // Use a complete Telegram base palette before our surface overrides.
+        // The preset ID itself is shared by classic 11.x and native 13.x shells.
+        // Missing optional bundled assets safely fall back to Telegram defaults.
+        loadBase(context, p.isDark ? "night.attheme" : "day.attheme", c);
         int shellAccent = resolveAccent(context, p, false);
         int chatAccent = resolveAccent(context, p, true);
         int chatBackground = resolveChatBackground(context, p);
@@ -45,6 +48,13 @@ public final class TelePremiumThemeResources {
         c.put("actionBarDefaultTitle", p.textPrimary);
         c.put("actionBarDefaultSubtitle", p.textSecondary);
         c.put("actionBarDefaultSelector", p.listSelector);
+        c.put("actionBarDefaultArchived", p.actionBar);
+        c.put("actionBarDefaultArchivedIcon", p.iconPrimary);
+        c.put("actionBarDefaultArchivedTitle", p.textPrimary);
+        c.put("actionBarTabActiveText", shellAccent);
+        c.put("actionBarTabUnactiveText", p.textSecondary);
+        c.put("actionBarTabLine", shellAccent);
+        c.put("actionBarTabSelector", p.listSelector);
         c.put("actionBarDefaultSearch", p.textPrimary);
         c.put("actionBarDefaultSearchPlaceholder", p.textSecondary);
         c.put("actionBarDefaultSubmenuBackground", p.surfaceElevated);
@@ -79,8 +89,18 @@ public final class TelePremiumThemeResources {
         c.put("chats_menuItemText", p.textPrimary);
         c.put("chats_menuItemIcon", shellAccent);
         c.put("chats_menuItemCheck", shellAccent);
+        c.put("chats_menuItemSelector", p.listSelector);
+        c.put("chats_menuItemTextRed", p.textPrimary);
+        c.put("chats_menuName", p.textPrimary);
+        c.put("chats_searchText", p.textPrimary);
+        c.put("chats_searchHint", p.textSecondary);
+        c.put("chats_searchIcon", p.iconSecondary);
         c.put("chats_name", p.textPrimary);
         c.put("chats_message", p.textSecondary);
+        c.put("chats_messageArchived", p.textSecondary);
+        c.put("chats_muteIcon", p.iconSecondary);
+        c.put("chats_pinnedIcon", p.iconSecondary);
+        c.put("chats_secretName", shellAccent);
         c.put("chats_date", p.textSecondary);
         c.put("chats_unreadCounter", shellAccent);
         c.put("chats_unreadCounterText", contrastOn(shellAccent));

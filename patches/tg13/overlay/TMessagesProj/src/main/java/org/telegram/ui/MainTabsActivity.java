@@ -1018,7 +1018,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabsViewWrapper.setPadding(systemInsets.left, 0, systemInsets.right, navigationBarHeight);
         if (classicDrawer != null) {
-            classicDrawer.setPadding(systemInsets.left, 0, systemInsets.right, navigationBarHeight);
+            classicDrawer.setSystemInsets(systemInsets.left, systemInsets.right, navigationBarHeight);
             classicDrawer.setStatusBarPadding(systemInsets.top);
         }
 

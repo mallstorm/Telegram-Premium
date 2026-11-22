@@ -1632,7 +1632,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     private void updateStoriesViewAlpha(float alpha) {
         final float factorSearch = Utilities.clamp(searchAnimationProgress * 2, 1f, 0f);
-        dialogStoriesCell.setAlpha((1f - progressToActionMode) * alpha * progressToDialogStoriesCell * (1f - factorSearch));
+        float storyStripAlpha = 1f;
+        if (classicDrawerAction != null) {
+            // Telegram 13 collapses stories into avatars over the old 11.x
+            // hamburger. Keep the expanded stories row, but fade its collapsed
+            // representation away before it can cover the permanent menu.
+            float collapse = Utilities.clamp(-scrollYOffset / dp(DialogStoriesCell.HEIGHT_IN_DP), 1f, 0f);
+            storyStripAlpha = 1f - Utilities.clamp((collapse - 0.42f) * 3f, 1f, 0f);
+        }
+        dialogStoriesCell.setAlpha((1f - progressToActionMode) * alpha
+                * progressToDialogStoriesCell * (1f - factorSearch) * storyStripAlpha);
         float containersAlpha;
 
         if (hasStories || animateToHasStories) {
@@ -2849,10 +2858,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateClassicActionBar(float searchProgress) {
-        actionBar.setBackgroundColor(ColorUtils.blendARGB(TelePremiumClassicDrawer.HEADER_COLOR, Color.TRANSPARENT, searchProgress));
-        actionBar.setTitleColor(Color.WHITE);
-        actionBar.setItemsColor(ColorUtils.blendARGB(Color.WHITE, getThemedColor(Theme.key_actionBarActionModeDefaultIcon), searchProgress), false);
-        actionBar.setItemsBackgroundColor(ColorUtils.blendARGB(0x33ffffff, getThemedColor(Theme.key_actionBarActionModeDefaultSelector), searchProgress), false);
+        actionBar.setBackgroundColor(ColorUtils.blendARGB(getThemedColor(Theme.key_actionBarDefault),
+                getThemedColor(Theme.key_windowBackgroundWhite), searchProgress));
+        actionBar.setTitleColor(getThemedColor(Theme.key_actionBarDefaultTitle));
+        actionBar.setItemsColor(ColorUtils.blendARGB(getThemedColor(Theme.key_actionBarDefaultIcon),
+                getThemedColor(Theme.key_actionBarActionModeDefaultIcon), searchProgress), false);
+        actionBar.setItemsBackgroundColor(ColorUtils.blendARGB(getThemedColor(Theme.key_actionBarDefaultSelector),
+                getThemedColor(Theme.key_actionBarActionModeDefaultSelector), searchProgress), false);
     }
 
     private NotificationCenter.ObserversGroup observersGroup;
@@ -5364,7 +5376,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         };
         dialogStoriesCell.setActionBar(actionBar);
-        dialogStoriesCell.setMenuItemsOffset(isArchive() ? dp(68) : dpf2(16.66f));
+        dialogStoriesCell.setMenuItemsOffset(isArchive() || classicDrawerAction != null ? dp(68) : dpf2(16.66f));
         dialogStoriesCell.allowGlobalUpdates = false;
         dialogStoriesCell.setVisibility(View.GONE);
         animateToHasStories = false;
@@ -14194,6 +14206,15 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return;
         }
 
+        if (classicDrawerAction != null && !onlySelect && folderId == 0 && communityId == 0
+                && !searching && !actionBar.isActionModeShowed()
+                && (rightSlidingDialogContainer == null || !rightSlidingDialogContainer.hasFragment())) {
+            if (!(actionBar.getBackButtonDrawable() instanceof MenuDrawable)) {
+                setClassicDrawerButton(actionBar);
+            }
+            FragmentFloatingButton.setAnimatedVisibility(actionBar.getBackButton(), 1f);
+            return;
+        }
         final float factor1 = 1f - animatorSearchVisible.getFloatValue();
         final float factor2 = 1f - getRightSlidingProgress();
         final float factor3 = 1f - animatorDoneButtonVisible.getFloatValue();

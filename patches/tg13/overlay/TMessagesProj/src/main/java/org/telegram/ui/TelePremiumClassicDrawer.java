@@ -26,18 +26,18 @@ import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudAccessGate;
+import org.telegram.ui.ActionBar.Theme;
 
 /**
  * Telegram 11.x visual drawer over the Telegram 13.1.1 MainTabsActivity.
  * No old protocol, database or user-account implementation is reinstated.
  */
 public final class TelePremiumClassicDrawer extends FrameLayout {
-    static final int HEADER_COLOR = 0xff598fbd;
-    private static final int INK = 0xff454545;
-    private static final int ICON = 0xff92999d;
+    // Theme colors come from the same native Telegram Theme map in both 11.x and 13.x shells.
     private final MainTabsActivity host;
     private final FrameLayout panel;
     private final LinearLayout rows;
+    private final ScrollView scroll;
     private final View scrim;
     private final int width;
     private int statusBarPadding;
@@ -55,15 +55,15 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         scrim.setOnClickListener(v -> close());
         addView(scrim, new FrameLayout.LayoutParams(-1, -1));
         panel = new FrameLayout(context);
-        panel.setBackgroundColor(Color.WHITE);
+        panel.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));
         addView(panel, new FrameLayout.LayoutParams(width, -1, Gravity.LEFT));
-        ScrollView scroll = new ScrollView(context);
+        scroll = new ScrollView(context);
         scroll.setFillViewport(true);
         scroll.setVerticalScrollBarEnabled(false);
         panel.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
         rows = new LinearLayout(context);
         rows.setOrientation(LinearLayout.VERTICAL);
-        rows.setBackgroundColor(Color.WHITE);
+        rows.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));
         scroll.addView(rows, new ScrollView.LayoutParams(-1, -2));
         rebuild();
     }
@@ -89,7 +89,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
 
     private void line() {
         View line = new View(getContext());
-        line.setBackgroundColor(0xffeeeeee);
+        line.setBackgroundColor(Theme.getColor(Theme.key_divider));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1));
         lp.topMargin = AndroidUtilities.dp(8);
         lp.bottomMargin = AndroidUtilities.dp(8);
@@ -104,9 +104,9 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         line.setPadding(AndroidUtilities.dp(24), 0, AndroidUtilities.dp(22), 0);
         ImageView icon = new ImageView(getContext());
         icon.setImageResource(iconRes);
-        icon.setColorFilter(ICON);
+        icon.setColorFilter(Theme.getColor(Theme.key_chats_menuItemIcon));
         line.addView(icon, new LinearLayout.LayoutParams(AndroidUtilities.dp(24), AndroidUtilities.dp(24)));
-        TextView label = text(title, 16, INK, true);
+        TextView label = text(title, 16, Theme.getColor(Theme.key_chats_menuItemText), true);
         LinearLayout.LayoutParams txt = new LinearLayout.LayoutParams(0, -2, 1);
         txt.leftMargin = AndroidUtilities.dp(27);
         line.addView(label, txt);
@@ -138,21 +138,22 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
             line.setGravity(Gravity.CENTER_VERTICAL);
             line.setPadding(AndroidUtilities.dp(17), 0, AndroidUtilities.dp(18), 0);
             line.addView(avatar(a, 38), new LinearLayout.LayoutParams(AndroidUtilities.dp(40), AndroidUtilities.dp(44)));
-            TextView label = text(user == null ? "Telegram" : UserObject.getUserName(user), 16, INK, true);
+            TextView label = text(user == null ? "Telegram" : UserObject.getUserName(user), 16,
+                    Theme.getColor(Theme.key_chats_menuItemText), true);
             LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, -2, 1);
             nameLp.leftMargin = AndroidUtilities.dp(17);
             line.addView(label, nameLp);
             int unread = MessagesStorage.getInstance(a).getMainUnreadCount();
             if (unread > 0) {
-                TextView count = text(String.valueOf(unread), 13, Color.WHITE, true);
+                TextView count = text(String.valueOf(unread), 13, Theme.getColor(Theme.key_chats_unreadCounterText), true);
                 count.setGravity(Gravity.CENTER);
                 count.setMinWidth(AndroidUtilities.dp(26));
                 count.setPadding(AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6), 0);
-                count.setBackground(background(0xff4acb67, 30));
+                count.setBackground(background(Theme.getColor(Theme.key_chats_unreadCounter), 30));
                 line.addView(count, new LinearLayout.LayoutParams(-2, AndroidUtilities.dp(27)));
             }
             if (UserConfig.selectedAccount == a) {
-                TextView selected = text(" ✓", 14, 0xff40bd63, true);
+                TextView selected = text(" ✓", 14, Theme.getColor(Theme.key_chats_menuItemCheck), true);
                 line.addView(selected);
             }
             line.setOnClickListener(v -> {
@@ -173,6 +174,16 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         });
     }
 
+    /** The overlay fills the system navigation area; only the scrollable list is inset. */
+    void setSystemInsets(int left, int right, int bottom) {
+        setPadding(left, 0, right, 0);
+        int safeBottom = Math.max(0, bottom);
+        if (scroll.getPaddingBottom() != safeBottom) {
+            scroll.setPadding(0, 0, 0, safeBottom);
+            scroll.setClipToPadding(true);
+        }
+    }
+
     void setStatusBarPadding(int padding) {
         if (statusBarPadding != padding) {
             statusBarPadding = padding;
@@ -184,8 +195,11 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
 
     public void rebuild() {
         rows.removeAllViews();
+        int background = Theme.getColor(Theme.key_chats_menuBackground);
+        panel.setBackgroundColor(background);
+        rows.setBackgroundColor(background);
         FrameLayout head = new FrameLayout(getContext());
-        head.setBackgroundColor(HEADER_COLOR);
+        head.setBackgroundColor(Theme.getColor(Theme.key_chats_menuTopBackground));
         head.setPadding(0, statusBarPadding, 0, 0);
         rows.addView(head, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(205) + statusBarPadding));
         int active = UserConfig.selectedAccount;
@@ -195,27 +209,27 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         photo.topMargin = AndroidUtilities.dp(28);
         head.addView(avatar(active, 68), photo);
         String name = user == null ? "Telegram" : UserObject.getUserName(user);
-        TextView username = text(name, 18, Color.WHITE, true);
+        TextView username = text(name, 18, Theme.getColor(Theme.key_chats_menuName), true);
         FrameLayout.LayoutParams nameLp = new FrameLayout.LayoutParams(-1, AndroidUtilities.dp(31), Gravity.TOP);
         nameLp.leftMargin = AndroidUtilities.dp(20);
         nameLp.rightMargin = AndroidUtilities.dp(22);
         nameLp.topMargin = AndroidUtilities.dp(119);
         head.addView(username, nameLp);
         String phone = user == null || TextUtils.isEmpty(user.phone) ? "" : "+" + user.phone;
-        TextView number = text(phone, 15, 0xffd9eaf5, false);
+        TextView number = text(phone, 15, Theme.getColor(Theme.key_chats_menuPhone), false);
         FrameLayout.LayoutParams phoneLp = new FrameLayout.LayoutParams(-1, AndroidUtilities.dp(32), Gravity.TOP);
         phoneLp.leftMargin = AndroidUtilities.dp(20);
         phoneLp.topMargin = AndroidUtilities.dp(153);
         phoneLp.rightMargin = AndroidUtilities.dp(48);
         head.addView(number, phoneLp);
-        TextView theme = text("☾", 24, Color.WHITE, false);
+        TextView theme = text("☾", 24, Theme.getColor(Theme.key_chats_menuName), false);
         theme.setGravity(Gravity.CENTER);
         FrameLayout.LayoutParams moon = new FrameLayout.LayoutParams(AndroidUtilities.dp(44), AndroidUtilities.dp(44), Gravity.RIGHT | Gravity.TOP);
         moon.topMargin = AndroidUtilities.dp(28);
         moon.rightMargin = AndroidUtilities.dp(20);
         head.addView(theme, moon);
         theme.setOnClickListener(v -> host.presentFragment(new TelePremiumAppearanceActivity()));
-        TextView arrow = text(expanded ? "⌃" : "⌄", 26, Color.WHITE, false);
+        TextView arrow = text(expanded ? "⌃" : "⌄", 26, Theme.getColor(Theme.key_chats_menuName), false);
         arrow.setGravity(Gravity.CENTER);
         head.addView(arrow, new FrameLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48), Gravity.RIGHT | Gravity.BOTTOM));
         arrow.setOnClickListener(v -> { expanded = !expanded; rebuild(); });
@@ -273,12 +287,16 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         setAlpha(1f);
         scrim.setAlpha(0f);
         panel.setTranslationX(-width);
+        scrim.animate().cancel();
+        panel.animate().cancel();
         scrim.animate().alpha(1f).setDuration(185).start();
         panel.animate().translationX(0).setDuration(185).start();
     }
     public void close() {
         if (!open) return;
         open = false;
+        scrim.animate().cancel();
+        panel.animate().cancel();
         scrim.animate().alpha(0f).setDuration(170).start();
         panel.animate().translationX(-width).setDuration(170).withEndAction(() -> {
             if (!open) setVisibility(GONE);

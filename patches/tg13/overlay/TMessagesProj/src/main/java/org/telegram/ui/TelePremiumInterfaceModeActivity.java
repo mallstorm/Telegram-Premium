@@ -17,6 +17,8 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.telepremium.TelePremiumUiPrefs;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;
 
 /** Two renderers, one Telegram 13 backend. Classic is the default preference. */
 public final class TelePremiumInterfaceModeActivity extends BaseFragment {
@@ -28,11 +30,11 @@ public final class TelePremiumInterfaceModeActivity extends BaseFragment {
         });
         LinearLayout body = new LinearLayout(context);
         body.setOrientation(LinearLayout.VERTICAL);
-        body.setBackgroundColor(0xfff4f4f4);
+        body.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
         TextView explanation = new TextView(context);
         explanation.setText("Оба интерфейса используют Telegram 13.1.1, те же аккаунты, сообщения, Cloud Vault и настройки. Изменяется только оболочка.");
         explanation.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        explanation.setTextColor(0xff666666);
+        explanation.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         explanation.setPadding(dp(24), dp(20), dp(24), dp(20));
         body.addView(explanation);
         addChoice(body, context, "Классический Telegram 11.x", "Боковое меню, отдельный список тем и классические настройки", true);
@@ -47,17 +49,17 @@ public final class TelePremiumInterfaceModeActivity extends BaseFragment {
         LinearLayout cell = new LinearLayout(context);
         cell.setGravity(Gravity.CENTER_VERTICAL);
         cell.setPadding(dp(22), dp(16), dp(20), dp(16));
-        cell.setBackgroundColor(Color.WHITE);
+        cell.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         LinearLayout texts = new LinearLayout(context);
         texts.setOrientation(LinearLayout.VERTICAL);
         TextView heading = new TextView(context);
         heading.setText(title);
-        heading.setTextColor(0xff222222);
+        heading.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         TextView desc = new TextView(context);
         desc.setText(subtitle);
-        desc.setTextColor(0xff777777);
+        desc.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         desc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         texts.addView(heading);
         texts.addView(desc);
@@ -70,7 +72,11 @@ public final class TelePremiumInterfaceModeActivity extends BaseFragment {
             if (TelePremiumUiPrefs.classicUiEnabled() == classic) return;
             TelePremiumUiPrefs.setClassicUiEnabled(classic);
             Activity activity = getParentActivity();
-            if (activity != null) activity.recreate();
+            if (activity != null) {
+                // Reapply the same saved Telegram theme to whichever UI shell is selected.
+                TelePremiumThemeController.ensureShellTheme(activity);
+                activity.recreate();
+            }
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.bottomMargin = dp(1);

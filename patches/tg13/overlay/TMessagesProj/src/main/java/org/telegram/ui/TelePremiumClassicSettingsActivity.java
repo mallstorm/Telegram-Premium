@@ -23,25 +23,23 @@ import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Stars.StarsIntroActivity;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudAccessGate;
 
 /** Classic Telegram 11 settings presentation routing into Telegram 13 handlers. */
 public final class TelePremiumClassicSettingsActivity extends BaseFragment {
-    private static final int BLUE = 0xff598fbd;
-    private static final int INK = 0xff303030;
-    private static final int GRAY = 0xff989fa3;
     private LinearLayout body;
 
     @Override public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setBackgroundColor(BLUE);
+        actionBar.setBackgroundColor(getThemedColor(Theme.key_actionBarDefault));
         actionBar.setTitle("Настройки");
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
         FrameLayout screen = new FrameLayout(context);
-        screen.setBackgroundColor(0xfff0f0f0);
+        screen.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
         ScrollView scrolling = new ScrollView(context);
         scrolling.setFillViewport(true);
         screen.addView(scrolling, new FrameLayout.LayoutParams(-1, -1));
@@ -52,10 +50,10 @@ public final class TelePremiumClassicSettingsActivity extends BaseFragment {
         LinearLayout profile = new LinearLayout(context);
         profile.setGravity(Gravity.CENTER_VERTICAL);
         profile.setPadding(dp(24), 0, dp(24), 0);
-        profile.setBackgroundColor(Color.WHITE);
+        profile.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         TextView avatar = new TextView(context);
         avatar.setText("◉");
-        avatar.setTextColor(BLUE);
+        avatar.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
         avatar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
         profile.addView(avatar, new LinearLayout.LayoutParams(dp(55), dp(72)));
         TLRPC.User user = UserConfig.getInstance(currentAccount).getCurrentUser();
@@ -64,7 +62,7 @@ public final class TelePremiumClassicSettingsActivity extends BaseFragment {
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19);
         name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         name.setGravity(Gravity.CENTER_VERTICAL);
-        name.setTextColor(INK);
+        name.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         profile.addView(name, new LinearLayout.LayoutParams(-1, dp(72)));
         profile.setOnClickListener(v -> presentFragment(new UserInfoActivity()));
         body.addView(profile);
@@ -108,30 +106,30 @@ public final class TelePremiumClassicSettingsActivity extends BaseFragment {
 
     private void section(String title) {
         LinearLayout spacer = new LinearLayout(getContext());
-        spacer.setBackgroundColor(0xfff0f0f0);
+        spacer.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
         body.addView(spacer, new LinearLayout.LayoutParams(-1, dp(18)));
         TextView heading = new TextView(getContext());
         heading.setText(title);
-        heading.setTextColor(BLUE);
+        heading.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
         heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         heading.setPadding(dp(24), 0, dp(8), 0);
         heading.setGravity(Gravity.CENTER_VERTICAL);
-        heading.setBackgroundColor(Color.WHITE);
+        heading.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         body.addView(heading, new LinearLayout.LayoutParams(-1, dp(37)));
     }
 
     private void row(String title, int image, String value, Runnable action) {
         LinearLayout row = new LinearLayout(getContext());
-        row.setBackgroundColor(Color.WHITE);
+        row.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(27), 0, dp(24), 0);
         ImageView icon = new ImageView(getContext());
         icon.setImageResource(image);
-        icon.setColorFilter(GRAY);
+        icon.setColorFilter(getThemedColor(Theme.key_chats_menuItemIcon));
         row.addView(icon, new LinearLayout.LayoutParams(dp(24), dp(24)));
         TextView label = new TextView(getContext());
         label.setText(title);
-        label.setTextColor(INK);
+        label.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         label.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(0, -1, 1);
@@ -142,13 +140,13 @@ public final class TelePremiumClassicSettingsActivity extends BaseFragment {
             side.setText(value);
             side.setSingleLine(true);
             side.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            side.setTextColor(BLUE);
+            side.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
             row.addView(side);
         }
         row.setOnClickListener(v -> action.run());
         body.addView(row, new LinearLayout.LayoutParams(-1, dp(55)));
         View divider = new View(getContext());
-        divider.setBackgroundColor(0xffeeeeee);
+        divider.setBackgroundColor(getThemedColor(Theme.key_divider));
         LinearLayout.LayoutParams lineLp = new LinearLayout.LayoutParams(-1, dp(1));
         lineLp.leftMargin = dp(83);
         body.addView(divider, lineLp);
