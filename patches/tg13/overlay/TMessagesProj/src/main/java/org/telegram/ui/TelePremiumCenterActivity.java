@@ -61,6 +61,9 @@ public class TelePremiumCenterActivity extends BaseFragment {
                 TPStrings.isRussian() ? "Свои модели по API-ключу или через аккаунт (OAuth PKCE) для редактора статей"
                         : "Your own models by API key or account sign-in (OAuth PKCE) for the article editor",
                 R.drawable.tp_ic_ai, TelePremiumSettingsUi.INDIGO, null, v -> presentFragment(new TelePremiumAiActivity()));
+        ui.row("Telegram AI Analyzer", "Сводки групп, публикации и аналитический AI-чат",
+                R.drawable.tp_ic_ai, TelePremiumSettingsUi.PURPLE, null,
+                v -> presentFragment(new TelePremiumAnalyzerActivity()));
         ui.row(t("TP_L10N_056", R.string.TP_L10N_056), t("TP_L10N_057", R.string.TP_L10N_057), R.drawable.tp_ic_translate, TelePremiumSettingsUi.PURPLE, null,
                 v -> presentFragment(new LanguageSelectActivity()));
         ui.row(t("TP_L10N_058", R.string.TP_L10N_058), t("TP_L10N_059", R.string.TP_L10N_059), R.drawable.tp_ic_storage, TelePremiumSettingsUi.TEAL, null,

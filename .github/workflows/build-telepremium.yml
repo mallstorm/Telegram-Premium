@@ -2,7 +2,7 @@ name: Build TelePremium APK
 
 on:
   push:
-    branches: [ port/tg-13.1.1, feature/classic-telegram-11x ]
+    branches: [ port/tg-13.1.1, feature/classic-telegram-11x, feature/telegram-ai-analyzer ]
     tags: [ 'v*' ]
     paths-ignore:
       - "**.md"
@@ -95,6 +95,7 @@ jobs:
           python3 scripts/apply_overlay.py patches/tg13
           python3 scripts/verify_tg13.py
           python3 scripts/verify_classic_shell.py
+          python3 scripts/verify_ai_analyzer.py
           java scripts/CheckJavaSyntax.java upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium
 
       - name: Pure-Java tests
