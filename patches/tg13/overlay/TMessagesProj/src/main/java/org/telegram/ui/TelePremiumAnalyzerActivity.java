@@ -6,6 +6,10 @@ import android.content.Intent;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.MotionEvent;
+import android.widget.FrameLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -57,7 +61,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     private boolean busy;
     private boolean historyLoaded;
     private String search = "";
-    private EditText questionInput;
+    private ScrollView overviewScroll;
+    private TelePremiumAnalyzerChatActivity chatScreen;
 
     private static final class Turn {
         final String question;
@@ -74,7 +79,10 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
         });
         ui = new TelePremiumSettingsUi(this, context);
-        fragmentView = ui.createScreen();
+        overviewScroll = ui.createScreen();
+        SwipeHostFrame host = new SwipeHostFrame(context, this::openChat);
+        host.addView(overviewScroll, new FrameLayout.LayoutParams(-1, -1));
+        fragmentView = host;
         render();
         return fragmentView;
     }
@@ -87,6 +95,110 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         super.onFragmentDestroy();
     }
 
+    /**
+     * Swipe from the right portion of the Analyzer workspace towards the left.
+     * Restricted to horizontal gestures so settings rows and vertical scrolling
+     * keep their original touch behavior.
+     */
+    private static final class SwipeHostFrame extends FrameLayout {
+        private final Runnable openChat;
+        private float startX;
+        private float startY;
+        private boolean tracking;
+
+        SwipeHostFrame(Context context, Runnable openChat) {
+            super(context);
+            this.openChat = openChat;
+        }
+
+        @Override public boolean onInterceptTouchEvent(MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                startX = event.getX();
+                startY = event.getY();
+                tracking = false;
+                return false;
+            }
+            if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                float dx = startX - event.getX();
+                float dy = Math.abs(startY - event.getY());
+                if (startX >= getWidth() * 0.55f &&
+                        dx > AndroidUtilities.dp(66) && dx > dy * 1.6f) {
+                    tracking = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            if (tracking && event.getActionMasked() == MotionEvent.ACTION_UP) {
+                float dx = startX - event.getX();
+                float dy = Math.abs(startY - event.getY());
+                tracking = false;
+                if (dx > AndroidUtilities.dp(90) && dx > dy * 1.6f) {
+                    openChat.run();
+                }
+                return true;
+            }
+            if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) tracking = false;
+            return tracking || super.onTouchEvent(event);
+        }
+    }
+
+    private void openChat() {
+        if (selected == null) {
+            toast("Сначала выберите группу или канал");
+            return;
+        }
+        presentFragment(new TelePremiumAnalyzerChatActivity(this));
+    }
+
+    void onChatOpened(TelePremiumAnalyzerChatActivity screen) {
+        chatScreen = screen;
+    }
+
+    void onChatClosed(TelePremiumAnalyzerChatActivity screen) {
+        if (chatScreen == screen) chatScreen = null;
+    }
+
+    String chatGroupTitle() {
+        return selected == null ? "Telegram AI Analyzer" : selected.title;
+    }
+
+    String chatContextDescription() {
+        if (selected == null) return "";
+        return selected.accountName + " · " + days + " дней" +
+                (authorFilter == 0 ? "" : " · автор " + authorFilter);
+    }
+
+    boolean chatCanAsk() {
+        return selected != null && permitted;
+    }
+
+    boolean chatIsBusy() {
+        return busy;
+    }
+
+    List<String[]> chatTurns() {
+        ArrayList<String[]> snapshot = new ArrayList<>();
+        for (Turn turn : thread) snapshot.add(new String[]{turn.question, turn.answer});
+        return snapshot;
+    }
+
+    void askFromChat(String question) {
+        ask(question, detail == 1);
+    }
+
+    void openEvidenceById(int id) {
+        for (AnalyzerHistoryReader.Entry entry : evidence) {
+            if (entry.messageId == id) {
+                openEvidence(entry);
+                return;
+            }
+        }
+        toast("Сообщение [" + id + "] отсутствует в загруженной выборке");
+    }
+
     private void resetMediaJob() {
         mediaCancellation.set(true);
         mediaCancellation = new AtomicBoolean(false);
@@ -95,6 +207,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
 
     private void render() {
         if (ui == null || getParentActivity() == null) return;
+        final int previousScrollY = overviewScroll == null ? 0 : overviewScroll.getScrollY();
         ui.clear();
         ui.hero("Telegram AI Analyzer", "Группы и каналы · свободный AI-чат",
                 "Чтение по запросу · без фонового сбора", R.drawable.tp_ic_ai);
@@ -103,6 +216,12 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         } else {
             drawWorkspace();
         }
+        if (overviewScroll != null) {
+            overviewScroll.post(() -> {
+                if (overviewScroll != null) overviewScroll.scrollTo(0, previousScrollY);
+            });
+        }
+        if (chatScreen != null) chatScreen.refresh();
     }
 
     private void drawCatalog() {
@@ -235,35 +354,38 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 R.drawable.tp_ic_ai, TelePremiumSettingsUi.PURPLE, null,
                 v -> ask("Сделай подробный аналитический обзор группы за выбранный период. Раздели выводы на темы, события и типы материалов; приведи ссылки-идентификаторы исходных сообщений.", true));
         drawMediaAndEvidence();
-        ui.section("Свободная беседа");
-        if (!thread.isEmpty()) ui.button("Поделиться отчётом", false, v -> shareReport());
-        if (!thread.isEmpty()) ui.button("Очистить историю этого диалога", true, v -> {
-            thread.clear();
-            persistThread();
-            render();
-        });
-        if (thread.isEmpty()) {
-            ui.note("Можно спросить о текстах, авторах и подписях. Для визуального разбора скриншотов и видео отдельно разрешите мультимодальную обработку ниже.");
+        ui.section("AI-чат");
+        ui.row("Открыть полноценный чат", "Полноэкранная беседа · свайп влево с этой страницы",
+                R.drawable.tp_ic_chat, TelePremiumSettingsUi.PURPLE, null, v -> openChat());
+        if (!thread.isEmpty()) {
+            Turn latest = thread.get(thread.size() - 1);
+            TextView previewLabel = ui.note("Последний ответ · открой чат, чтобы читать целиком");
+            previewLabel.setTextSize(15);
+            TextView preview = ui.note(stripPreview(latest.answer));
+            preview.setTextSize(16);
+            preview.setMaxLines(5);
+            preview.setEllipsize(TextUtils.TruncateAt.END);
+            preview.setOnClickListener(v -> openChat());
+            ui.button("Поделиться отчётом", false, v -> shareReport());
+            ui.button("Очистить историю диалога", true, v -> {
+                thread.clear();
+                persistThread();
+                render();
+            });
         } else {
-            for (Turn turn : thread) {
-                ui.note("Вы: " + turn.question);
-                ui.note("AI: " + turn.answer);
-            }
+            TextView help = ui.note("Пиши обычным языком. AI использует материалы выбранной группы и сохраняет контекст беседы.");
+            help.setTextSize(15);
         }
-        questionInput = new EditText(getParentActivity());
-        questionInput.setTextSize(15);
-        questionInput.setMinLines(2);
-        questionInput.setMaxLines(5);
-        questionInput.setHint("Спроси про группу, автора или публикации...");
-        questionInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE |
-                InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        int dp = AndroidUtilities.dp(10);
-        questionInput.setPadding(dp, dp, dp, dp);
-        ui.content.addView(questionInput, new LinearLayout.LayoutParams(-1, -2));
-        ui.button(busy ? "Обрабатываю..." : "Спросить AI", false,
-                v -> { if (!busy) ask(questionInput.getText().toString().trim(), detail == 1); });
-        if (busy) ui.note("Выполняется запрос. Не переключайте источник до завершения.");
-        ui.note("Текстовый чат использует только загруженные сообщения и подписи. Скриншоты и видео анализируются исключительно после отдельного разрешения и выбора материала.");
+        if (busy) {
+            TextView progress = ui.note("Идёт анализ сообщений…");
+            progress.setTextSize(15);
+        }
+    }
+
+    private static String stripPreview(String markdown) {
+        if (markdown == null) return "";
+        String plain = markdown.replace("**", "").replaceAll("(?m)^#{1,6}\\s+", "");
+        return plain.length() > 850 ? plain.substring(0, 850) + "…" : plain;
     }
 
     private ArrayList<AnalyzerHistoryReader.Entry> mediaEntries(String type) {
