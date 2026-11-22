@@ -122,6 +122,83 @@ public final class TPAiClient {
         }
     }
 
+    /**
+     * Explicit, user-authorized image analysis for providers supporting the public
+     * OpenAI Chat Completions vision or Anthropic Messages image content formats.
+     *
+     * Subscription-proxy transports are deliberately excluded: they have different
+     * media APIs and must never receive image bytes through a text-only fallback.
+     * No API token, arbitrary URL or media path is included in the user payload.
+     */
+    public static String completeVision(TPAiStore.Connection c, String system, String user,
+                                        List<byte[]> jpegImages) throws IOException {
+        if (c == null || TextUtils.isEmpty(c.model)) throw new IOException("Выберите AI-подключение с поддержкой изображений");
+        if (TPOmni.AUTH.equals(c.authType)) {
+            throw new IOException("Этот способ входа пока не поддерживает отправку изображений из Analyzer. Выберите подключение по API-ключу с Vision.");
+        }
+        if (jpegImages == null || jpegImages.isEmpty() || jpegImages.size() > 5)
+            throw new IOException("Для анализа выберите от 1 до 5 изображений");
+        long size = 0;
+        for (byte[] bytes : jpegImages) {
+            if (bytes == null || bytes.length == 0 || bytes.length > 1_400_000)
+                throw new IOException("Размер одного JPEG должен быть не более 1.4 МБ");
+            size += bytes.length;
+        }
+        if (size > 5_000_000) throw new IOException("Слишком много данных изображений");
+
+        try {
+            String key = TPAiStore.getSecret(c.id);
+            JSONArray parts = new JSONArray();
+            if (TPAiProvider.ANTHROPIC.equals(c.protocol)) {
+                parts.put(new JSONObject().put("type", "text").put("text", user));
+                for (byte[] image : jpegImages) {
+                    JSONObject source = new JSONObject().put("type", "base64")
+                            .put("media_type", "image/jpeg")
+                            .put("data", android.util.Base64.encodeToString(image, android.util.Base64.NO_WRAP));
+                    parts.put(new JSONObject().put("type", "image").put("source", source));
+                }
+                JSONObject body = new JSONObject().put("model", c.model).put("max_tokens", 4096)
+                        .put("messages", new JSONArray().put(new JSONObject().put("role", "user").put("content", parts)));
+                if (!TextUtils.isEmpty(system)) body.put("system", system);
+                JSONObject response = request(c, key, "POST", "messages", body.toString());
+                JSONArray items = response.optJSONArray("content");
+                StringBuilder out = new StringBuilder();
+                for (int i = 0; items != null && i < items.length(); i++) {
+                    JSONObject item = items.optJSONObject(i);
+                    if (item != null && "text".equals(item.optString("type"))) out.append(item.optString("text"));
+                }
+                if (out.length() == 0) throw new IOException("Vision-модель вернула пустой ответ");
+                return out.toString();
+            }
+
+            parts.put(new JSONObject().put("type", "text").put("text", user));
+            for (byte[] image : jpegImages) {
+                String data = "data:image/jpeg;base64," + android.util.Base64.encodeToString(
+                        image, android.util.Base64.NO_WRAP);
+                parts.put(new JSONObject().put("type", "image_url")
+                        .put("image_url", new JSONObject().put("url", data).put("detail", "high")));
+            }
+            JSONArray messages = new JSONArray();
+            if (!TextUtils.isEmpty(system))
+                messages.put(new JSONObject().put("role", "system").put("content", system));
+            messages.put(new JSONObject().put("role", "user").put("content", parts));
+            JSONObject payload = new JSONObject().put("model", c.model).put("stream", false)
+                    .put("messages", messages);
+            JSONObject response = request(c, key, "POST", "chat/completions", payload.toString());
+            JSONArray choices = response.optJSONArray("choices");
+            JSONObject msg = choices != null && choices.length() != 0 ? choices.optJSONObject(0).optJSONObject("message") : null;
+            if (msg == null) throw new IOException("Vision-модель вернула пустой ответ");
+            Object value = msg.opt("content");
+            String result = value == null || JSONObject.NULL.equals(value) ? "" : String.valueOf(value);
+            if (TextUtils.isEmpty(result.trim())) throw new IOException("Vision-модель вернула пустой ответ");
+            return result;
+        } catch (IOException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new IOException("Ошибка обработки изображений: " + exception.getMessage(), exception);
+        }
+    }
+
     /** Available model ids of the connection (sorted). */
     public static List<String> models(TPAiStore.Connection c) throws IOException {
         if (TPOmni.AUTH.equals(c.authType)) return TPOmni.models(c);
