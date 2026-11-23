@@ -92,7 +92,7 @@ public final class ShellUi {
         captions.addView(main);
         if (!isClassic && home && ready) captions.addView(text("POLYGON MESSENGER",10,p.muted,false));
         bar.addView(captions,new LinearLayout.LayoutParams(0,-2,1));
-        if(ready && home) {
+        if(ready && home && !isClassic) {
             bar.addView(clickable("↻",23,foreground,actions::refreshChats));
             bar.addView(clickable("⌕",25,foreground,()->actions.navigate("search")));
         } else if(ready && !back && !isClassic) {
