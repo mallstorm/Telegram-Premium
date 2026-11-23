@@ -2836,6 +2836,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private MainTabsActivityController mainTabsActivityController;
     private Runnable classicDrawerAction;
 
+    /** 11.x visual contract on top of the Telegram 13.1.1 dialogs controller. */
+    private boolean classicHome() {
+        return classicDrawerAction != null && !onlySelect && folderId == 0 && communityId == 0;
+    }
+
     public void setMainTabsActivityController(MainTabsActivityController controller) {
         mainTabsActivityController = controller;
     }
@@ -3295,7 +3300,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (initialDialogsType == DIALOGS_TYPE_ADD_USERS_TO || isArchive() && getDialogsArray(currentAccount, initialDialogsType, folderId, false).isEmpty()) {
             searchItem.setVisibility(View.GONE);
         }
-        searchItem.setVisibility(View.GONE);
+        searchItem.setVisibility(classicHome() ? View.VISIBLE : View.GONE);
 
         if (!onlySelect && searchString == null && folderId == 0 && communityId == 0) {
             doneItem = new ActionBarMenuItem(context, null, getThemedColor(Theme.key_actionBarDefaultSelector), getThemedColor(Theme.key_actionBarDefaultIcon), true);
@@ -5701,6 +5706,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         checkUi_mainTabsVisible();
         checkUi_forwardCommentFieldVisible();
         checkUi_searchFieldStyle();
+        if (classicHome() && !searching && !searchIsShowed) {
+            // Filters and the first dialog begin beneath the original toolbar.
+            setScrollY(-dp(SEARCH_FIELD_HEIGHT));
+            checkUi_searchFieldVisibility();
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
         return fragmentView;
@@ -8994,6 +9004,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void setScrollY(float value) {
+        if (classicHome() && !searchIsShowed && !searching) {
+            // Collapse the 13.x search slot entirely. Otherwise an empty 48dp
+            // gutter reappears when the list scrolls or returns from another tab.
+            value = Math.min(value, -dp(SEARCH_FIELD_HEIGHT));
+        }
         if (viewPages != null) {
             int glowOffset = viewPages[0].listView.getPaddingTop() + (int) value;
             for (int a = 0; a < viewPages.length; a++) {
@@ -12868,6 +12883,19 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     public void updateStoriesVisibility(boolean animated) {
+        if (classicHome() && dialogStoriesCell != null && !searching && !searchIsShowed) {
+            // Keep Telegram 13 stories data intact, but omit its modern expanded
+            // strip from the classical 11.x home screen. Restoring modern mode
+            // re-enables the upstream implementation unchanged.
+            hasStories = false;
+            hasOnlySlefStories = false;
+            dialogStoriesCellVisible = false;
+            animateToHasStories = false;
+            progressToDialogStoriesCell = 0f;
+            dialogStoriesCell.setVisibility(View.GONE);
+            setScrollY(-dp(SEARCH_FIELD_HEIGHT));
+            return;
+        }
         if (dialogStoriesCell == null || storiesVisibilityAnimator != null || rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment() || searchIsShowed || actionBar == null || actionBar.isActionModeShowed() || onlySelect) {
             return;
         }
@@ -14160,6 +14188,15 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     private void checkUi_searchFieldVisibility() {
         if (fragmentSearchField == null) {
+            return;
+        }
+        if (classicHome() && !searchIsShowed && !searching) {
+            // 11.x has no permanent Telegram 13 search pill above the chat list.
+            // The action-bar magnifier still opens the full native search screen.
+            fragmentSearchField.setAlpha(0f);
+            fragmentSearchField.setVisibility(View.GONE);
+            animatorSearchButtonVisible.setValue(true, false);
+            checkUi_itemSearchVisibility();
             return;
         }
 
