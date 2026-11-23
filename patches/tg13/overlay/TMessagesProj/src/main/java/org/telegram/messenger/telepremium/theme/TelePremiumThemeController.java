@@ -48,6 +48,7 @@ public final class TelePremiumThemeController {
             applyTheme(context, id, false);
         } else {
             applySystemBars(context, TelePremiumThemeRegistry.get(id));
+            TelePremiumChatWallpapers.afterThemeApplied(null);
         }
     }
 
@@ -77,6 +78,7 @@ public final class TelePremiumThemeController {
     public static void installGuard() {
         if (guardInstalled) return;
         guardInstalled = true;
+        TelePremiumChatWallpapers.install();
         NotificationCenter.getGlobalInstance().addObserver(GUARD, NotificationCenter.didSetNewTheme);
     }
 
@@ -98,11 +100,15 @@ public final class TelePremiumThemeController {
             // With "follow system" on (the Android 10+ default) Telegram replaces any dark *day* theme
             // by its default light one, which is why the dark preset never stuck.
             disableAutoNight();
+            Theme.ThemeInfo before = Theme.getActiveTheme();
+            Theme.OverrideWallpaperInfo carry = before == null ? null : before.overrideWallpaper;
             Theme.ThemeInfo applied = Theme.applyThemeFile(file, "TelePremium_" + preset.id, null, false);
             if (applied == null) return false;
             // Day and night are the same theme: any stock day/night switch lands on this preset again.
             try { Theme.setCurrentNightTheme(applied); } catch (Throwable ignore) {}
             TelePremiumThemeStore.setThemeId(context, preset.id);
+            // chat wallpapers are independent of the preset and of the shell
+            TelePremiumChatWallpapers.afterThemeApplied(carry);
             applySystemBars(context, preset);
             if (recreate && context instanceof Activity) {
                 Activity activity = (Activity) context;

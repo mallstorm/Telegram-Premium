@@ -1109,7 +1109,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                     ((TextCheckCell) view).setChecked(!animations);
                 }
             } else if (position == backgroundRow) {
-                presentFragment(new WallpapersListActivity(WallpapersListActivity.TYPE_ALL));
+                presentFragment(new TelePremiumChatWallpapersActivity());
             } else if (position == changeUserColor) {
                 presentFragment(new PeerColorActivity(0).setOnApplied(this));
             } else if (position == sendByEnterRow) {

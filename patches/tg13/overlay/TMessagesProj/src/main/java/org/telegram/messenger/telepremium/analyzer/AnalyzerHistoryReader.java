@@ -19,8 +19,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class AnalyzerHistoryReader {
     private static final int PAGE_SIZE = 100;
-    private static final int MAX_MESSAGES = 300;
-    private static final int MAX_PAGES = 6;
+    private static final int MAX_MESSAGES = 1500;
+    private static final int MAX_PAGES = 20;
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
     public static final class Source {
@@ -84,6 +84,13 @@ public final class AnalyzerHistoryReader {
         void onResult(List<Entry> entries, String error);
     }
 
+    /** Optional live counter (UI thread) while pages are being fetched. */
+    public interface Progress {
+        void onProgress(int collected);
+    }
+
+    private Progress progress;
+
     /** Enumerate all already loaded ordinary/archived group/channel dialogs in activated accounts. */
     public static List<Source> listLoadedGroups(int accountFilter) {
         ArrayList<Source> result = new ArrayList<>();
@@ -115,6 +122,11 @@ public final class AnalyzerHistoryReader {
      * User-triggered, bounded fetch. Each page comes from the selected account and selected peer.
      * This is intentionally text/caption-only: no attached media is downloaded here.
      */
+    public void load(Source source, int days, Progress progress, Callback callback) {
+        this.progress = progress;
+        load(source, days, callback);
+    }
+
     public void load(Source source, int days, Callback callback) {
         if (cancelled.get()) return;
         if (source == null || callback == null || source.dialogId >= 0 ||
@@ -151,6 +163,11 @@ public final class AnalyzerHistoryReader {
                 return;
             }
             TLRPC.messages_Messages page = (TLRPC.messages_Messages) response;
+            // keep the authors resolvable: names in stats and in the AI prompt instead of bare ids
+            final java.util.ArrayList<TLRPC.User> pageUsers = new java.util.ArrayList<>(page.users);
+            final java.util.ArrayList<TLRPC.Chat> pageChats = new java.util.ArrayList<>(page.chats);
+            MessagesController.getInstance(source.account).putUsers(pageUsers, false);
+            MessagesController.getInstance(source.account).putChats(pageChats, false);
             int oldest = Integer.MAX_VALUE;
             boolean reachedDate = false;
             for (TLRPC.Message m : page.messages) {
@@ -166,6 +183,11 @@ public final class AnalyzerHistoryReader {
                     entries.add(new Entry(source.account, source.dialogId, m));
                     if (entries.size() >= MAX_MESSAGES) break;
                 }
+            }
+            if (progress != null) {
+                final int count = entries.size();
+                final Progress p = progress;
+                AndroidUtilities.runOnUIThread(() -> { if (!cancelled.get()) p.onProgress(count); });
             }
             if (reachedDate || page.messages.size() < PAGE_SIZE ||
                     entries.size() >= MAX_MESSAGES || pageIndex >= MAX_PAGES - 1 ||

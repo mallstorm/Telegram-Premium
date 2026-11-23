@@ -83,15 +83,54 @@ public final class AnalyzerMediaProcessor {
         return file;
     }
 
-    /** Explicit selection only: max four already cached pictures, no background bulk downloads. */
+    /**
+     * Local file of the message media; when it is not on the device yet it is downloaded now (the user
+     * explicitly asked to analyse this very item). Protected media is never fetched. Blocking: call from a
+     * worker thread.
+     */
+    public static File ensureLocal(Entry entry, long timeoutMs) throws IOException {
+        if (entry == null || entry.sourceMessage == null || entry.dialogId >= 0) throw new IOException("Недоступное сообщение");
+        if (entry.sourceMessage.noforwards) throw new IOException("Автор запретил пересылку этого материала");
+        FileLoader loader = FileLoader.getInstance(entry.account);
+        File file = loader.getPathToMessage(entry.sourceMessage);
+        if (file != null && file.isFile() && file.length() > 100) return file;
+        if (entry.sourceMessage.media instanceof org.telegram.tgnet.TLRPC.TL_messageMediaPhoto) {
+            org.telegram.tgnet.TLRPC.Photo photo = ((org.telegram.tgnet.TLRPC.TL_messageMediaPhoto) entry.sourceMessage.media).photo;
+            org.telegram.tgnet.TLRPC.PhotoSize size = photo == null ? null
+                    : FileLoader.getClosestPhotoSizeWithSize(photo.sizes, org.telegram.messenger.AndroidUtilities.getPhotoSize());
+            if (size == null) throw new IOException("У фото нет доступного размера");
+            loader.loadFile(org.telegram.messenger.ImageLocation.getForPhoto(size, photo), entry.sourceMessage, null, FileLoader.PRIORITY_NORMAL, 1);
+        } else if (entry.sourceMessage.media instanceof org.telegram.tgnet.TLRPC.TL_messageMediaDocument) {
+            org.telegram.tgnet.TLRPC.Document document = ((org.telegram.tgnet.TLRPC.TL_messageMediaDocument) entry.sourceMessage.media).document;
+            if (document == null) throw new IOException("Файл недоступен");
+            if (document.size > MAX_VIDEO_BYTES) throw new IOException("Файл больше 400 МБ");
+            loader.loadFile(document, entry.sourceMessage, FileLoader.PRIORITY_NORMAL, 0);
+        } else {
+            throw new IOException("В сообщении нет медиа");
+        }
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(400);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Загрузка прервана");
+            }
+            file = loader.getPathToMessage(entry.sourceMessage);
+            if (file != null && file.isFile() && file.length() > 100) return file;
+        }
+        throw new IOException("Файл не успел загрузиться: проверьте соединение и повторите");
+    }
+
+    /** Explicit selection only (up to six pictures); each is downloaded on demand. */
     public static List<Frame> photos(List<Entry> entries) throws IOException {
-        if (entries == null || entries.isEmpty() || entries.size() > 4)
-            throw new IOException("Выберите от 1 до 4 изображений");
+        if (entries == null || entries.isEmpty() || entries.size() > 6)
+            throw new IOException("Выберите от 1 до 6 изображений");
         ArrayList<Frame> frames = new ArrayList<>();
         for (Entry e : entries) {
             if (!("photo".equals(e.mediaType) || "image".equals(e.mediaType)))
                 throw new IOException("Выборка содержит не изображения");
-            File file = localMedia(e);
+            File file = ensureLocal(e, 90_000);
             if (file.length() > 60L * 1024L * 1024L)
                 throw new IOException("Слишком большой файл изображения");
             byte[] jpeg = jpegFromFile(file);
@@ -104,7 +143,7 @@ public final class AnalyzerMediaProcessor {
     public static List<Frame> pdfPages(Entry entry) throws IOException {
         if (entry == null || !"pdf".equals(entry.mediaType))
             throw new IOException("Выберите PDF-документ");
-        File file = localMedia(entry);
+        File file = ensureLocal(entry, 120_000);
         if (file.length() > 30L * 1024L * 1024L)
             throw new IOException("PDF больше 30 МБ: уменьшите размер документа");
         ArrayList<Frame> pages = new ArrayList<>();
@@ -136,7 +175,7 @@ public final class AnalyzerMediaProcessor {
     public static VideoResult video(Entry entry) throws IOException {
         if (entry == null || !"video".equals(entry.mediaType))
             throw new IOException("Выберите видеопубликацию");
-        File file = localMedia(entry);
+        File file = ensureLocal(entry, 600_000);
         if (file.length() > MAX_VIDEO_BYTES)
             throw new IOException("Видео больше 400 МБ: выберите более короткий материал");
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();

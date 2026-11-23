@@ -447,17 +447,22 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/analyzer/AnalyzerHistoryReader.java",
       "base_sha256": null,
-      "sha256": "2189551a7207cd762d5f7bc48bb1b2906a32f7711a59d4b23a6aa589c45bad09"
+      "sha256": "c1c4b8822125f26d784c523a8f9324747a0266f770f5506e0a4abae2f3337bbf"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/analyzer/AnalyzerMediaProcessor.java",
       "base_sha256": null,
-      "sha256": "80483f0cf4917292360ffda6612d9d94a7978f162ef2722196d5b16160b6b186"
+      "sha256": "4493f51bd6aaea3a26dfa0694739ff66d8784793ae144ddadae3708a41d0164c"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/analyzer/AnalyzerRetrieval.java",
       "base_sha256": null,
       "sha256": "6692c7d92cf2ca39a4f1bcaa26e99e9fe453862197fbe4ccefb64837bb1f7fa3"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/analyzer/AnalyzerStats.java",
+      "base_sha256": null,
+      "sha256": "88ce4db842f2286f75525217483ed039b9a3d42b26348c3043d428f965c062c0"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudConflictResolver.java",
@@ -775,6 +780,11 @@
       "sha256": "614aed81700ed0bf6048da322509c844f40323b0d6366bb59c6f2533b1d4f1de"
     },
     {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/theme/TelePremiumChatWallpapers.java",
+      "base_sha256": "e28dd12255cb497da312b009f185b57ba32cb6574d4eacd52a23b6e3511ed022",
+      "sha256": "e28dd12255cb497da312b009f185b57ba32cb6574d4eacd52a23b6e3511ed022"
+    },
+    {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/theme/TelePremiumDrawerArt.java",
       "base_sha256": null,
       "sha256": "f244470bfa8152d9176a002b3ec5cf9202588f6fba9824d129d06c906f68c35d"
@@ -792,7 +802,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/theme/TelePremiumThemeController.java",
       "base_sha256": null,
-      "sha256": "66d24f3c8528d0259fdbd4ec3bc35864426a27ac93f7313475783dee9640db87"
+      "sha256": "27c0d5738fa8fb70d06c1ba42b1f9bcba237d6a1aca526ff097c300b41c8579e"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/theme/TelePremiumThemeIconRegistry.java",
@@ -1037,12 +1047,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAnalyzerActivity.java",
       "base_sha256": null,
-      "sha256": "10f85f8075397572215b9e17c86b82bed46af955be588ac07c73c4a3858135f8"
-    },
-    {
-      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAnalyzerChatActivity.java",
-      "base_sha256": null,
-      "sha256": "ecd57a74f93e37403664a573741ba6794a55c3e386b572d4836d9987a9a28442"
+      "sha256": "e4667507eb9491b1ebf3f7e771423db2b9872ac08373b248822cdc7458222b18"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAppearanceActivity.java",
@@ -1063,6 +1068,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCenterActivity.java",
       "base_sha256": null,
       "sha256": "006f7692caaed499b32d5dc4b978443636eabfabeaab9e54421de9ed16c20ff5"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumChatWallpapersActivity.java",
+      "base_sha256": "cb8d242c21dd9d333ec93d2cf2557893f7309b7ea742432b23f589b182a8fe59",
+      "sha256": "cb8d242c21dd9d333ec93d2cf2557893f7309b7ea742432b23f589b182a8fe59"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumClassicDrawer.java",
@@ -1232,7 +1242,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/ThemeActivity.java",
       "base_sha256": "54b39e1ded9ca23a46718bf69ec697716713b24b0990a4f361ff5720586d4d32",
-      "sha256": "22d25d113edb5cd1008b529448d5043b4bef245a7038085087534847ae27e3b0"
+      "sha256": "25cb2503bce1dcc75eadaf84a33c9366af6a21f7a88a038f0339424517eae220"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/ViewPagerActivity.java",
