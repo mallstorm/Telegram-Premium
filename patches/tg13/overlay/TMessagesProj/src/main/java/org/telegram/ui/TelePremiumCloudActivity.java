@@ -768,6 +768,17 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         grid.setColumnCount(3);
         body.addView(grid, new LinearLayout.LayoutParams(-1, -2));
         for (AccountNode item : folders) addFolderCard(grid, item);
+        // An empty grid column has no weight, so a lone folder would stretch over the full row:
+        // pad the last row with invisible cells to keep every tile exactly one third wide.
+        for (int pad = (3 - folders.size() % 3) % 3; pad > 0; pad--) {
+            View filler = new View(context);
+            filler.setVisibility(View.INVISIBLE);
+            GridLayout.LayoutParams flp = new GridLayout.LayoutParams();
+            flp.width = 0; flp.height = AndroidUtilities.dp(72);
+            flp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f);
+            flp.setMargins(AndroidUtilities.dp(3), AndroidUtilities.dp(4), AndroidUtilities.dp(3), AndroidUtilities.dp(4));
+            grid.addView(filler, flp);
+        }
     }
 
     /** Entry points of folder protection right under «Папки». */
