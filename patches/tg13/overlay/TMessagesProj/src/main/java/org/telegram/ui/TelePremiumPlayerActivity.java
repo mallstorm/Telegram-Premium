@@ -1258,6 +1258,9 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.removeListener(recListener);
         controller.getQueue().removeListener(this);
         controller.bindSurface(null);
+        // Viewer-only playback from a locked folder ends with the player window.
+        TelePremiumMediaItem leaving = controller.getCurrent();
+        if (isFinishing() && leaving != null && leaving.ephemeral) controller.stopAndRelease();
         super.onDestroy();
     }
 

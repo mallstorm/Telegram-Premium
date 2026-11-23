@@ -49,6 +49,16 @@ public final class CloudNode {
     /** Plaintext SHA-256 of each part (required to authenticate Vault parts). */
     public String[] partSha256;
 
+    /**
+     * Folder lock record (VaultFolderLock "FL1") sealing this folder's own 256-bit key under a user
+     * secret. Null for unprotected folders and for files. Lives inside the encrypted catalog.
+     */
+    public String lock;
+    /** True while protection is being removed: the key stays until every file is re-encrypted. */
+    public boolean lockOff;
+    /** Files only: id of the locked folder whose key encrypted this payload; null = installation master key. */
+    public String keyRef;
+
     public boolean isMultipart() { return partMessageIds != null && partMessageIds.length > 1; }
 
     public int partCount() { return partMessageIds == null ? (telegramMessageId != 0 ? 1 : 0) : partMessageIds.length; }
@@ -95,6 +105,9 @@ public final class CloudNode {
         o.put("sha256", sha256); o.put("originalName", originalName); o.put("offlineState", offlineState);
         o.put("encryptionVersion", encryptionVersion); o.put("backupMessageId", backupMessageId); o.put("backupDocumentId", backupDocumentId);
         o.put("localBackupId",localBackupId);
+        if (lock != null) o.put("lock", lock);
+        if (lockOff) o.put("lockOff", true);
+        if (keyRef != null) o.put("keyRef", keyRef);
         if (partMessageIds != null) {
             JSONArray parts = new JSONArray();
             for (int i = 0; i < partMessageIds.length; i++) {
@@ -120,6 +133,9 @@ public final class CloudNode {
         n.sha256=o.optString("sha256", null); n.originalName=o.optString("originalName", null); n.offlineState=o.optInt("offlineState");
         n.encryptionVersion=o.optInt("encryptionVersion", 0); n.backupMessageId=o.optLong("backupMessageId"); n.backupDocumentId=o.optLong("backupDocumentId");
         n.localBackupId=o.optString("localBackupId",null);
+        n.lock=o.has("lock")?o.optString("lock",null):null;
+        n.lockOff=o.optBoolean("lockOff",false);
+        n.keyRef=o.has("keyRef")?o.optString("keyRef",null):null;
         JSONArray parts = o.optJSONArray("parts");
         if (parts != null && parts.length() > 0) {
             n.allocateParts(parts.length());

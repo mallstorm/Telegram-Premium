@@ -51,6 +51,11 @@ import org.telegram.messenger.telepremium.cloud.TelePremiumCloudSecuritySession;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudSecurityStore;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager;
 import org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultKeyManager;
+import org.telegram.messenger.telepremium.cloud.vault.VaultFolderSession;
+import org.telegram.messenger.telepremium.cloud.vault.VaultSecretPolicy;
+import org.telegram.messenger.telepremium.cloud.VaultFolderLocks;
+import org.telegram.messenger.telepremium.cloud.VaultRekeyJob;
+import org.telegram.messenger.telepremium.cloud.VaultSessionGuard;
 import org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultPendingIndexStore;
 import org.telegram.messenger.telepremium.theme.TelePremiumThemeArtwork;
 import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;
@@ -74,6 +79,38 @@ import java.util.List;
 
 public class TelePremiumCloudActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
     private Runnable mainTabBack;
+    private final VaultFolderSession.Listener lockListener = () -> AndroidUtilities.runOnUIThread(this::onLockStateChanged);
+
+    /** A folder closed (timeout, screen off, manual): hide its contents everywhere, leave it if we are inside. */
+    private void onLockStateChanged() {
+        if (disposed || body == null) return;
+        if (!"root".equals(folderId) && selectedAccount >= 0
+                && TelePremiumCloudManager.getInstance(selectedAccount).view().contentsHidden(folderId)) {
+            finishFragment();
+            return;
+        }
+        applySecureFlag();
+        renderBody();
+    }
+
+    private void applySecureFlag() {
+        android.app.Activity activity = getParentActivity();
+        if (activity == null) return;
+        boolean secure = false;
+        if (VaultFolderLocks.secureScreen() && selectedAccount >= 0 && !"root".equals(folderId)) {
+            TelePremiumCloudManager m = TelePremiumCloudManager.getInstance(selectedAccount);
+            CloudNode here = m.findNodeById(folderId);
+            secure = here != null && (here.lock != null || m.isProtected(here));
+        }
+        if (secure) activity.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+        else activity.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+    }
+
+    @Override public void onPause() {
+        super.onPause();
+        android.app.Activity activity = getParentActivity();
+        if (activity != null) activity.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+    }
     public TelePremiumCloudActivity asMainTab(Runnable back) { mainTabBack = back; return this; }
     private static final int PICK_FILE = 7301;
     private static final int SAVE_FILE = 7302;
@@ -212,6 +249,9 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         }
         renderAccounts();
         loadSelectedAccount();
+        VaultSessionGuard.install();
+        VaultFolderSession.shared().addListener(lockListener);
+        applySecureFlag();
         return fragmentView;
     }
 
@@ -483,6 +523,7 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
 
     @Override public void onFragmentDestroy() {
         disposed = true;
+        VaultFolderSession.shared().removeListener(lockListener);
         AndroidUtilities.cancelRunOnUIThread(reconnectSync);
         for (int account : connectionAccounts)
             NotificationCenter.getInstance(account).removeObserver(this, NotificationCenter.didUpdateConnectionState);
@@ -501,6 +542,7 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
 
     @Override public void onResume() {
         super.onResume();
+        applySecureFlag();
         if (!disposed && syncState != null) syncSelectedAccount(false);
     }
 
@@ -544,6 +586,7 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
                     // Resume interrupted transfers only AFTER this account has a
                     // confirmed remote index; otherwise payloads can become orphans.
                     resumePendingTransfer(requestedAccount);
+                    VaultRekeyJob.kick(requestedAccount, (left, rekeyError) -> AndroidUtilities.runOnUIThread(() -> { if (!disposed) renderBody(); }));
                 } else {
                     setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_090", org.telegram.messenger.R.string.TP_L10N_090) + shortError(error)
                             + (requestedCloud.getSnapshot()==null ? "" : org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_091", org.telegram.messenger.R.string.TP_L10N_091)), false);
@@ -711,6 +754,7 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
 
     private void addUserFolders() {
         addSectionTitle(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_106", org.telegram.messenger.R.string.TP_L10N_106), null);
+        addLockToolbar();
         List<AccountNode> folders = collectFolders();
         if (folders.isEmpty()) {
             TextView empty = label(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_107", org.telegram.messenger.R.string.TP_L10N_107), 14, false);
@@ -726,6 +770,26 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         for (AccountNode item : folders) addFolderCard(grid, item);
     }
 
+    /** Entry points of folder protection right under «Папки». */
+    private void addLockToolbar() {
+        LinearLayout bar = new LinearLayout(context);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(AndroidUtilities.dp(2), 0, AndroidUtilities.dp(2), AndroidUtilities.dp(4));
+        int account = selectedAccount >= 0 ? selectedAccount : UserConfig.selectedAccount;
+        TextView settings = label("🔒 Защита папок", 14, false);
+        settings.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
+        settings.setOnClickListener(v -> presentFragment(new TelePremiumFolderLockSettingsActivity(account)));
+        bar.addView(settings, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(34), 1));
+        if (!VaultFolderSession.shared().unlockedIds().isEmpty()) {
+            TextView lockAll = label("Закрыть все", 14, false);
+            lockAll.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
+            lockAll.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+            lockAll.setOnClickListener(v -> { VaultSessionGuard.lockEverything(); renderBody(); });
+            bar.addView(lockAll, new LinearLayout.LayoutParams(-2, AndroidUtilities.dp(34)));
+        }
+        body.addView(bar, new LinearLayout.LayoutParams(-1, -2));
+    }
+
     private void addFolderCard(GridLayout grid, AccountNode item) {
         LinearLayout card = new LinearLayout(context);
         card.setGravity(Gravity.CENTER_VERTICAL);
@@ -739,8 +803,11 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         LinearLayout labels = new LinearLayout(context);
         labels.setOrientation(LinearLayout.VERTICAL);
         labels.setPadding(AndroidUtilities.dp(11),0,0,0);
-        TextView name = label(item.node.name, 15, true); name.setSingleLine(true);
-        TextView count = label(compactCount(TelePremiumCloudManager.getInstance(item.account).countFiles(item.node.id)), 13, false);
+        final boolean closedLock = TelePremiumCloudManager.getInstance(item.account).view().isClosedLock(item.node);
+        final boolean hasLock = item.node.lock != null;
+        String shownName = closedLock && VaultFolderLocks.hideLockedNames() ? "Закрытая папка" : item.node.name;
+        TextView name = label((hasLock ? (closedLock ? "🔒 " : "🔓 ") : "") + shownName, 15, true); name.setSingleLine(true);
+        TextView count = label(closedLock ? "Закрыта" : compactCount(TelePremiumCloudManager.getInstance(item.account).countFiles(item.node.id)), 13, false);
         count.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         labels.addView(name); labels.addView(count);
         card.addView(labels, new LinearLayout.LayoutParams(0,-2,1));
@@ -799,8 +866,9 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
                 card.setAlpha(1f); return true;
             case DragEvent.ACTION_DROP:
                 card.setAlpha(1f);
+                if(TelePremiumCloudManager.getInstance(folder.account).view().isClosedLock(folder.node)){setSyncText("Папка закрыта: сначала откройте её",false);return true;}
                 if(source.account!=folder.account){setSyncText(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_109", org.telegram.messenger.R.string.TP_L10N_109),false);return true;}
-                TelePremiumCloudManager.getInstance(source.account).move(source.node,folder.node.id,e->finishMutation(e,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_110", org.telegram.messenger.R.string.TP_L10N_110)));
+                TelePremiumCloudManager.getInstance(source.account).move(source.node,folder.node.id,e->{finishMutation(e,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_110", org.telegram.messenger.R.string.TP_L10N_110));if(e==null)VaultRekeyJob.kick(source.account,null);});
                 return true;
             case DragEvent.ACTION_DRAG_ENDED:
                 card.setAlpha(1f); return true;
@@ -817,7 +885,7 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
     }
     private org.telegram.messenger.telepremium.media.TelePremiumMediaItem previewMedia(AccountNode entry){
         org.telegram.messenger.telepremium.media.TelePremiumMediaItem media=org.telegram.messenger.telepremium.media.TelePremiumMediaItem.cloud(entry.account,entry.node.id,entry.node.telegramMessageId,entry.node.telegramDocumentId,entry.node.name,resolvedMime(entry.node),0,entry.node.size);
-        media.cloudUserId=UserConfig.getInstance(entry.account).getClientUserId();media.cloudEpoch=org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.epoch();media.encryptionVersion=entry.node.encryptionVersion;media.sha256=entry.node.sha256;media.localBackupId=entry.node.localBackupId;media.setParts(entry.node);return media;
+        media.cloudUserId=UserConfig.getInstance(entry.account).getClientUserId();media.cloudEpoch=org.telegram.messenger.telepremium.cloud.TelePremiumCloudResetState.epoch();media.encryptionVersion=entry.node.encryptionVersion;media.sha256=entry.node.sha256;media.localBackupId=entry.node.localBackupId;media.setParts(entry.node);media.ephemeral=TelePremiumCloudManager.getInstance(entry.account).isProtected(entry.node);return media;
     }
 
     private void openNode(AccountNode item) {
@@ -828,6 +896,12 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         }
         TelePremiumCloudSecuritySession.touch(context);
         if (item.node.type == CloudNode.TYPE_FOLDER) {
+            if (TelePremiumCloudManager.getInstance(item.account).view().isClosedLock(item.node)) {
+                // A closed folder never loads its contents: the unlock screen comes first.
+                presentFragment(new TelePremiumFolderLockActivity(item.account, item.node.id, TelePremiumFolderLockActivity.MODE_UNLOCK,
+                        () -> presentFragment(new TelePremiumCloudActivity(item.account, item.node.id, item.node.name))));
+                return;
+            }
             presentFragment(new TelePremiumCloudActivity(item.account, item.node.id, item.node.name));
             return;
         }
@@ -931,17 +1005,40 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
                     (d,w)->{if(w==0)openNode(item);else if(w==1)saveToDevice(item);else if(w==2)chooseMoveFolder(item);else if(w==3)rename(manager,node);else if(w==4)manager.toggleFavorite(node,e->finishMutation(e,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_127", org.telegram.messenger.R.string.TP_L10N_127)));else manager.trash(node,e->finishMutation(e,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_128", org.telegram.messenger.R.string.TP_L10N_128)));}
             ).create().show();
         }else{
-            new BottomSheet.Builder(context).setTitle(node.name).setItems(
-                    new CharSequence[]{org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_117", org.telegram.messenger.R.string.TP_L10N_117),org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_123", org.telegram.messenger.R.string.TP_L10N_123),org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_126", org.telegram.messenger.R.string.TP_L10N_126)},
-                    new int[]{R.drawable.tp_cloud_folder,R.drawable.tp_cloud_rename,R.drawable.tp_cloud_trash},
-                    (d,w)->{if(w==0)openNode(item);else if(w==1)rename(manager,node);else manager.trash(node,e->finishMutation(e,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_128", org.telegram.messenger.R.string.TP_L10N_128)));}
-            ).create().show();
+            showFolderMenu(item,manager,node);
         }
+    }
+
+    private void showFolderMenu(AccountNode item,TelePremiumCloudManager manager,CloudNode node){
+        final boolean hasLock=node.lock!=null&&!node.lockOff;
+        final boolean open=VaultFolderLocks.isOpen(node);
+        ArrayList<CharSequence> labels=new ArrayList<>();ArrayList<Integer> icons=new ArrayList<>();ArrayList<Runnable> actions=new ArrayList<>();
+        labels.add(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_117", org.telegram.messenger.R.string.TP_L10N_117));icons.add(R.drawable.tp_cloud_folder);actions.add(()->openNode(item));
+        if(!hasLock){
+            labels.add("Защитить папку");icons.add(R.drawable.tp_cloud_folder);
+            actions.add(()->presentFragment(new TelePremiumFolderLockActivity(item.account,node.id,TelePremiumFolderLockActivity.MODE_PROTECT,this::renderBody)));
+        }else{
+            if(open){labels.add("Закрыть сейчас");icons.add(R.drawable.tp_cloud_folder);actions.add(()->{VaultFolderLocks.lockNow(node);renderBody();});}
+            labels.add("Настройки защиты");icons.add(R.drawable.tp_cloud_folder);
+            actions.add(()->presentFragment(new TelePremiumFolderLockSettingsActivity(item.account)));
+        }
+        labels.add(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_123", org.telegram.messenger.R.string.TP_L10N_123));icons.add(R.drawable.tp_cloud_rename);actions.add(()->rename(manager,node));
+        labels.add(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_126", org.telegram.messenger.R.string.TP_L10N_126));icons.add(R.drawable.tp_cloud_trash);
+        actions.add(()->{
+            if(node.lock!=null&&!open){setSyncText("Папка закрыта: сначала откройте её",false);return;}
+            manager.trash(node,e->finishMutation(e,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_128", org.telegram.messenger.R.string.TP_L10N_128)));
+        });
+        int[] iconArray=new int[icons.size()];for(int i=0;i<iconArray.length;i++)iconArray[i]=icons.get(i);
+        new BottomSheet.Builder(context).setTitle(node.name).setItems(labels.toArray(new CharSequence[0]),iconArray,(d,w)->actions.get(w).run()).create().show();
     }
 
     private void chooseMoveFolder(AccountNode item) {
         presentFragment(new TelePremiumCloudFolderPickerActivity(item.account,"root",org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_129", org.telegram.messenger.R.string.TP_L10N_129),(id,name)->
-                TelePremiumCloudManager.getInstance(item.account).move(item.node,id,e->finishMutation(e,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_130", org.telegram.messenger.R.string.TP_L10N_130)+name+"»"))));
+                {
+                    CloudNode target=TelePremiumCloudManager.getInstance(item.account).findNodeById(id);
+                    if(target!=null&&TelePremiumCloudManager.getInstance(item.account).view().isClosedLock(target)){setSyncText("Папка закрыта: сначала откройте её",false);return;}
+                    TelePremiumCloudManager.getInstance(item.account).move(item.node,id,e->{finishMutation(e,org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_130", org.telegram.messenger.R.string.TP_L10N_130)+name+"»");if(e==null)VaultRekeyJob.kick(item.account,null);});
+                }));
     }
 
     private void confirmPermanentDelete(TelePremiumCloudManager manager, CloudNode node) {

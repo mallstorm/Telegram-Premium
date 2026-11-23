@@ -402,7 +402,8 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
     private boolean valid(Entry e) {
         return !closed && e.account >= 0 && UserConfig.getInstance(e.account).isClientActivated()
                 && UserConfig.getInstance(e.account).getClientUserId() == e.user
-                && TelePremiumCloudResetState.allowed(e.epoch) && e.node.state != CloudNode.STATE_DELETED;
+                && TelePremiumCloudResetState.allowed(e.epoch) && e.node.state != CloudNode.STATE_DELETED
+                && TelePremiumCloudManager.getInstance(e.account).isVisible(e.node);
     }
 
     private boolean active() {

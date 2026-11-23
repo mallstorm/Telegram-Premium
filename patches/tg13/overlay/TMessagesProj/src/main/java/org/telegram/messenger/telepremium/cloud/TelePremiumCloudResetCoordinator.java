@@ -179,7 +179,9 @@ public final class TelePremiumCloudResetCoordinator {
                     TelePremiumCloudResetFiles.remove(c.getFilesDir(), "tpvault_journal/a" + a.slot);
                     TelePremiumCloudResetFiles.remove(c.getFilesDir(), "tpvault_pending_index_v1/a" + a.slot);
                 }
-                for (String dir : new String[]{"tpvault_dec", "tpvault_dec_parts"}) TelePremiumCloudResetFiles.remove(c.getCacheDir(), dir);
+                for (String dir : new String[]{"tpvault_dec", "tpvault_dec_parts", VaultSessionGuard.LOCKED_CACHE_DIR}) TelePremiumCloudResetFiles.remove(c.getCacheDir(), dir);
+                org.telegram.messenger.telepremium.cloud.vault.VaultFolderSession.shared().lockAll();
+                for (String lockPrefs : new String[]{"tp_folder_locks", "tp_folder_bio"}) c.getSharedPreferences(lockPrefs, 0).edit().clear().apply();
                 for (String dir : new String[]{"telepremium_vault_outbox", "telepremium_cloud_outbox", "telepremium_cloud_joined"}) TelePremiumCloudResetFiles.remove(c.getExternalCacheDir(), dir);
                 if (!TelePremiumCloudResetScanner.sameScope(plan)) throw new IllegalStateException("Состав аккаунтов изменился");
                 TelePremiumVaultKeyManager.rotateAfterCloudReset(c, plan.id);

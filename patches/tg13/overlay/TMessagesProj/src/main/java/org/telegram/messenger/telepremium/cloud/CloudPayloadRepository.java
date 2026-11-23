@@ -100,20 +100,26 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                 // Store ONLY encrypted bytes in the app-specific external cache for upload.
                 File encrypted=VaultTransportStaging.createCiphertextTarget(
                         ApplicationLoader.applicationContext, "tpv_");
-                byte[] master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
+                // Folder lock: new content takes the key of the nearest locked folder above it.
+                // A closed lock throws here, before any byte is encrypted or sent.
+                org.telegram.messenger.telepremium.cloud.vault.VaultKeyResolver.Key uploadKey;
+                try { uploadKey=VaultKeyAccess.forUpload(account,parentId); }
+                catch(Exception e) { encrypted.delete(); throw new IllegalStateException(VaultKeyAccess.lockedMessage(e)); }
+                final byte[] master=uploadKey.bytes;
+                final String uploadKeyRef=uploadKey.keyRef;
                 VaultFileOps.UploadResult result;
                 try(InputStream original=ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri)){
                     if(original==null)throw new IllegalStateException("Не удалось открыть выбранный файл");
-                    TelePremiumVaultKeyManager.markKeyUsed(ApplicationLoader.applicationContext);
                     result=VaultFileOps.encryptToFile(original,encrypted,master);
                 } catch(Exception e) { encrypted.delete(); throw e; }
-                    finally { Arrays.fill(master,(byte)0); }
+                    finally { uploadKey.wipe(); }
                     CloudNode secured=CloudNode.file(parentId,safe,mime,result.originalSize,result.originalSha256);
                     secured.encryptionVersion=1;
+                    secured.keyRef=uploadKeyRef;
                     transferManager.beginUpload(uri.toString(),parentId,safe,mime,result.originalSize);
                     transferManager.updateProgress(0,result.encryptedSize);
                     CloudNode existing=dedupLookup==null?null:dedupLookup.find(secured.sha256);
-                    if(existing!=null && existing.telegramDocumentId!=0 && existing.encryptionVersion==1){
+                    if(existing!=null && existing.telegramDocumentId!=0 && existing.encryptionVersion==1 && java.util.Objects.equals(existing.keyRef,uploadKeyRef)){
                         secured.telegramDocumentId=existing.telegramDocumentId;
                         secured.telegramMessageId=existing.telegramMessageId;
                         secured.localBackupId=existing.localBackupId;
@@ -165,6 +171,7 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
     }
 
     private static long querySize(Uri uri) {
+        if ("file".equals(uri.getScheme()) && uri.getPath() != null) return new File(uri.getPath()).length();
         try (android.database.Cursor c = ApplicationLoader.applicationContext.getContentResolver()
                 .query(uri, new String[]{android.provider.OpenableColumns.SIZE}, null, null, null)) {
             if (c != null && c.moveToFirst() && !c.isNull(0)) return c.getLong(0);
@@ -376,6 +383,8 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
             int count=planPartCount(size,limit);
             long partSize=planPartSize(size,count);
             node=CloudNode.file(parentId,safe,mime,size,null);
+            try { node.keyRef=VaultKeyAccess.forUpload(account,parentId).keyRefAndWipe(); }
+            catch(Exception keyError) { throw new IllegalStateException(VaultKeyAccess.lockedMessage(keyError)); }
             node.allocateParts(count);
             long left=size;
             for(int i=0;i<count;i++){node.partSizes[i]=Math.min(partSize,left);left-=node.partSizes[i];}
@@ -429,12 +438,13 @@ public final class CloudPayloadRepository implements NotificationCenter.Notifica
                     java.io.FileInputStream raw=new java.io.FileInputStream(pfd.getFileDescriptor())){
                     raw.getChannel().position(offset);
                     PartInputStream in=new PartInputStream(raw,length,mp.digest,partDigest);
-                    byte[] master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
+                    org.telegram.messenger.telepremium.cloud.vault.VaultKeyResolver.Key partKey;
+                    try { partKey=VaultKeyAccess.forNode(p.node); }
+                    catch(Exception keyError) { throw new IllegalStateException(VaultKeyAccess.lockedMessage(keyError)); }
                     try {
-                        TelePremiumVaultKeyManager.markKeyUsed(ApplicationLoader.applicationContext);
-                        VaultFileOps.UploadResult result=VaultFileOps.encryptToFile(in,staging,master);
+                        VaultFileOps.UploadResult result=VaultFileOps.encryptToFile(in,staging,partKey.bytes);
                         partSha=result.originalSha256;
-                    } finally {Arrays.fill(master,(byte)0);}
+                    } finally {partKey.wipe();}
                     if(in.count!=length)throw new java.io.IOException("Файл изменился во время загрузки");
                 }
                 p.node.partSha256[index]=partSha;
