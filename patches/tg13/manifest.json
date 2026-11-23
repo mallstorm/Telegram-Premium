@@ -472,7 +472,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudDownloadManager.java",
       "base_sha256": null,
-      "sha256": "cd8061116a06928231402abe066b07cb0fa53bad26b7a0bcbbdf7c8866da64ac"
+      "sha256": "a2803ae0dfdeef4bf118efbea85927298c5b3d757853bd137cffa49e962ce98a"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudFileHasher.java",
@@ -512,17 +512,17 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudNode.java",
       "base_sha256": null,
-      "sha256": "5407ca2b610fc218b41360418943256afe04de2715c19e930b8b423eb0a35891"
+      "sha256": "cd5b749433938eb39ccb3dc679caf697a7cabba10eef00b001a71305b1ac837e"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudPayloadRepository.java",
       "base_sha256": null,
-      "sha256": "c272ab7ee00336a7655b7f44dd5347ffb970f3ccc2a89491bba604eeb0f7a130"
+      "sha256": "c9a103c211e2445833caa9e132227545faba3f7b56baabc532e88c8cfe7b1024"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudPhotoThumbnailLoader.java",
       "base_sha256": null,
-      "sha256": "6fa30671d74550e07616dad417e8340ed2fabd195dbe1db80e4b0dee2ca542da"
+      "sha256": "3526455f05485b4c3846d1e5930e3bc6c8fa6942ad1bc61f8ba61df0148986f6"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/CloudRecoveryEngine.java",
@@ -567,7 +567,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java",
       "base_sha256": null,
-      "sha256": "c7516b19093a29400cb4b5423f6ef85bacbd08dbe3205adcc4ae49ca113ecc90"
+      "sha256": "5e93c2ceb74135199e2ac67bb61871ea069d4f3a733799d3e36e05a5bc9c72e5"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudPeerManager.java",
@@ -577,7 +577,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudResetCoordinator.java",
       "base_sha256": null,
-      "sha256": "d8a382710563fd2c4ff9ceafe78b8bd3090d8d1dead9dc712b4df44eae5f7d91"
+      "sha256": "b33724feae8f9d0f8a307618486b769f0707c23863957e24bc5a5748e63ccdcb"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudResetFiles.java",
@@ -602,7 +602,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudSecuritySession.java",
       "base_sha256": null,
-      "sha256": "ca17534d1a5023f11eae628cdff2e8daf83832656572fc69e3a136a1bc671936"
+      "sha256": "7a0a34054213d73012bd06b97539b2370fa5f6e9da0cf76b566f3e0e1e490797"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudSecurityStore.java",
@@ -623,6 +623,26 @@
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelegramCloudMetadataStore.java",
       "base_sha256": null,
       "sha256": "f488b03e8183d3d79896fc7ccf44be47d8bdfdae507f97dd32c8396aefcdb59c"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/VaultFolderLocks.java",
+      "base_sha256": null,
+      "sha256": "a6eeeb08e771292e86a8ab7cb6969058477ca2de8a456a82600ce7b95d4b55b5"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/VaultKeyAccess.java",
+      "base_sha256": null,
+      "sha256": "fdb794aa0c1d9135cae279f1dabe4b3439185a0a0f04f9cb6f182fd12af14214"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/VaultRekeyJob.java",
+      "base_sha256": null,
+      "sha256": "f89d32af8556bf3dcf8e7ead224814b08fac5df788f1e8aa9cb121350d8ec255"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/VaultSessionGuard.java",
+      "base_sha256": null,
+      "sha256": "ccd8c31328585db2272e6aed39679eb7ba34f2db264423b7c08f529d09ef24cd"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultBackupStore.java",
@@ -650,14 +670,54 @@
       "sha256": "61a26c423b950a99f4a6ccc29f8dada15b810bb64faef23dc5a0e6772f88505f"
     },
     {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultAttemptLimiter.java",
+      "base_sha256": null,
+      "sha256": "d369e559f783a45f13d6df1c3cdf09f56c5ab92306e3e324e5490e1b0ce3a945"
+    },
+    {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultFileOps.java",
       "base_sha256": null,
       "sha256": "bbb224224acbc852d6d2b2e34096832e427fcdd13b7fa26510e7ff3636b83e27"
     },
     {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultFolderBiometric.java",
+      "base_sha256": null,
+      "sha256": "4d815657fb3136f8671a327d10ee2c4c8df8be264340141c71d9f50cf46a7024"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultFolderLock.java",
+      "base_sha256": null,
+      "sha256": "047064040e03da677efe3666a449a39635e29475048d1a436480b0136ed5044a"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultFolderSession.java",
+      "base_sha256": null,
+      "sha256": "eb7fbd91ee4abf311cea4ccf9e404da3782278af499ebc57f2df45b66aa65f37"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultKeyResolver.java",
+      "base_sha256": null,
+      "sha256": "5d1a201c7f9787d55683011f9cd61941e4360319f2921ff1a5119c81bef5e76d"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultLockTree.java",
+      "base_sha256": null,
+      "sha256": "b473adaaf570022ae388f6c13c16d21041fe4295a2b0693f316c9d36b5959173"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultSecretPolicy.java",
+      "base_sha256": null,
+      "sha256": "2e989e51a91761d96c6c6a920dac57a1b7dea95860d8017f1f49eda5ed19155d"
+    },
+    {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultTransportStaging.java",
       "base_sha256": null,
       "sha256": "5d52b5e609cb2dac4669b75b38e363b1dee64796b4ce0df43b2f3b47b8abe5fb"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/vault/VaultVisibility.java",
+      "base_sha256": null,
+      "sha256": "24de649009c3124537d60398c7a993cfa958996819cc2fc384dceea0996c67e9"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumArtworkLoader.java",
@@ -677,12 +737,12 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumCloudMediaRepository.java",
       "base_sha256": null,
-      "sha256": "62b9657739e614c480dd6eecd64b89933d497dcbfcf7edaf6d1ca403439270e7"
+      "sha256": "2122e60b7c055755f4402cec56e8bdd96ed57661129749cc9deb07e2db45d73e"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaItem.java",
       "base_sha256": null,
-      "sha256": "b610921d8ec4496d32727d7edfd52b870914dd4fa11517a64bf432dd38d56cc1"
+      "sha256": "9afe3a707c163564ae15fc022a24a2a02ae414cdfb7c3efcdd88ec58e5ad13bb"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumMediaLibraryStore.java",
@@ -737,7 +797,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumPlaybackController.java",
       "base_sha256": null,
-      "sha256": "ba3e2ae19d684b74b429811fd37feb22acdaa57ae2ad7212d4b26f6f42241083"
+      "sha256": "a5210067aedb9faa1f76457f83d7ab09221f2ad9e4980854f0f0fdcd0e7a5cb2"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumPlayerMath.java",
@@ -752,7 +812,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumPlaylistRepository.java",
       "base_sha256": null,
-      "sha256": "b3d73b78a1ba3e6a0ec17f5654c4537ded1c162b44f6a2feabed019706d8882d"
+      "sha256": "653f479162fc6b8ceda2d6d4a56ac44dfabc6e4459182af2ec0269e12573a2d9"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/media/TelePremiumQueueManager.java",
@@ -1102,7 +1162,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudGalleryActivity.java",
       "base_sha256": null,
-      "sha256": "d3a7e3eb9bcb6da47afe2c17c94606a9962e14963dd30768208086ea8e69f8fe"
+      "sha256": "79aad2f9f229a63abaa2e39652c0b8b870e5444d114aa9484e1bc42ba3865811"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudSecurityActivity.java",
@@ -1130,7 +1190,7 @@
       "sha256": "03a657b68853365af1264dc3477f38ffbf138d8b978a75dc8f23824883d691e3"
     },
     {
-      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumInterfaceModeActivity.java",
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumFolderLockActivity.java",
       "base_sha256": null,
       "sha256": "a9ce42bed6737e19ddaee9a2341a8b891d15b5c69f16915a32bf14cfaf2384cd"
     },
@@ -1138,6 +1198,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumFolderLockSettingsActivity.java",
       "base_sha256": null,
       "sha256": "d9f5c968725957fcad9b0c5e91ee59f85ce8341f185f86548586f9c0080a6abf"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumInterfaceModeActivity.java",
+      "base_sha256": null,
+      "sha256": "da2f8c8d56116d8ad052bb8e117352e19989775bfa69f961987a79b4842b3acc"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumMediaCenterActivity.java",
@@ -1187,7 +1252,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPlayerActivity.java",
       "base_sha256": null,
-      "sha256": "756f347b0f450ebbd4336f51bb216f2ec8cb731b4ed7f246244022664a11ce27"
+      "sha256": "de65708fab20c4a6204b6eefed3427207fbc3294ffb0758a20d889f5b9ea68da"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumPlayerKit.java",

@@ -282,7 +282,7 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
         position = Math.max(0, Math.min(entries.size() - 1, getIntent().getIntExtra("position", 0)));
         touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        if (TelePremiumCloudSecurityStore.isProtectionEnabled(this)) getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        if (TelePremiumCloudSecurityStore.isProtectionEnabled(this) || folderProtected()) getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
 
         root = new FrameLayout(this);
@@ -397,6 +397,11 @@ public final class TelePremiumCloudGalleryActivity extends Activity {
         setContentView(root);
         onPositionChanged();
         main.post(lockCheck);
+    }
+
+    private boolean folderProtected() {
+        try { Entry e = entries.get(position); return TelePremiumCloudManager.getInstance(e.account).isProtected(e.node); }
+        catch (Throwable ignored) { return false; }
     }
 
     private boolean valid(Entry e) {
