@@ -765,63 +765,60 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
             return;
         }
         GridLayout grid = new GridLayout(context);
-        grid.setColumnCount(2);
+        grid.setColumnCount(3);
         body.addView(grid, new LinearLayout.LayoutParams(-1, -2));
         for (AccountNode item : folders) addFolderCard(grid, item);
     }
 
     /** Entry points of folder protection right under «Папки». */
     private void addLockToolbar() {
-        LinearLayout bar = new LinearLayout(context);
-        bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(AndroidUtilities.dp(2), 0, AndroidUtilities.dp(2), AndroidUtilities.dp(4));
-        int account = selectedAccount >= 0 ? selectedAccount : UserConfig.selectedAccount;
-        TextView settings = label("🔒 Защита папок", 14, false);
-        settings.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
-        settings.setOnClickListener(v -> presentFragment(new TelePremiumFolderLockSettingsActivity(account)));
-        bar.addView(settings, new LinearLayout.LayoutParams(0, AndroidUtilities.dp(34), 1));
-        if (!VaultFolderSession.shared().unlockedIds().isEmpty()) {
-            TextView lockAll = label("Закрыть все", 14, false);
-            lockAll.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
-            lockAll.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
-            lockAll.setOnClickListener(v -> { VaultSessionGuard.lockEverything(); renderBody(); });
-            bar.addView(lockAll, new LinearLayout.LayoutParams(-2, AndroidUtilities.dp(34)));
-        }
-        body.addView(bar, new LinearLayout.LayoutParams(-1, -2));
+        if (VaultFolderSession.shared().unlockedIds().isEmpty()) return;
+        TextView lockAll = label("Закрыть все", 14, false);
+        lockAll.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
+        lockAll.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+        lockAll.setPadding(AndroidUtilities.dp(2), 0, AndroidUtilities.dp(2), 0);
+        lockAll.setOnClickListener(v -> { VaultSessionGuard.lockEverything(); renderBody(); });
+        body.addView(lockAll, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(34)));
     }
 
     private void addFolderCard(GridLayout grid, AccountNode item) {
         LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(10), AndroidUtilities.dp(10));
+        card.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(2), AndroidUtilities.dp(8));
         card.setBackground(outlinedCard());
-        ImageView icon = new ImageView(context);
-        icon.setImageResource(R.drawable.tp_cloud_folder);
-        icon.setPadding(AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12),AndroidUtilities.dp(12));
-        icon.setBackground(roundRect(visualTheme.searchBackground, 12));
-        card.addView(icon, new LinearLayout.LayoutParams(AndroidUtilities.dp(54), AndroidUtilities.dp(54)));
-        LinearLayout labels = new LinearLayout(context);
-        labels.setOrientation(LinearLayout.VERTICAL);
-        labels.setPadding(AndroidUtilities.dp(11),0,0,0);
+        ImageView badge = new ImageView(context);
+        badge.setImageResource(R.drawable.tp_cloud_folder);
+        badge.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(10), AndroidUtilities.dp(10), AndroidUtilities.dp(10));
+        badge.setBackground(roundRect(visualTheme.searchBackground, 11));
+        card.addView(badge, new LinearLayout.LayoutParams(AndroidUtilities.dp(42), AndroidUtilities.dp(42)));
         final boolean closedLock = TelePremiumCloudManager.getInstance(item.account).view().isClosedLock(item.node);
-        final boolean hasLock = item.node.lock != null;
+        final boolean hasLock = item.node.lock != null && !item.node.lockOff;
         String shownName = closedLock && VaultFolderLocks.hideLockedNames() ? "Закрытая папка" : item.node.name;
-        TextView name = label((hasLock ? (closedLock ? "🔒 " : "🔓 ") : "") + shownName, 15, true); name.setSingleLine(true);
-        TextView count = label(closedLock ? "Закрыта" : compactCount(TelePremiumCloudManager.getInstance(item.account).countFiles(item.node.id)), 13, false);
-        count.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
-        labels.addView(name); labels.addView(count);
-        card.addView(labels, new LinearLayout.LayoutParams(0,-2,1));
-        TextView more = label("⋮", 26, false);
+        LinearLayout text = new LinearLayout(context);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.setPadding(AndroidUtilities.dp(8), 0, 0, 0);
+        TextView name = label((hasLock ? (closedLock ? "🔒" : "🔓") : "") + shownName, 13, true);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        TextView value = label(closedLock ? "Закрыта" : compactCount(TelePremiumCloudManager.getInstance(item.account).countFiles(item.node.id)), 12, false);
+        value.setSingleLine(true);
+        value.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        text.addView(name);
+        text.addView(value);
+        card.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView more = label("\u22EE", 22, false);
         more.setGravity(Gravity.CENTER);
         more.setOnClickListener(v -> showNodeMenu(item));
-        card.addView(more, new LinearLayout.LayoutParams(AndroidUtilities.dp(36), AndroidUtilities.dp(54)));
+        card.addView(more, new LinearLayout.LayoutParams(AndroidUtilities.dp(26), AndroidUtilities.dp(56)));
         card.setOnClickListener(v -> openNode(item));
         card.setOnLongClickListener(v -> { showNodeMenu(item); return true; });
-        card.setOnDragListener((v,event) -> handleFolderDrop(card,item,event));
+        card.setOnDragListener((v, event) -> handleFolderDrop(card, item, event));
         GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
-        lp.width=0; lp.height=AndroidUtilities.dp(90); lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1,1f);
-        lp.setMargins(AndroidUtilities.dp(3),AndroidUtilities.dp(4),AndroidUtilities.dp(3),AndroidUtilities.dp(4));
-        grid.addView(card,lp);
+        lp.width = 0; lp.height = AndroidUtilities.dp(72);
+        lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f);
+        lp.setMargins(AndroidUtilities.dp(3), AndroidUtilities.dp(4), AndroidUtilities.dp(3), AndroidUtilities.dp(4));
+        grid.addView(card, lp);
     }
 
     private void addSectionTitle(String title, String action) {
@@ -1020,11 +1017,18 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         ArrayList<CharSequence> labels=new ArrayList<>();ArrayList<Integer> icons=new ArrayList<>();ArrayList<Runnable> actions=new ArrayList<>();
         labels.add(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_117", org.telegram.messenger.R.string.TP_L10N_117));icons.add(R.drawable.tp_cloud_folder);actions.add(()->openNode(item));
         if(!hasLock){
-            labels.add("Защитить папку");icons.add(R.drawable.tp_cloud_folder);
-            actions.add(()->presentFragment(new TelePremiumFolderLockActivity(item.account,node.id,TelePremiumFolderLockActivity.MODE_PROTECT,this::renderBody)));
+            final VaultSecretPolicy.Kind[] kinds={VaultSecretPolicy.Kind.PIN,VaultSecretPolicy.Kind.PASSWORD,VaultSecretPolicy.Kind.PATTERN};
+            final String[] names={"🔒 Закрыть PIN-кодом","🔒 Закрыть паролем","🔒 Закрыть графическим ключом"};
+            for(int i=0;i<kinds.length;i++){
+                final VaultSecretPolicy.Kind k=kinds[i];
+                labels.add(names[i]);icons.add(R.drawable.tp_cloud_folder);
+                actions.add(()->presentFragment(new TelePremiumFolderLockActivity(item.account,node.id,TelePremiumFolderLockActivity.MODE_PROTECT,k,this::renderBody)));
+            }
         }else{
-            if(open){labels.add("Закрыть сейчас");icons.add(R.drawable.tp_cloud_folder);actions.add(()->{VaultFolderLocks.lockNow(node);renderBody();});}
-            labels.add("Настройки защиты");icons.add(R.drawable.tp_cloud_folder);
+            if(open){labels.add("🔒 Закрыть сейчас");icons.add(R.drawable.tp_cloud_folder);actions.add(()->{VaultFolderLocks.lockNow(node);renderBody();});}
+            labels.add("Сменить секрет");icons.add(R.drawable.tp_cloud_folder);
+            actions.add(()->presentFragment(new TelePremiumFolderLockActivity(item.account,node.id,TelePremiumFolderLockActivity.MODE_CHANGE,this::renderBody)));
+            labels.add("Отпечаток, автоблокировка, снять защиту");icons.add(R.drawable.tp_cloud_folder);
             actions.add(()->presentFragment(new TelePremiumFolderLockSettingsActivity(item.account)));
         }
         labels.add(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_123", org.telegram.messenger.R.string.TP_L10N_123));icons.add(R.drawable.tp_cloud_rename);actions.add(()->rename(manager,node));
