@@ -962,7 +962,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java",
       "base_sha256": "f733ff0b35d4f527dd3d3e5780d3e1476273bc1fc6ea130cf2406ea26bd4487d",
-      "sha256": "fa115197422182d7c7e261e9c08e02cad3eb0627f0212afefc795d3dce908fca"
+      "sha256": "38bc277af157ff61fe84cf81b940db0c1849d96054699e0963fff13c836f3c79"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/FilterCreateActivity.java",
@@ -1097,7 +1097,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumClassicDrawer.java",
       "base_sha256": null,
-      "sha256": "5037ecfc2bdded07e15f23ef20b34ce032a4eccdeb817390fb9f1b34f5b2d498"
+      "sha256": "78287c049369b3f0b166f483f9222b30c57c0fa9f13366e9dcb6a4ccf3d047f0"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumClassicSettingsActivity.java",
