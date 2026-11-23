@@ -28,10 +28,12 @@ byte[] bad=doc.server.clone();bad[bad.length-1]^=1;Files.write(missing,bad);Resu
 Utilities.globalQueue.defer=true;Files.write(missing,doc.server);Result stale=new Result();new CloudDownloadManager(0,true).download(n,stale);UserConfig.uid=99;Utilities.globalQueue.drain();check(stale.ready==0,"account-slot reuse cannot deliver a former owner's decrypted photo");System.out.println("CloudPreviewRuntimeTest OK: "+checks+" checks");}}
 '''
 })
+import sys; sys.path.insert(0,str(Path(__file__).resolve().parent))
+import folder_lock_stubs as FL; FILES.update(FL.STUBS); FILES.update(FL.KEY_STUBS)
 if __name__=='__main__':
  with tempfile.TemporaryDirectory(prefix='tp-preview-') as directory:
   base=Path(directory);sources=[];out=base/'classes';out.mkdir()
   for name,content in FILES.items():p=base/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content);sources.append(p)
   names=['cloud/CloudNode','cloud/CloudDownloadManager','cloud/TelePremiumCloudResetState','cloud/vault/VaultFileOps','cloud/vault/TelePremiumVaultCrypto']
-  sources+=sorted((ROOT/'scripts/tests/stubs').rglob('*.java'))+[PROD/(name+'.java') for name in names]
+  sources+=sorted((ROOT/'scripts/tests/stubs').rglob('*.java'))+[PROD/(name+'.java') for name in names]+FL.pure_sources(ROOT/'patches/tg13/overlay/TMessagesProj/src/main/java')
   compiler=['javac'] if shutil.which('javac') else ['java','com.sun.tools.javac.Main'];subprocess.run([*compiler,'-d',str(out),*map(str,sources)],check=True);subprocess.run(['java','-cp',str(out),'CloudPreviewRuntimeTest'],check=True)

@@ -69,6 +69,13 @@ public final class TelePremiumCloudManager {
     public boolean isVisible(CloudNode node) { return view().visible(node); }
     public boolean isProtected(CloudNode node) { return view().isProtected(node); }
     public CloudNode findNodeById(String id) { return findById(id); }
+    /** Id of the lock folder whose key protects this node (its keyRef, else the nearest lock above it), or null. */
+    public String protectingLockId(CloudNode node) {
+        if(node==null||snapshot==null)return null;
+        if(node.keyRef!=null)return node.keyRef;
+        CloudNode holder=org.telegram.messenger.telepremium.cloud.vault.VaultLockTree.lockHolder(snapshot.nodes,node.parentId);
+        return holder==null?null:holder.id;
+    }
 
     public void bootstrap(Callback callback) {
         if (!active()) { if (callback != null) callback.onComplete(TelePremiumCloudResetState.MESSAGE); return; }

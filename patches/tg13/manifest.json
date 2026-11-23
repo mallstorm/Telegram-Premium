@@ -537,7 +537,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java",
       "base_sha256": null,
-      "sha256": "30fed401b3d1b55ee2c5c19afc9106d471f396563ab4506f1aab717e32356073"
+      "sha256": "5e93c2ceb74135199e2ac67bb61871ea069d4f3a733799d3e36e05a5bc9c72e5"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/cloud/TelePremiumCloudPeerManager.java",

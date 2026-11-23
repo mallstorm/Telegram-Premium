@@ -27,7 +27,7 @@ FILES.update({
 'org/telegram/tgnet/TLRPC.java':'''package org.telegram.tgnet;public class TLRPC {public static class User {public long id;public String first_name,last_name;}public static class Document {public long id,size;}}''',
 'org/telegram/messenger/AndroidUtilities.java':'''package org.telegram.messenger;import java.util.concurrent.*;public class AndroidUtilities {public static final BlockingQueue<Runnable> ui=new LinkedBlockingQueue<>();public static boolean queued;public static void runOnUIThread(Runnable r){if(queued)ui.add(r);else r.run();}}''',
 'org/telegram/messenger/telepremium/cloud/TelePremiumCloudSecuritySession.java':'''package org.telegram.messenger.telepremium.cloud;import android.content.Context;public class TelePremiumCloudSecuritySession {public static boolean unlocked=true;public static boolean isUnlocked(Context c){return unlocked;}}''',
-'org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java':'''package org.telegram.messenger.telepremium.cloud;import java.util.*;public class TelePremiumCloudManager {public interface Callback{void onComplete(String e);}public static Map<Integer,CloudSnapshot> snapshots=new HashMap<>();public static Map<Integer,String> errors=new HashMap<>();public static List<Runnable> pending=new ArrayList<>();public static boolean defer;public static int calls;int a;public static TelePremiumCloudManager getInstance(int a){var m=new TelePremiumCloudManager();m.a=a;return m;}public CloudSnapshot getSnapshot(){return snapshots.get(a);}public void bootstrap(Callback cb){calls++;if(defer)pending.add(()->cb.onComplete(errors.get(a)));else cb.onComplete(errors.get(a));}}''',
+'org/telegram/messenger/telepremium/cloud/TelePremiumCloudManager.java':'''package org.telegram.messenger.telepremium.cloud;import java.util.*;public class TelePremiumCloudManager {public interface Callback{void onComplete(String e);}public static Map<Integer,CloudSnapshot> snapshots=new HashMap<>();public static Map<Integer,String> errors=new HashMap<>();public static List<Runnable> pending=new ArrayList<>();public static boolean defer;public static int calls;int a;public static TelePremiumCloudManager getInstance(int a){var m=new TelePremiumCloudManager();m.a=a;return m;}public CloudSnapshot getSnapshot(){return snapshots.get(a);}public void bootstrap(Callback cb){calls++;if(defer)pending.add(()->cb.onComplete(errors.get(a)));else cb.onComplete(errors.get(a));}public CloudNode findNodeById(String id){var s=getSnapshot();if(s!=null)for(CloudNode n:s.nodes)if(id!=null&&id.equals(n.id))return n;return null;}public boolean isVisible(CloudNode n){return true;}public boolean isProtected(CloudNode n){return false;}public String protectingLockId(CloudNode n){return null;}}''',
 'org/telegram/messenger/telepremium/media/MediaVaultRuntimeTest.java':r'''package org.telegram.messenger.telepremium.media;
 import android.content.*;import android.net.Uri;import java.io.*;import java.net.*;import java.nio.file.*;import java.util.*;import java.util.concurrent.*;
 import org.telegram.messenger.*;import org.telegram.messenger.telepremium.cloud.*;import org.telegram.messenger.telepremium.cloud.vault.*;import androidx.media3.datasource.*;
@@ -93,6 +93,9 @@ public class MediaVaultRuntimeTest {
 }'''
 })
 
+import sys; sys.path.insert(0,str(Path(__file__).resolve().parent))
+import folder_lock_stubs as FL; FILES.update(FL.STUBS)
+
 def run():
  with tempfile.TemporaryDirectory(prefix='tp-media-vault-tests-') as folder:
   base=Path(folder);src=base/'src';out=base/'classes';src.mkdir();out.mkdir()
@@ -102,6 +105,7 @@ def run():
   paths=['cloud/CloudNode','cloud/CloudSnapshot','cloud/TelePremiumCloudFormat','cloud/TelePremiumCloudResetState','cloud/vault/TelePremiumVaultCrypto','media/TelePremiumMediaItem','media/TelePremiumCloudMediaRepository','media/TelePremiumMultipartDataSource','media/TelePremiumMediaRequest']
   sources += [PROD/('org/telegram/messenger/telepremium/'+p+'.java') for p in paths]
   compiler=['javac'] if shutil.which('javac') else ['java','com.sun.tools.javac.Main']
+  sources += FL.pure_sources(ROOT/'patches/tg13/overlay/TMessagesProj/src/main/java')
   subprocess.run([*compiler,'-d',str(out),*map(str,sources)],check=True)
   subprocess.run(['java','-cp',str(out),'org.telegram.messenger.telepremium.media.MediaVaultRuntimeTest'],check=True)
 if __name__=='__main__':run()
