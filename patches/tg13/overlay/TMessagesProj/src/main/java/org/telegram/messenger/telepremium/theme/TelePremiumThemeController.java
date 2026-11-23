@@ -32,24 +32,56 @@ public final class TelePremiumThemeController {
 
     public static void applySavedTheme(Context context, boolean recreate) {
         if (!TelePremiumThemeStore.hasTheme(context)) return;
-        applyTheme(context, TelePremiumThemeStore.getThemeId(context, TelePremiumThemeRegistry.SILVER_GRAY), recreate);
+        applyTheme(context, TelePremiumThemeStore.getThemeId(context, TelePremiumThemeRegistry.DEFAULT_THEME), recreate);
     }
 
+    /**
+     * TelePremium presets are the only themes of the app: if none was ever chosen the default preset is
+     * applied, and if Telegram switched to one of its own themes the saved preset is restored.
+     */
     public static void ensureShellTheme(Context context) {
-        if (context == null || !TelePremiumThemeStore.hasTheme(context)) return;
-        String id = TelePremiumThemeStore.getThemeId(context, TelePremiumThemeRegistry.SILVER_GRAY);
-        String expected = "TelePremium_" + id;
+        if (context == null) return;
+        String id = TelePremiumThemeStore.getThemeId(context, TelePremiumThemeRegistry.DEFAULT_THEME);
         Theme.ThemeInfo active = Theme.getActiveTheme();
         String key = active == null ? null : active.getKey();
-        if (key == null || (!expected.equals(key) && !key.contains(id))) {
+        if (key == null || !key.startsWith(THEME_KEY_PREFIX) || !key.contains(id)) {
             applyTheme(context, id, false);
         } else {
             applySystemBars(context, TelePremiumThemeRegistry.get(id));
         }
     }
 
+    private static final String THEME_KEY_PREFIX = "TelePremium_";
+    private static boolean guardInstalled;
+    private static boolean guardBusy;
+
+    private static final NotificationCenter.NotificationCenterDelegate GUARD = (id, account, args) -> {
+        if (id != NotificationCenter.didSetNewTheme || guardBusy) return;
+        Theme.ThemeInfo active = Theme.getActiveTheme();
+        String key = active == null ? null : active.getKey();
+        if (key != null && key.startsWith(THEME_KEY_PREFIX)) return;
+        guardBusy = true;
+        AndroidUtilities.runOnUIThread(() -> {
+            try {
+                ensureShellTheme(ApplicationLoader.applicationContext);
+            } finally {
+                guardBusy = false;
+            }
+        }, 60);
+    };
+
+    /**
+     * There is no day/night mode: whatever switches Telegram to a built-in theme (the stock chat-list
+     * menu item, theme settings, system dark mode) is reverted to the saved TelePremium preset.
+     */
+    public static void installGuard() {
+        if (guardInstalled) return;
+        guardInstalled = true;
+        NotificationCenter.getGlobalInstance().addObserver(GUARD, NotificationCenter.didSetNewTheme);
+    }
+
     public static boolean reapplyCurrent(Context context, boolean recreate) {
-        return applyTheme(context, TelePremiumThemeStore.getThemeId(context, TelePremiumThemeRegistry.SILVER_GRAY), recreate);
+        return applyTheme(context, TelePremiumThemeStore.getThemeId(context, TelePremiumThemeRegistry.DEFAULT_THEME), recreate);
     }
 
     public static boolean applyTheme(Context context, String themeId, boolean recreate) {
@@ -68,9 +100,8 @@ public final class TelePremiumThemeController {
             disableAutoNight();
             Theme.ThemeInfo applied = Theme.applyThemeFile(file, "TelePremium_" + preset.id, null, false);
             if (applied == null) return false;
-            if (preset.isDark) {
-                try { Theme.setCurrentNightTheme(applied); } catch (Throwable ignore) {}
-            }
+            // Day and night are the same theme: any stock day/night switch lands on this preset again.
+            try { Theme.setCurrentNightTheme(applied); } catch (Throwable ignore) {}
             TelePremiumThemeStore.setThemeId(context, preset.id);
             applySystemBars(context, preset);
             if (recreate && context instanceof Activity) {

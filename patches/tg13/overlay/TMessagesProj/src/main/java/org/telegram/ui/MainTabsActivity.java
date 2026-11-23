@@ -54,6 +54,7 @@ import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.telepremium.TelePremiumUiPrefs;
+import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -358,6 +359,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     public View createView(Context context) {
+        TelePremiumThemeController.installGuard();
+        TelePremiumThemeController.ensureShellTheme(context);
         super.createView(context);
         tabletLayout = false;
 

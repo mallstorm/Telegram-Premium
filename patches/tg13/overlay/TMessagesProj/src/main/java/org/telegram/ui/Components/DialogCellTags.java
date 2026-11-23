@@ -120,7 +120,7 @@ public class DialogCellTags {
         ) {
             for (int i = 0; i < allFilters.size(); ++i) {
                 MessagesController.DialogFilter filter = allFilters.get(i);
-                if (filter == null || filter == currentFilter) {
+                if (filter == null || filter == currentFilter || filter.isDefault()) {
                     continue;
                 }
                 final int localColor = TelePremiumFolderTags.getColor(currentAccount, filter.id, filter.color);

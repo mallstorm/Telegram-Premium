@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
@@ -42,7 +41,9 @@ import org.telegram.messenger.UserObject;
 import org.telegram.messenger.browser.Browser;
 import org.telegram.messenger.telepremium.TPStrings;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudAccessGate;
+import org.telegram.messenger.telepremium.theme.TelePremiumDrawerArt;
 import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;
+import org.telegram.messenger.telepremium.theme.TelePremiumThemePreset;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
@@ -137,7 +138,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
         listView.setVerticalScrollBarEnabled(false);
         listView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         listView.setClipToPadding(false);
-        listView.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));
+        listView.setBackground(TelePremiumDrawerArt.body(TelePremiumThemeController.getCurrent(context)));
         adapter = new Adapter();
         listView.setAdapter(adapter);
         listView.setOnItemClickListener((RecyclerListView.OnItemClickListener) (view, position) -> onItemClick(position));
@@ -181,10 +182,21 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
         progressListener = listener;
     }
 
+    private Drawable headerArt;
+
+    /** Scene behind the profile header; rebuilt with the theme, shared by all bind() calls. */
+    private Drawable headerArt() {
+        if (headerArt == null) {
+            headerArt = TelePremiumDrawerArt.header(TelePremiumThemeController.getCurrent(getContext()));
+        }
+        return headerArt;
+    }
+
     private void updateTheme() {
-        int background = Theme.getColor(Theme.key_chats_menuBackground);
-        panel.setBackgroundColor(background);
-        listView.setBackgroundColor(background);
+        headerArt = null;
+        TelePremiumThemePreset preset = TelePremiumThemeController.getCurrent(getContext());
+        panel.setBackgroundColor(Theme.getColor(Theme.key_chats_menuBackground));
+        listView.setBackground(TelePremiumDrawerArt.body(preset));
         adapter.notifyDataSetChanged();
     }
 
@@ -291,26 +303,26 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
         return 2 + (accountsShown ? accountRows() : 0);
     }
 
-    private void setAccountsShown(boolean value) {
-        if (accountsShown == value || accountNumbers.size() < 2) {
+    private long lastToggle;
+
+    private void toggleAccounts() {
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - lastToggle < 350 || accountNumbers.size() < 2) {
             return;
         }
-        accountsShown = value;
-        MessagesController.getGlobalMainSettings().edit().putBoolean("accountsShown", value).commit();
+        lastToggle = now;
+        accountsShown = !accountsShown;
+        MessagesController.getGlobalMainSettings().edit().putBoolean("accountsShown", accountsShown).commit();
+        // a plain rebind: no range animations that could leave stale rows behind
+        adapter.notifyDataSetChanged();
         if (profileCell != null) {
             profileCell.updateArrow(true);
-        }
-        int rows = accountRows();
-        if (value) {
-            adapter.notifyItemRangeInserted(2, rows);
-        } else {
-            adapter.notifyItemRangeRemoved(2, rows);
         }
     }
 
     private void onItemClick(int position) {
         if (position == 0) {
-            setAccountsShown(!accountsShown);
+            toggleAccounts();
             return;
         }
         if (position == 1) {
@@ -781,11 +793,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
         private final TextView label;
         private final Paint badgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final TextPaint badgeText = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
-        private final Paint checkFill = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint checkStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Path checkPath = new Path();
         private int unread;
-        private boolean selected;
 
         UserRow(Context context) {
             super(context);
@@ -808,9 +816,6 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
             addView(label, tlp);
             badgeText.setTextSize(AndroidUtilities.dp(13));
             badgeText.setTypeface(AndroidUtilities.bold());
-            checkStroke.setStyle(Paint.Style.STROKE);
-            checkStroke.setStrokeWidth(AndroidUtilities.dp(1.5f));
-            checkStroke.setStrokeCap(Paint.Cap.ROUND);
         }
 
         void bind(int account) {
@@ -830,8 +835,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
                 label.setText("Telegram");
             }
             label.setTextColor(Theme.getColor(Theme.key_chats_menuItemText));
-            selected = account == UserConfig.selectedAccount;
-            unread = selected ? 0 : MessagesStorage.getInstance(account).getMainUnreadCount();
+            unread = account == UserConfig.selectedAccount ? 0 : MessagesStorage.getInstance(account).getMainUnreadCount();
             FrameLayout.LayoutParams tlp = (FrameLayout.LayoutParams) label.getLayoutParams();
             tlp.rightMargin = AndroidUtilities.dp(unread > 0 ? 60 : 16);
             label.setLayoutParams(tlp);
@@ -845,21 +849,6 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
 
         @Override
         protected void onDraw(Canvas canvas) {
-            if (selected) {
-                float cx = AndroidUtilities.dp(14 + 34 - 6);
-                float cy = AndroidUtilities.dp(24 + 12);
-                float r = AndroidUtilities.dp(8);
-                checkFill.setColor(Theme.getColor(Theme.key_chats_menuBackground));
-                canvas.drawCircle(cx, cy, r + AndroidUtilities.dp(1.5f), checkFill);
-                checkFill.setColor(Theme.getColor(Theme.key_checkbox));
-                canvas.drawCircle(cx, cy, r, checkFill);
-                checkStroke.setColor(Theme.getColor(Theme.key_checkboxCheck));
-                checkPath.reset();
-                checkPath.moveTo(cx - AndroidUtilities.dp(3.2f), cy + AndroidUtilities.dp(0.2f));
-                checkPath.lineTo(cx - AndroidUtilities.dp(0.9f), cy + AndroidUtilities.dp(2.5f));
-                checkPath.lineTo(cx + AndroidUtilities.dp(3.2f), cy - AndroidUtilities.dp(2.4f));
-                canvas.drawPath(checkPath, checkStroke);
-            }
             if (unread > 0) {
                 String text = unread > 99 ? "99+" : String.valueOf(unread);
                 badgeText.setColor(Theme.getColor(Theme.key_chats_unreadCounterText));
@@ -890,6 +879,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
             super(context);
             setWillNotDraw(false);
             setClickable(true);
+            setOnClickListener(v -> toggleAccounts());
 
             avatar = new BackupImageView(context);
             avatar.setRoundRadius(AndroidUtilities.dp(32));
@@ -982,7 +972,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
         }
 
         void bind() {
-            setBackgroundColor(Theme.getColor(backgroundKey()));
+            setBackground(headerArt());
             int nameColor = Theme.getColor(Theme.key_chats_menuName);
             name.setTextColor(nameColor);
             phone.setTextColor(Theme.getColor(Theme.key_chats_menuPhoneCats));

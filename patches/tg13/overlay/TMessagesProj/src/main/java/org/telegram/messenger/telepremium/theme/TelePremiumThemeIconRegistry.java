@@ -2,8 +2,6 @@ package org.telegram.messenger.telepremium.theme;
 
 import android.content.Context;
 
-import org.telegram.ui.ActionBar.Theme;
-
 public final class TelePremiumThemeIconRegistry {
     private TelePremiumThemeIconRegistry() {}
 
@@ -12,10 +10,7 @@ public final class TelePremiumThemeIconRegistry {
     }
 
     public static String getCurrentThemeId(Context context) {
-        String fallback = Theme.isCurrentThemeDark()
-                ? TelePremiumThemeRegistry.DARK_GRAPHITE
-                : TelePremiumThemeRegistry.SILVER_GRAY;
-        return TelePremiumThemeStore.getThemeId(context, fallback);
+        return TelePremiumThemeStore.getThemeId(context, TelePremiumThemeRegistry.DEFAULT_THEME);
     }
 
     public static int getCurrentThemeIcon(Context context) {

@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 public final class TelePremiumThemeRegistry {
+    /** The theme every install starts with (and falls back to). */
+    public static final String DEFAULT_THEME = "frost_morning";
     public static final String DARK_GRAPHITE = "dark_graphite";
     public static final String SILVER_GRAY = "silver_gray";
     public static final String SOFT_GREEN = "soft_green";
@@ -94,7 +96,7 @@ public final class TelePremiumThemeRegistry {
 
     public static TelePremiumThemePreset get(String id) {
         TelePremiumThemePreset preset = THEMES.get(id);
-        return preset != null ? preset : THEMES.get(SILVER_GRAY);
+        return preset != null ? preset : THEMES.get(DEFAULT_THEME);
     }
 
     public static List<TelePremiumThemePreset> all() {

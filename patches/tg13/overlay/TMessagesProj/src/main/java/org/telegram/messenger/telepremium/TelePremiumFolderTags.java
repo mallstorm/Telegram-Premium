@@ -37,27 +37,32 @@ public final class TelePremiumFolderTags {
         prefs(account).edit().putBoolean(KEY_ENABLED, enabled).apply();
     }
 
+    private static final int AUTO_PALETTE = 7;
+
     /**
-     * Resolve a locally selected colour first and fall back to Telegram's
-     * server-provided colour when no TelePremium override exists.
+     * Tag color of a folder: the locally chosen one, else the server one, else an automatic palette
+     * color, so every chat that sits in a custom folder carries that folder's name label (like the
+     * classic chat list). A stored negative value means "no tag" for that folder.
      */
     public static int getColor(int account, int filterId, int fallback) {
-        if (filterId <= 0) {
+        if (filterId <= 0 || filterId == Integer.MAX_VALUE) {
             return fallback;
         }
-        return prefs(account).getInt(COLOR_PREFIX + filterId, fallback);
+        SharedPreferences prefs = prefs(account);
+        String key = COLOR_PREFIX + filterId;
+        if (prefs.contains(key)) {
+            return prefs.getInt(key, fallback);
+        }
+        if (fallback >= 0) {
+            return fallback;
+        }
+        return filterId % AUTO_PALETTE;
     }
 
     public static void setColor(int account, int filterId, int color) {
         if (filterId <= 0) {
             return;
         }
-        SharedPreferences.Editor editor = prefs(account).edit();
-        if (color < 0) {
-            editor.remove(COLOR_PREFIX + filterId);
-        } else {
-            editor.putInt(COLOR_PREFIX + filterId, color);
-        }
-        editor.apply();
+        prefs(account).edit().putInt(COLOR_PREFIX + filterId, color < 0 ? -1 : color).apply();
     }
 }

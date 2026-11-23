@@ -96,7 +96,7 @@ public final class TelePremiumThemeStore {
     }
 
     public static void resetAppearance(Context context) {
-        String theme = getThemeId(context, TelePremiumThemeRegistry.SILVER_GRAY);
+        String theme = getThemeId(context, TelePremiumThemeRegistry.DEFAULT_THEME);
         prefs(context).edit().clear().putString(KEY_THEME, theme).apply();
     }
 }
