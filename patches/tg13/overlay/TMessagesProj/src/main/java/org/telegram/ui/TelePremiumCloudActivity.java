@@ -811,7 +811,12 @@ public class TelePremiumCloudActivity extends BaseFragment implements Notificati
         count.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         labels.addView(name); labels.addView(count);
         card.addView(labels, new LinearLayout.LayoutParams(0,-2,1));
+        TextView more = label("⋮", 26, false);
+        more.setGravity(Gravity.CENTER);
+        more.setOnClickListener(v -> showNodeMenu(item));
+        card.addView(more, new LinearLayout.LayoutParams(AndroidUtilities.dp(36), AndroidUtilities.dp(54)));
         card.setOnClickListener(v -> openNode(item));
+        card.setOnLongClickListener(v -> { showNodeMenu(item); return true; });
         card.setOnDragListener((v,event) -> handleFolderDrop(card,item,event));
         GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
         lp.width=0; lp.height=AndroidUtilities.dp(90); lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1,1f);

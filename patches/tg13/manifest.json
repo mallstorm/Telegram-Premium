@@ -1087,7 +1087,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudActivity.java",
       "base_sha256": null,
-      "sha256": "d50037e5ce4b35e26c737bb040902ee9b75ef0dc71381ab1f3db6afae90a67f1"
+      "sha256": "8095d0f5282bcde592a8d65aa28ae1cd0f9cda5b83f749bd73c6c4a03ad18255"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCloudDiagnosticsActivity.java",
@@ -1717,7 +1717,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "350c8751883e6448394d166ed546dccf52623227b448981196d57529a9ec7334"
+      "sha256": "eec5b4082604202811331fefb5c105026d63aa2bf03f75f9708c70e6639f1ccf"
     },
     {
       "path": "settings.gradle",
