@@ -127,12 +127,13 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
         if(node.encryptionVersion!=1){callback.onState(ERROR,null,"Unsupported Vault format");return;}
         try {
             // Require a currently unlocked session; no plaintext is made available otherwise.
-            byte[] master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
+            final org.telegram.messenger.telepremium.cloud.vault.VaultKeyResolver.Key resolved=VaultKeyAccess.forNode(node);
+            final byte[] master=resolved.bytes;
             callback.onState(DOWNLOADING,null,null);
             Utilities.globalQueue.postRunnable(()->{
                 try {
                     if (!active()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
-                    File folder=new File(ApplicationLoader.applicationContext.getCacheDir(),"tpvault_dec");
+                    File folder=new File(ApplicationLoader.applicationContext.getCacheDir(),node.keyRef==null?"tpvault_dec":VaultSessionGuard.LOCKED_CACHE_DIR);
                     File file=VaultFileOps.decryptToVerifiedFile(encryptedOrPlain,folder,node.name,master,node.sha256,node.size);
                     AndroidUtilities.runOnUIThread(()->{
                         if (!active()) { file.delete(); callback.onState(ERROR, null, TelePremiumCloudResetState.MESSAGE); return; }
@@ -145,10 +146,10 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                         if(transferManager!=null)transferManager.failRetryable("Vault authentication failed");node.offlineState=ERROR;
                         callback.onState(ERROR,null,"Не удалось проверить подлинность Vault-файла");
                     });
-                } finally {Arrays.fill(master,(byte)0);}
+                } finally {resolved.wipe();}
             });
         } catch(Exception e) {
-            callback.onState(ERROR,null,"Сначала разблокируйте защищённое облако");
+            callback.onState(ERROR,null,VaultKeyAccess.lockedMessage(e));
         }
     }
 
@@ -352,8 +353,8 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
         for(int i=0;i<docs.length;i++)parts[i]=resolveFile(docs[i]);
         byte[] master=null;
         if(node.encryptionVersion==1){
-            try{master=TelePremiumVaultKeyManager.getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);}
-            catch(Exception e){cb.onState(ERROR,null,"Сначала разблокируйте защищённое облако");return;}
+            try{master=VaultKeyAccess.forNode(node).bytes;}
+            catch(Exception e){cb.onState(ERROR,null,VaultKeyAccess.lockedMessage(e));return;}
         }
         final byte[] key=master;
         Utilities.globalQueue.postRunnable(()->{
@@ -362,7 +363,7 @@ public final class CloudDownloadManager implements NotificationCenter.Notificati
                 if (!active()) throw new IllegalStateException(TelePremiumCloudResetState.MESSAGE);
                 java.security.MessageDigest sha=java.security.MessageDigest.getInstance("SHA-256");
                 if(key!=null){
-                    File folder=new File(ApplicationLoader.applicationContext.getCacheDir(),"tpvault_dec");
+                    File folder=new File(ApplicationLoader.applicationContext.getCacheDir(),node.keyRef==null?"tpvault_dec":VaultSessionGuard.LOCKED_CACHE_DIR);
                     if(!folder.isDirectory())folder.mkdirs();
                     out=new File(folder,"mp_"+node.id+"_"+(node.name==null?"file":node.name.replaceAll("[^a-zA-Z0-9._-]","_")));
                 } else {

@@ -13,6 +13,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 PROD = ROOT / "patches/tg13/overlay/TMessagesProj/src/main/java"
 FILES = {
+"org/telegram/messenger/telepremium/cloud/vault/TelePremiumVaultBackupStore.java": "package org.telegram.messenger.telepremium.cloud.vault;public class TelePremiumVaultBackupStore{public static java.io.File find(android.content.Context c,String id){return null;}}",
     'android/content/SharedPreferences.java': r"""package android.content;
 public interface SharedPreferences {
  boolean contains(String k);long getLong(String k,long d);int getInt(String k,int d);boolean getBoolean(String k,boolean d);String getString(String k,String d);Editor edit();
@@ -204,7 +205,7 @@ def run():
             p.write_text(content, encoding="utf-8")
         names = ["CloudImageNames", "TelePremiumCloudResetState", "CloudNode", "CloudSnapshot", "CloudConflictResolver", "CloudIntegrityChecker", "CloudRecoveryEngine", "TelePremiumCloudManager", "TelegramCloudMetadataStore"]
         sources = [PROD / ("org/telegram/messenger/telepremium/cloud/" + n + ".java") for n in names]
-        sources += [PROD / ("org/telegram/messenger/telepremium/cloud/vault/" + n + ".java") for n in ["TelePremiumVaultCrypto", "TelePremiumVaultIndexStore"]]
+        sources += [PROD / ("org/telegram/messenger/telepremium/cloud/vault/" + n + ".java") for n in ["TelePremiumVaultCrypto", "TelePremiumVaultIndexStore", "VaultFolderLock", "VaultFolderSession", "VaultLockTree", "VaultVisibility"]]
         sources += sorted((ROOT / "scripts/tests/stubs").rglob("*.java"))
         sources += sorted(src.rglob("*.java"))
         compiler = ["javac"] if shutil.which("javac") else ["java", "com.sun.tools.javac.Main"]

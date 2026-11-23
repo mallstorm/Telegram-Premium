@@ -10,6 +10,13 @@ BASE = ROOT / "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messen
 SOURCES = [
     "cloud/vault/TelePremiumVaultCrypto.java",
     "cloud/vault/VaultFileOps.java",
+    "cloud/vault/VaultFolderLock.java",
+    "cloud/vault/VaultSecretPolicy.java",
+    "cloud/vault/VaultFolderSession.java",
+    "cloud/vault/VaultLockTree.java",
+    "cloud/vault/VaultVisibility.java",
+    "cloud/vault/VaultKeyResolver.java",
+    "cloud/vault/VaultAttemptLimiter.java",
     "cloud/CloudFileHasher.java",
     "cloud/CloudNode.java",
     "cloud/CloudSnapshot.java",

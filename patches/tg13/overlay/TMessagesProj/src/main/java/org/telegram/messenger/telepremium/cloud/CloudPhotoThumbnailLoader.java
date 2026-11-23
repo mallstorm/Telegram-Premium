@@ -17,6 +17,8 @@ public final class CloudPhotoThumbnailLoader {
     private static final Handler MAIN=new Handler(Looper.getMainLooper());
     private static final ExecutorService DECODE=Executors.newFixedThreadPool(2);
     private static final LruCache<String,Bitmap> CACHE=new LruCache<String,Bitmap>(8*1024*1024){@Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getByteCount();}};
+    /** Decoded thumbnails of protected images must not outlive their folder's session. */
+    public static void clearCache(){CACHE.evictAll();}
     private static final ArrayDeque<Job> PENDING=new ArrayDeque<>();
     private static int running;
     private static boolean pumping;

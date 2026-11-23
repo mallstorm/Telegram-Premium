@@ -96,7 +96,7 @@ public final class TelePremiumPlaybackController {
                     int percent = Math.max(0, Math.min(100, player.getBufferedPercentage()));
                     for (Listener listener : listeners) listener.onProgress(position, duration, buffered, percent);
                     if (current != null && current.isVideo() && duration > 60_000 && position > 10_000 && System.currentTimeMillis() - lastResumeWrite > 5000) {
-                        resumePrefs.edit().putLong(current.id, position).apply();
+                        if (!current.ephemeral) resumePrefs.edit().putLong(current.id, position).apply();
                         lastResumeWrite = System.currentTimeMillis();
                     }
                 } catch (Throwable tpError) { org.telegram.messenger.FileLog.e(tpError); }
@@ -105,9 +105,35 @@ public final class TelePremiumPlaybackController {
         }
     };
 
-    private TelePremiumPlaybackController() { handler.post(ticker); activeInstance=this; }
+    private TelePremiumPlaybackController() {
+        handler.post(ticker); activeInstance=this;
+        // Playback of protected data ends the moment its folder closes (timeout, screen off, manual lock).
+        org.telegram.messenger.telepremium.cloud.vault.VaultFolderSession.shared().addListener(() -> handler.post(() -> {
+            TelePremiumMediaItem item = current;
+            if (item == null || item.cloudAccount < 0 || item.cloudNodeId == null) return;
+            try {
+                TelePremiumCloudManager m = TelePremiumCloudManager.getInstance(item.cloudAccount);
+                CloudNode node = m.findNodeById(item.cloudNodeId);
+                if (node != null && !m.isVisible(node)) stopAndRelease();
+            } catch (Throwable ignore) {}
+        }));
+    }
 
     public TelePremiumQueueManager getQueue() { return queue; }
+
+    /** True while audio/video from an unlocked protected folder is playing (keeps that folder open). */
+    public boolean isPlayingProtected() {
+        TelePremiumMediaItem item = current;
+        if (item == null || item.cloudAccount < 0 || item.cloudNodeId == null || !isPlaying()) return false;
+        try {
+            TelePremiumCloudManager m = TelePremiumCloudManager.getInstance(item.cloudAccount);
+            CloudNode node = m.findNodeById(item.cloudNodeId);
+            if (node == null || !m.isProtected(node)) return false;
+            // Sliding timer: a running movie must not lock its own folder.
+            org.telegram.messenger.telepremium.cloud.vault.VaultFolderSession.shared().touch(m.protectingLockId(node));
+            return true;
+        } catch (Throwable t) { return false; }
+    }
     public TelePremiumMediaItem getCurrent() { return current; }
     public int getState() { return state; }
     public float getSpeed() { return speed; }
@@ -187,7 +213,7 @@ public final class TelePremiumPlaybackController {
         if (!item.live) item.resumePosition = position;
         if (playing) playInternal(item);
         else {
-            if (item.isVideo()) resumePrefs.edit().putLong(item.id, position).apply();
+            if (item.isVideo() && !item.ephemeral) resumePrefs.edit().putLong(item.id, position).apply();
             generation++;
             if (playbackRequest != null) { playbackRequest.cancel(); playbackRequest = null; }
             releasePlayer(); setState(STATE_PAUSED);
@@ -266,6 +292,10 @@ public final class TelePremiumPlaybackController {
         if (playbackRequest != null) { playbackRequest.cancel(); playbackRequest = null; }
         if (fallbackDownload != null) { try { fallbackDownload.cancel(); } catch (Throwable ignore) {} fallbackDownload = null; }
         releasePlayer();
+        // A viewer-only session leaves nothing behind: drop protected entries from the queue.
+        boolean hadEphemeral = current != null && current.ephemeral;
+        for (TelePremiumMediaItem queued : queue.snapshot()) if (queued != null && queued.ephemeral) hadEphemeral = true;
+        if (hadEphemeral) queue.clear();
         current = null;
         streamDocument = null;
         streamMessage = null;
@@ -278,14 +308,14 @@ public final class TelePremiumPlaybackController {
         int token = generation;
         if (playbackRequest != null) { playbackRequest.cancel(); playbackRequest = null; }
         if (fallbackDownload != null) { fallbackDownload.cancel(); fallbackDownload = null; }
-        if (current != null && current.isVideo() && player != null) resumePrefs.edit().putLong(current.id, getPosition()).apply();
+        if (current != null && current.isVideo() && !current.ephemeral && player != null) resumePrefs.edit().putLong(current.id, getPosition()).apply();
         releasePlayer();
         streamDocument = null; streamMessage = null; pendingAudioUri = null; pendingHls = false;
         current = item;
         fallbackAttempted = false;
         cloudStreaming = false;
         reconnectAttempts = 0;
-        pendingResume = item.isVideo() ? resumePrefs.getLong(item.id, item.resumePosition) : item.resumePosition;
+        pendingResume = item.isVideo() && !item.ephemeral ? resumePrefs.getLong(item.id, item.resumePosition) : item.resumePosition;
         videoWidth = videoHeight = 0;
         notifyMediaChanged();
         setState(STATE_RESOLVING);
@@ -375,10 +405,14 @@ public final class TelePremiumPlaybackController {
                 byte[] master = null;
                 if (vault) {
                     try {
-                        master = org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultKeyManager
-                                .getMasterKeyForUnlockedSession(ApplicationLoader.applicationContext);
+                        TelePremiumCloudManager keyManager = TelePremiumCloudManager.getInstance(item.cloudAccount);
+                        CloudNode keyNode = keyManager.findNodeById(item.cloudNodeId);
+                        // Protected data is playable only while its folder is open; the player never
+                        // lists it and never asks for a password.
+                        if (keyNode == null || !keyManager.isVisible(keyNode)) { fail("Файл недоступен: папка закрыта"); return; }
+                        master = org.telegram.messenger.telepremium.cloud.VaultKeyAccess.forNode(keyNode).bytes;
                     } catch (Throwable t) {
-                        fail("Vault заблокирован — разблокируйте облако");
+                        fail(org.telegram.messenger.telepremium.cloud.VaultKeyAccess.lockedMessage(t instanceof Exception ? (Exception) t : new Exception(t)));
                         return;
                     }
                 }

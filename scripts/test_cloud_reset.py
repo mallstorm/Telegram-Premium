@@ -151,6 +151,9 @@ public class CloudResetTest {
 '''
 })
 
+import sys; sys.path.insert(0,str(Path(__file__).resolve().parent))
+import folder_lock_stubs as FL; FILES.update(FL.STUBS)
+
 def run():
     with tempfile.TemporaryDirectory(prefix='tp-cloud-reset-tests-') as directory:
         base=Path(directory);src=base/'src';out=base/'classes';src.mkdir();out.mkdir()
@@ -159,6 +162,7 @@ def run():
         sources=sorted(src.rglob('*.java'))+sorted((ROOT/'scripts/tests/stubs').rglob('*.java'))
         sources += [PROD/(name+'.java') for name in ['TelePremiumCloudResetState','TelePremiumCloudResetPlan','TelePremiumCloudResetFiles','TelePremiumCloudResetScanner','TelePremiumCloudResetCoordinator']]
         compiler=['javac'] if shutil.which('javac') else ['java','com.sun.tools.javac.Main']
+        sources += FL.pure_sources(ROOT/'patches/tg13/overlay/TMessagesProj/src/main/java',['VaultFolderLock','VaultFolderSession'])
         subprocess.run([*compiler,'-d',str(out),*map(str,sources)],check=True)
         subprocess.run(['java','-cp',str(out),'CloudResetTest'],check=True)
 if __name__=='__main__':run()
