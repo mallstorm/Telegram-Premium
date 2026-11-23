@@ -53,6 +53,20 @@ checks = {
     "no undefined old classic palette": not re.search(r"\b(?:GRAY|INK|BLUE)\b", classic),
     "permanent classic hamburger": "FragmentFloatingButton.setAnimatedVisibility(actionBar.getBackButton(), 1f)" in dialogs
         and "setClassicDrawerButton(actionBar)" in dialogs,
+    "classic header height matches reference": "AndroidUtilities.dp(165) + statusBarPadding" in drawer,
+    "legacy emoji status uses real Telegram picker": 'row("Установить эмодзи-статус"' in drawer
+        and "chats.showSelectStatusDialog()" in drawer,
+    "legacy group entries are not cluttered by extra tools": 'row("Возможности Telegram"' in drawer
+        and 'row(toolsExpanded ? "TelePremium  ▲" : "TelePremium  ▼"' in drawer,
+    "extra features expand without closing": "row(String title, int iconRes, Runnable onClick, boolean closeAfterClick)" in drawer
+        and "}, false);" in drawer,
+    "classic standalone search preserves native search engine": "classicHome()" in dialogs
+        and "searchItem.setVisibility(classicHome() ? View.VISIBLE : View.GONE)" in dialogs,
+    "classic search pill is hidden": "fragmentSearchField.setVisibility(View.GONE)" in dialogs
+        and "value = Math.min(value, -dp(SEARCH_FIELD_HEIGHT))" in dialogs,
+    "classic story strip omitted from reference home": "dialogStoriesCell.setVisibility(View.GONE)" in dialogs
+        and "hasStories = false;" in dialogs,
+
     "collapsed stories do not cover hamburger": "storyStripAlpha" in dialogs
         and "classicDrawerAction != null ? dp(68)" in dialogs,
     "drawer protects navigation bar area": "setSystemInsets(int left, int right, int bottom)" in drawer
