@@ -4,14 +4,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -20,172 +17,308 @@ import android.widget.TextView;
 
 import go.poligon.messenger.domain.Messenger;
 import go.poligon.messenger.transport.TdlibMessenger;
+import go.poligon.messenger.ui.ShellPreferences;
+import go.poligon.messenger.ui.ShellUi;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** Native Polygon presentation: no Telegram Activity or resource dependency. */
-public final class MainActivity extends Activity implements Messenger.Observer {
-    private static final int BG=0xff0a1120, SURFACE=0xff142038, ACCENT=0xff65d7ca;
-    private static final int TEXT=0xfff2f5fb, MUTED=0xff9daac1;
+/**
+ * Polygon owns the two screens and their navigation. The domain Messenger contract
+ * is the only boundary into the messaging engine; upstream UI code is not used.
+ */
+public final class MainActivity extends Activity implements Messenger.Observer, ShellUi.Actions {
     private LinearLayout root, content;
+    private ScrollView scroller;
+    private ShellPreferences appearance;
+    private ShellUi shell;
     private Messenger messenger;
-    private String step="connecting", status="Подключение…";
-    private String section="chats";
-    private long currentChat=0;
+    private String step="connecting",status="Подключение…",section="chats";
+    private long currentChat;
     private String currentTitle="";
     private List<Messenger.Conversation> conversations=new ArrayList<>();
     private List<Messenger.Entry> messages=new ArrayList<>();
-    private EditText editor;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(BG);
-        getWindow().setNavigationBarColor(BG);
-        root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(BG);
+        appearance=new ShellPreferences(this);
+        shell=new ShellUi(this,appearance,this);
+        root=new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
         setContentView(root);
-        messenger = new TdlibMessenger(this);
+        messenger=new TdlibMessenger(this);
         messenger.start(this);
         render();
     }
-    @Override public void onDestroy() { super.onDestroy(); /* connection persists only while Activity lives */ if (messenger!=null) messenger.close(); }
-    private int dp(float v) { return (int)(v*getResources().getDisplayMetrics().density+.5f); }
-    private GradientDrawable shape(int fill, int radius) {
-        GradientDrawable d=new GradientDrawable(); d.setColor(fill); d.setCornerRadius(dp(radius)); return d;
+
+    @Override public void onDestroy() {
+        if(messenger!=null)messenger.close();
+        super.onDestroy();
     }
-    private TextView label(String s, int size, int color, boolean bold) {
-        TextView t=new TextView(this);t.setText(s);t.setTextColor(color);t.setTextSize(size);
-        if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;
+
+    private int dp(int size) { return shell.dp(size); }
+    private ShellPreferences.Palette p() { return appearance.palette(); }
+    private TextView label(String value,int size,int color,boolean bold) {
+        TextView t=new TextView(this);
+        t.setText(value);
+        t.setTextColor(color);
+        t.setTextSize(size);
+        if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        return t;
     }
-    private void verticalGap(LinearLayout c,int height) { View v=new View(this);c.addView(v,new LinearLayout.LayoutParams(1,dp(height))); }
-    private void reset() {
-        root.removeAllViews();
-        LinearLayout header=new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL); header.setPadding(dp(22),dp(20),dp(22),dp(16));
-        TextView mark=label("⬡",34,ACCENT,true);header.addView(mark);
-        LinearLayout titles=new LinearLayout(this);titles.setOrientation(LinearLayout.VERTICAL); titles.setPadding(dp(12),0,0,0);
-        titles.addView(label("POLYGON",22,TEXT,true));titles.addView(label("MESSENGER",10,MUTED,true));
-        header.addView(titles,new LinearLayout.LayoutParams(0,-2,1));
-        TextView state=label("●",14,"ready".equals(step)?ACCENT:MUTED,true);
-        header.addView(state);
-        root.addView(header);
-        View line=new View(this); line.setBackgroundColor(0xff25334c); root.addView(line,new LinearLayout.LayoutParams(-1,dp(1)));
-        ScrollView scroll=new ScrollView(this); scroll.setFillViewport(true);
-        content=new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(18),dp(18),dp(18),dp(18));scroll.addView(content);
-        root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-    }
-    private Button button(String s, Runnable act) {
-        Button b=new Button(this);b.setAllCaps(false);b.setText(s);b.setTextSize(15);
-        b.setTextColor(BG);b.setBackground(shape(ACCENT,14));b.setOnClickListener(v->act.run());return b;
-    }
-    private void line(String title,String subtitle,Runnable click) {
-        LinearLayout cell=new LinearLayout(this);cell.setOrientation(LinearLayout.VERTICAL);
-        cell.setPadding(dp(16),dp(16),dp(16),dp(16));cell.setBackground(shape(SURFACE,15));
-        cell.addView(label(title,16,TEXT,true));verticalGap(cell,5);
-        cell.addView(label(subtitle==null?"":subtitle,13,MUTED,false));
-        cell.setOnClickListener(v->click.run());
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(10);content.addView(cell,lp);
-    }
-    private void render() {
-        reset();
-        if (!"ready".equals(step)) { authScreen(); return; }
-        if (currentChat!=0) { chatScreen(); return; }
-        tabs();
+    private void gap(LinearLayout parent,int size) { shell.gap(parent,size); }
+    private String screenTitle() {
+        if(currentChat!=0)return currentTitle;
+        if(!"ready".equals(step))return "Polygon";
         switch(section) {
-            case "chats": chatsScreen();break;
-            case "cloud": placeholder("Облако","Независимый Polygon Vault переносится в отдельный модуль.");break;
-            case "calls": placeholder("Звонки","Модуль звонков в этой сборке не реализован.");break;
-            default: placeholder("Настройки","Настройки клиента и аккаунтов будут отдельным модулем Polygon.");
+            case "chats":return "Polygon";
+            case "calls":return "Звонки";
+            case "contacts":return "Контакты";
+            case "cloud":return "Облако";
+            case "media":return "Медиатека";
+            case "settings":return "Настройки";
+            case "appearance":return "Оформление";
+            case "interface":return "Интерфейс";
+            case "saved":return "Избранное";
+            case "profile":return "Мой профиль";
+            case "search":return "Поиск";
+            default:return "Polygon";
         }
     }
-    private void authScreen() {
-        verticalGap(content,40);
-        content.addView(label("Добро пожаловать в Polygon",25,TEXT,true));
-        verticalGap(content,12);
-        content.addView(label(status,15,MUTED,false));
-        verticalGap(content,28);
-        boolean isPhone="phone".equals(step),isCode="code".equals(step),isPwd="password".equals(step);
-        if(!(isPhone||isCode||isPwd))return;
+
+    private void reset() {
+        ShellPreferences.Palette theme=p();
+        root.removeAllViews();
+        root.setBackgroundColor(theme.background);
+        getWindow().setStatusBarColor(shell.classic()?0xff598fbd:theme.background);
+        getWindow().setNavigationBarColor(theme.background);
+        root.setSystemUiVisibility(theme.dark?0:
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        boolean ready="ready".equals(step);
+        boolean home=ready && currentChat==0 && "chats".equals(section);
+        shell.header(root,screenTitle(),currentChat!=0,ready,home);
+        scroller=new ScrollView(this);
+        scroller.setFillViewport(true);
+        scroller.setClipToPadding(false);
+        content=new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(shell.classic()?12:17),dp(16),dp(shell.classic()?12:17),dp(18));
+        scroller.addView(content);
+        root.addView(scroller,new LinearLayout.LayoutParams(-1,0,1));
+    }
+
+    private void render() {
+        reset();
+        if(!"ready".equals(step)) { auth(); return; }
+        if(currentChat!=0) {
+            drawChat();
+            composer();
+            return;
+        }
+        switch(section) {
+            case "chats":drawChats();break;
+            case "settings":shell.settings(content);break;
+            case "appearance":shell.appearance(content);break;
+            case "interface":shell.interfacePicker(content);break;
+            default:drawSection();
+        }
+        shell.bottomNavigation(root,section);
+    }
+
+    private void auth() {
+        ShellPreferences.Palette theme=p();
+        gap(content,30);
+        content.addView(label("Добро пожаловать в Polygon",24,theme.text,true));
+        gap(content,12);
+        content.addView(label(status,15,theme.muted,false));
+        gap(content,26);
+        boolean isPhone="phone".equals(step);
+        boolean isCode="code".equals(step);
+        boolean isPassword="password".equals(step);
+        if(!isPhone&&!isCode&&!isPassword)return;
         EditText input=new EditText(this);
-        input.setSingleLine(true);input.setPadding(dp(16),dp(12),dp(16),dp(12));
-        input.setTextColor(TEXT);input.setHintTextColor(MUTED);input.setBackground(shape(SURFACE,12));
-        input.setInputType(isPhone?InputType.TYPE_CLASS_PHONE:isPwd?(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD):InputType.TYPE_CLASS_NUMBER);
-        input.setHint(isPhone?"+7 900 000-00-00":isCode?"Код подтверждения":"Пароль");
+        input.setSingleLine(true);
+        input.setPadding(dp(15),dp(8),dp(15),dp(8));
+        input.setTextColor(theme.text);
+        input.setHintTextColor(theme.muted);
+        input.setBackground(shell.shape(theme.surface,12));
+        input.setInputType(isPhone?InputType.TYPE_CLASS_PHONE:isPassword?
+            (InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD):InputType.TYPE_CLASS_NUMBER);
+        input.setHint(isPhone?"Номер телефона":isCode?"Код подтверждения":"Пароль");
         content.addView(input,new LinearLayout.LayoutParams(-1,dp(56)));
-        verticalGap(content,16);
-        content.addView(button("Продолжить",()->{
-            String value=input.getText().toString();hideKeyboard(input);
+        gap(content,17);
+        TextView proceed=label("Продолжить",16,Color.WHITE,true);
+        proceed.setGravity(Gravity.CENTER);
+        proceed.setBackground(shell.shape(theme.accent,13));
+        proceed.setOnClickListener(v->{
+            String value=input.getText().toString();
+            hideKeyboard(input);
             if(isPhone)messenger.authenticatePhone(value);
             else if(isCode)messenger.authenticateCode(value);
             else messenger.authenticatePassword(value);
-        }),new LinearLayout.LayoutParams(-1,dp(50)));
-    }
-    private void tabs() {
-        LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER);
-        tab(bar,"Чаты","chats");tab(bar,"Облако","cloud");tab(bar,"Звонки","calls");tab(bar,"Ещё","settings");
-        content.addView(bar);verticalGap(content,20);
-    }
-    private void tab(LinearLayout bar,String text,String target) {
-        TextView t=label(text,12,section.equals(target)?ACCENT:MUTED,true);
-        t.setGravity(Gravity.CENTER);t.setPadding(dp(3),dp(10),dp(3),dp(10));
-        t.setOnClickListener(v->{section=target;render();});
-        bar.addView(t,new LinearLayout.LayoutParams(0,-2,1));
-    }
-    private void chatsScreen() {
-        LinearLayout h=new LinearLayout(this);h.setGravity(Gravity.CENTER_VERTICAL);
-        h.addView(label("Сообщения",25,TEXT,true),new LinearLayout.LayoutParams(0,-2,1));
-        TextView reload=label("Обновить",13,ACCENT,true);
-        reload.setOnClickListener(v->messenger.loadConversations());h.addView(reload);content.addView(h);
-        verticalGap(content,20);
-        if(conversations.isEmpty())content.addView(label("Загрузка диалогов или пока нет чатов",14,MUTED,false));
-        for(Messenger.Conversation c:conversations)line(c.title,c.preview,()->{
-            currentChat=c.id;currentTitle=c.title;messages.clear();render();messenger.loadHistory(c.id);
         });
+        content.addView(proceed,new LinearLayout.LayoutParams(-1,dp(50)));
     }
-    private void chatScreen() {
-        TextView back=label("‹  Назад",16,ACCENT,true);
-        back.setOnClickListener(v->{currentChat=0;messages.clear();render();});content.addView(back);
-        verticalGap(content,16);content.addView(label(currentTitle,22,TEXT,true));verticalGap(content,18);
-        for(Messenger.Entry e:messages) {
-            if(e.text==null||e.text.isEmpty())continue;
-            TextView bubble=label(e.text,15,TEXT,false);bubble.setPadding(dp(14),dp(10),dp(14),dp(10));
-            bubble.setBackground(shape(e.outgoing?0xff205d65:SURFACE,14));
-            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,-2);
-            p.gravity=e.outgoing?Gravity.RIGHT:Gravity.LEFT;p.bottomMargin=dp(9);content.addView(bubble,p);
+
+    private void drawChats() {
+        ShellPreferences.Palette theme=p();
+        if(!shell.classic()){
+            content.addView(label("Сообщения",24,theme.text,true));
+            gap(content,14);
         }
-        verticalGap(content,20);
-        LinearLayout composer=new LinearLayout(this);composer.setGravity(Gravity.CENTER_VERTICAL);
-        editor=new EditText(this);editor.setSingleLine(false);editor.setMaxLines(4);
-        editor.setTextColor(TEXT);editor.setHintTextColor(MUTED);editor.setHint("Сообщение");
-        editor.setPadding(dp(13),dp(6),dp(13),dp(6));editor.setBackground(shape(SURFACE,12));
-        composer.addView(editor,new LinearLayout.LayoutParams(0,dp(54),1));
-        TextView send=label("  ➤  ",26,ACCENT,true);send.setOnClickListener(v->{
-            String s=editor.getText().toString();editor.setText("");messenger.sendText(currentChat,s);
-        });composer.addView(send);
-        content.addView(composer);
+        if(conversations.isEmpty()){
+            gap(content,25);
+            content.addView(label("Диалоги загружаются или список пока пуст.",14,theme.muted,false));
+        }
+        for(Messenger.Conversation c:conversations)chatItem(c);
     }
-    private void placeholder(String title,String body) {
-        content.addView(label(title,25,TEXT,true));verticalGap(content,18);
-        content.addView(label(body,15,MUTED,false));
+
+    private void chatItem(Messenger.Conversation c) {
+        ShellPreferences.Palette theme=p();
+        LinearLayout cell=new LinearLayout(this);
+        cell.setGravity(Gravity.CENTER_VERTICAL);
+        cell.setPadding(dp(13),dp(10),dp(13),dp(10));
+        cell.setBackground(shell.shape(theme.surface,shell.classic()?2:14));
+        TextView avatar=label(c.title.isEmpty()?"◉":c.title.substring(0,1).toUpperCase(),20,Color.WHITE,true);
+        avatar.setGravity(Gravity.CENTER);
+        avatar.setBackground(shell.shape(theme.accent,60));
+        cell.addView(avatar,new LinearLayout.LayoutParams(dp(49),dp(49)));
+        LinearLayout captions=new LinearLayout(this);
+        captions.setOrientation(LinearLayout.VERTICAL);
+        captions.setPadding(dp(12),0,0,0);
+        captions.addView(label(c.title,16,theme.text,true));
+        gap(captions,5);
+        TextView preview=label(c.preview,13,theme.muted,false);
+        preview.setMaxLines(1);
+        preview.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        captions.addView(preview);
+        cell.addView(captions,new LinearLayout.LayoutParams(0,-2,1));
+        cell.setOnClickListener(v->{
+            currentChat=c.id;
+            currentTitle=c.title;
+            messages.clear();
+            render();
+            messenger.loadHistory(c.id);
+        });
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(72));
+        lp.bottomMargin=dp(shell.classic()?1:9);
+        content.addView(cell,lp);
     }
-    private void hideKeyboard(View v){
-        InputMethodManager imm=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-        if(imm!=null)imm.hideSoftInputFromWindow(v.getWindowToken(),0);
+
+    private void drawChat() {
+        ShellPreferences.Palette theme=p();
+        if(messages.isEmpty())content.addView(label("Загрузка переписки…",13,theme.muted,false));
+        for(Messenger.Entry message:messages) {
+            if(message.text==null||message.text.isEmpty())continue;
+            TextView bubble=label(message.text,15,theme.text,false);
+            bubble.setPadding(dp(13),dp(10),dp(13),dp(10));
+            bubble.setBackground(shell.shape(message.outgoing?theme.outgoing:theme.incoming,
+                shell.classic()?9:16));
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);
+            lp.gravity=message.outgoing?Gravity.RIGHT:Gravity.LEFT;
+            lp.bottomMargin=dp(9);
+            content.addView(bubble,lp);
+        }
+        scroller.post(()->scroller.fullScroll(View.FOCUS_DOWN));
+    }
+
+    private void composer() {
+        ShellPreferences.Palette theme=p();
+        LinearLayout bar=new LinearLayout(this);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(8),dp(5),dp(8),dp(5));
+        bar.setBackgroundColor(theme.surface);
+        EditText entry=new EditText(this);
+        entry.setHint("Сообщение");
+        entry.setHintTextColor(theme.muted);
+        entry.setTextColor(theme.text);
+        entry.setTextSize(15);
+        entry.setMinLines(1);
+        entry.setMaxLines(4);
+        entry.setPadding(dp(12),dp(7),dp(12),dp(7));
+        entry.setBackground(shell.shape(theme.background,16));
+        bar.addView(entry,new LinearLayout.LayoutParams(0,-2,1));
+        TextView send=label("➤",24,theme.accent,true);
+        send.setPadding(dp(15),dp(10),dp(11),dp(10));
+        send.setOnClickListener(v->{
+            String message=entry.getText().toString().trim();
+            if(message.isEmpty())return;
+            entry.setText("");
+            messenger.sendText(currentChat,message);
+        });
+        bar.addView(send);
+        root.addView(bar,new LinearLayout.LayoutParams(-1,-2));
+    }
+
+    private void drawSection() {
+        ShellPreferences.Palette theme=p();
+        String title=screenTitle(),note;
+        switch(section){
+            case "cloud":note="Polygon Vault будет перенесён вместе с механизмом шифрования и восстановления. Сейчас раздел недоступен.";break;
+            case "calls":note="Собственный экран звонков и интеграция с движком звонков ещё не перенесены.";break;
+            case "media":note="Медиатека, проигрыватель и загрузки переносятся отдельным модулем Polygon.";break;
+            case "contacts":note="Контакты будут подключены к модели данных Polygon.";break;
+            case "saved":note="Избранные сообщения появятся после реализации избранного и поиска.";break;
+            case "accounts":note="Менеджер нескольких аккаунтов ещё не подключён.";break;
+            case "new_group":note="Создание группы будет подключено к транспортному адаптеру.";break;
+            case "profile":note="Экран профиля будет создан на собственных компонентах Polygon.";break;
+            case "search":note="Глобальный поиск будет подключён к индексам диалогов и сообщений.";break;
+            default:note="Раздел будет перенесён с сохранением назначения, но на собственной архитектуре Polygon.";
+        }
+        content.addView(label(title.equals("Polygon")?"Раздел Polygon":title,23,theme.text,true));
+        gap(content,16);
+        content.addView(label(note,14,theme.muted,false));
+    }
+
+    private void hideKeyboard(View view) {
+        InputMethodManager keyboard=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+        if(keyboard!=null)keyboard.hideSoftInputFromWindow(view.getWindowToken(),0);
+    }
+
+    @Override public void navigate(String destination) {
+        if(!"ready".equals(step))return;
+        currentChat=0;
+        messages.clear();
+        section=destination;
+        render();
+        if("chats".equals(destination))messenger.loadConversations();
+    }
+    @Override public void redraw() {render();}
+    @Override public void refreshChats() {
+        if("ready".equals(step))messenger.loadConversations();
+    }
+    @Override public void back() {
+        if(currentChat!=0) {
+            currentChat=0;
+            messages.clear();
+            section="chats";
+        } else if("appearance".equals(section)||"interface".equals(section))section="settings";
+        else section="chats";
+        render();
     }
     @Override public void onBackPressed() {
-        if(currentChat!=0){currentChat=0;render();return;}super.onBackPressed();
+        if(currentChat!=0||!"chats".equals(section))back();
+        else super.onBackPressed();
     }
-    @Override public void onAuthorization(String newStep,String message){step=newStep;status=message;render();}
-    @Override public void onConversations(List<Messenger.Conversation> items){
-        conversations=new ArrayList<>(items);if(currentChat==0&&"chats".equals(section))render();
-    }
-    @Override public void onHistory(long id,List<Messenger.Entry> entries){
-        if(currentChat==id){messages=new ArrayList<>(entries);render();}
-    }
-    @Override public void onError(String message){
+
+    @Override public void onAuthorization(String newStep,String message) {
+        step=newStep;
         status=message;
+        render();
+    }
+    @Override public void onConversations(List<Messenger.Conversation> items) {
+        conversations=new ArrayList<>(items);
+        if(currentChat==0 && "chats".equals(section))render();
+    }
+    @Override public void onHistory(long chatId,List<Messenger.Entry> entries) {
+        if(currentChat==chatId) {
+            messages=new ArrayList<>(entries);
+            render();
+        }
+    }
+    @Override public void onError(String error) {
+        status=error;
         if(!"ready".equals(step))render();
-        else android.widget.Toast.makeText(this,message,android.widget.Toast.LENGTH_LONG).show();
+        else android.widget.Toast.makeText(this,error,android.widget.Toast.LENGTH_LONG).show();
     }
 }
