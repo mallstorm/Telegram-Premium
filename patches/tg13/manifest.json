@@ -781,7 +781,7 @@
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/theme/TelePremiumChatWallpapers.java",
-      "base_sha256": "e28dd12255cb497da312b009f185b57ba32cb6574d4eacd52a23b6e3511ed022",
+      "base_sha256": null,
       "sha256": "e28dd12255cb497da312b009f185b57ba32cb6574d4eacd52a23b6e3511ed022"
     },
     {
@@ -1071,7 +1071,7 @@
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumChatWallpapersActivity.java",
-      "base_sha256": "cb8d242c21dd9d333ec93d2cf2557893f7309b7ea742432b23f589b182a8fe59",
+      "base_sha256": null,
       "sha256": "cb8d242c21dd9d333ec93d2cf2557893f7309b7ea742432b23f589b182a8fe59"
     },
     {
