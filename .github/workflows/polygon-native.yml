@@ -1,0 +1,70 @@
+name: Polygon Native Android
+
+on:
+  push:
+    branches: [polygon/native-client]
+    paths:
+      - "polygon/**"
+      - ".github/workflows/polygon-native.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    defaults:
+      run:
+        working-directory: polygon
+    env:
+      POLYGON_API_ID: ${{ secrets.POLYGON_API_ID }}
+      POLYGON_API_HASH: ${{ secrets.POLYGON_API_HASH }}
+      RELEASE_KEYSTORE_B64: ${{ secrets.POLYGON_RELEASE_KEYSTORE_B64 }}
+      RELEASE_STORE_PASSWORD: ${{ secrets.POLYGON_RELEASE_STORE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Build native debug APK
+        run: gradle --no-daemon :app:assembleDebug --stacktrace
+      - name: Prepare private release signing
+        if: ${{ env.RELEASE_KEYSTORE_B64 != '' && env.RELEASE_STORE_PASSWORD != '' }}
+        run: |
+          printf '%s' "$RELEASE_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/polygon-release.p12"
+          echo "POLYGON_SIGNING_FILE=$RUNNER_TEMP/polygon-release.p12" >> "$GITHUB_ENV"
+          echo "POLYGON_SIGNING_PASSWORD=$RELEASE_STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "POLYGON_SIGNING_ALIAS=polygon_release" >> "$GITHUB_ENV"
+      - name: Build signed Polygon release APK
+        if: ${{ env.RELEASE_KEYSTORE_B64 != '' && env.RELEASE_STORE_PASSWORD != '' && env.POLYGON_API_ID != '' && env.POLYGON_API_HASH != '' }}
+        run: gradle --no-daemon :app:assembleRelease --stacktrace
+      - name: Verify application identity and release signature
+        if: ${{ env.POLYGON_SIGNING_FILE != '' }}
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          aapt dump badging "$APK" | grep "package: name='go.poligon.messenger'"
+          apksigner verify --print-certs "$APK"
+          sha256sum "$APK" > "$APK.sha256"
+      - name: Publish native debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Polygon-native-debug
+          path: polygon/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+      - name: Publish signed release artifact
+        if: ${{ env.POLYGON_SIGNING_FILE != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Polygon-native-release
+          path: |
+            polygon/app/build/outputs/apk/release/*.apk
+            polygon/app/build/outputs/apk/release/*.sha256
+          if-no-files-found: error
