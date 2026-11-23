@@ -2,7 +2,7 @@ name: Build TelePremium APK
 
 on:
   push:
-    branches: [ port/tg-13.1.1, feature/classic-telegram-11x, feature/telegram-ai-analyzer ]
+    branches: [ port/tg-13.1.1, feature/classic-telegram-11x, feature/telegram-ai-analyzer, claude/dual-shell-stabilize ]
     tags: [ 'v*' ]
     paths-ignore:
       - "**.md"
@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 240
     env:
       APK_NAME: TelePremium_13.1.1_arm64-v8a.apk
-      OUTPUT_BRANCH: ${{ github.event_name == 'pull_request' && format('build-output-tg13-pr-{0}', github.event.pull_request.number) || 'build-output-tg13' }}
+      OUTPUT_BRANCH: ${{ github.event_name == 'pull_request' && format('build-output-tg13-pr-{0}', github.event.pull_request.number) || (github.ref_name == 'claude/dual-shell-stabilize' && 'build-output-dualshell' || 'build-output-tg13') }}
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_COMPILERCHECK: content

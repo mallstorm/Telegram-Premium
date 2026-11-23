@@ -2,7 +2,7 @@ name: Source Check
 
 on:
   push:
-    branches: [ port/tg-13.1.1, feature/classic-telegram-11x, feature/telegram-ai-analyzer ]
+    branches: [ port/tg-13.1.1, feature/classic-telegram-11x, feature/telegram-ai-analyzer, claude/dual-shell-stabilize ]
   pull_request:
   workflow_dispatch:
 
