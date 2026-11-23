@@ -19,8 +19,8 @@ jobs:
       run:
         working-directory: polygon
     env:
-      POLYGON_API_ID: ${{ secrets.POLYGON_API_ID }}
-      POLYGON_API_HASH: ${{ secrets.POLYGON_API_HASH }}
+      POLYGON_API_ID: ${{ secrets.POLYGON_API_ID || secrets.TELEGRAM_API_ID }}
+      POLYGON_API_HASH: ${{ secrets.POLYGON_API_HASH || secrets.TELEGRAM_API_HASH }}
       RELEASE_KEYSTORE_B64: ${{ secrets.POLYGON_RELEASE_KEYSTORE_B64 }}
       RELEASE_STORE_PASSWORD: ${{ secrets.POLYGON_RELEASE_STORE_PASSWORD }}
     steps:
