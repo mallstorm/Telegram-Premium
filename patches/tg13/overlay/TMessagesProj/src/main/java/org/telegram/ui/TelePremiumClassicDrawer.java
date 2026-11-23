@@ -19,6 +19,9 @@ import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.MessagesStorage;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.browser.Browser;
+import org.telegram.messenger.telepremium.theme.TelePremiumThemeController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
@@ -42,6 +45,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
     private final int width;
     private int statusBarPadding;
     private boolean expanded;
+    private boolean toolsExpanded;
     private boolean open;
 
     public TelePremiumClassicDrawer(MainTabsActivity host, Context context) {
@@ -83,7 +87,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         t.setGravity(Gravity.CENTER_VERTICAL);
         t.setSingleLine(true);
         t.setEllipsize(TextUtils.TruncateAt.END);
-        if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        if (bold) t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         return t;
     }
 
@@ -201,34 +205,39 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         FrameLayout head = new FrameLayout(getContext());
         head.setBackgroundColor(Theme.getColor(Theme.key_chats_menuTopBackground));
         head.setPadding(0, statusBarPadding, 0, 0);
-        rows.addView(head, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(205) + statusBarPadding));
+        rows.addView(head, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(165) + statusBarPadding));
         int active = UserConfig.selectedAccount;
         TLRPC.User user = UserConfig.getInstance(active).getCurrentUser();
         FrameLayout.LayoutParams photo = new FrameLayout.LayoutParams(AndroidUtilities.dp(69), AndroidUtilities.dp(69), Gravity.TOP | Gravity.LEFT);
         photo.leftMargin = AndroidUtilities.dp(20);
-        photo.topMargin = AndroidUtilities.dp(28);
+        photo.topMargin = AndroidUtilities.dp(18);
         head.addView(avatar(active, 68), photo);
         String name = user == null ? "Telegram" : UserObject.getUserName(user);
         TextView username = text(name, 18, Theme.getColor(Theme.key_chats_menuName), true);
         FrameLayout.LayoutParams nameLp = new FrameLayout.LayoutParams(-1, AndroidUtilities.dp(31), Gravity.TOP);
         nameLp.leftMargin = AndroidUtilities.dp(20);
         nameLp.rightMargin = AndroidUtilities.dp(22);
-        nameLp.topMargin = AndroidUtilities.dp(119);
+        nameLp.topMargin = AndroidUtilities.dp(100);
         head.addView(username, nameLp);
         String phone = user == null || TextUtils.isEmpty(user.phone) ? "" : "+" + user.phone;
         TextView number = text(phone, 15, Theme.getColor(Theme.key_chats_menuPhone), false);
         FrameLayout.LayoutParams phoneLp = new FrameLayout.LayoutParams(-1, AndroidUtilities.dp(32), Gravity.TOP);
         phoneLp.leftMargin = AndroidUtilities.dp(20);
-        phoneLp.topMargin = AndroidUtilities.dp(153);
+        phoneLp.topMargin = AndroidUtilities.dp(131);
         phoneLp.rightMargin = AndroidUtilities.dp(48);
         head.addView(number, phoneLp);
         TextView theme = text("☾", 24, Theme.getColor(Theme.key_chats_menuName), false);
         theme.setGravity(Gravity.CENTER);
         FrameLayout.LayoutParams moon = new FrameLayout.LayoutParams(AndroidUtilities.dp(44), AndroidUtilities.dp(44), Gravity.RIGHT | Gravity.TOP);
-        moon.topMargin = AndroidUtilities.dp(28);
+        moon.topMargin = AndroidUtilities.dp(18);
         moon.rightMargin = AndroidUtilities.dp(20);
         head.addView(theme, moon);
-        theme.setOnClickListener(v -> host.presentFragment(new TelePremiumAppearanceActivity()));
+        theme.setOnClickListener(v -> TelePremiumThemeController.showQuickThemeSelector(
+                getContext(), theme, this::rebuild));
+        theme.setOnLongClickListener(v -> {
+            host.presentFragment(new TelePremiumAppearanceActivity());
+            return true;
+        });
         TextView arrow = text(expanded ? "⌃" : "⌄", 26, Theme.getColor(Theme.key_chats_menuName), false);
         arrow.setGravity(Gravity.CENTER);
         head.addView(arrow, new FrameLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48), Gravity.RIGHT | Gravity.BOTTOM));
@@ -237,45 +246,74 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
             accounts();
             line();
         }
-        row("Мой профиль", android.R.drawable.ic_menu_myplaces, () -> host.presentFragment(new UserInfoActivity()));
-        row("Создать группу", android.R.drawable.ic_menu_add, () -> host.presentFragment(new GroupCreateActivity(new Bundle())));
+        // Match Telegram 11.3.x: original profile/status block, native menu,
+        // then optional TelePremium tools. The 13.1.1 business logic is kept.
+        row("Мой профиль", android.R.drawable.ic_menu_myplaces,
+                () -> host.presentFragment(new UserInfoActivity()));
+        row("Установить эмодзи-статус", R.drawable.msg_premium_liststar, () -> {
+            DialogsActivity chats = host.getDialogsActivity();
+            if (chats != null) chats.showSelectStatusDialog();
+        });
+        line();
+        row("Создать группу", android.R.drawable.ic_menu_add,
+                () -> host.presentFragment(new GroupCreateActivity(new Bundle())));
         row("Контакты", android.R.drawable.ic_menu_agenda, () -> {
             Bundle args = new Bundle();
             args.putBoolean("needPhonebook", true);
             host.presentFragment(new ContactsActivity(args));
         });
-        row("Звонки", android.R.drawable.ic_menu_call, () -> {
+        row("Звонки", R.drawable.msg_calls, () -> {
             Bundle args = new Bundle();
             args.putBoolean("needFinishFragment", false);
             host.presentFragment(new CallLogActivity(args));
         });
         row("Избранное", android.R.drawable.btn_star_big_off, () -> {
             Bundle args = new Bundle();
-            args.putLong("user_id", UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId());
+            args.putLong("user_id",
+                    UserConfig.getInstance(UserConfig.selectedAccount).getClientUserId());
             host.presentFragment(new ChatActivity(args));
         });
-        row("Настройки", android.R.drawable.ic_menu_preferences, () -> host.presentFragment(new TelePremiumClassicSettingsActivity()));
-        line();
-        row("Облако", android.R.drawable.ic_menu_upload, () ->
-            TelePremiumCloudAccessGate.openCloud(host, UserConfig.selectedAccount));
-        row("Медиатека", android.R.drawable.ic_media_play, () -> {
-            if (host.getParentActivity() != null) {
-                host.getParentActivity().startActivity(new Intent(host.getParentActivity(), TelePremiumMediaCenterActivity.class));
-            }
-        });
-        row("Центр TelePremium", android.R.drawable.ic_menu_manage, () -> host.presentFragment(new TelePremiumCenterActivity()));
-        row("Внешний вид", android.R.drawable.ic_menu_edit, () -> host.presentFragment(new TelePremiumAppearanceActivity()));
+        row("Настройки", R.drawable.msg_settings_old,
+                () -> host.presentFragment(new TelePremiumClassicSettingsActivity()));
         line();
         row("Пригласить друзей", android.R.drawable.ic_menu_share, () -> {
             if (host.getParentActivity() != null) {
                 Intent send = new Intent(Intent.ACTION_SEND);
                 send.setType("text/plain");
                 send.putExtra(Intent.EXTRA_TEXT, "Telegram: https://telegram.org/");
-                host.getParentActivity().startActivity(Intent.createChooser(send, "Пригласить друзей"));
+                host.getParentActivity().startActivity(
+                        Intent.createChooser(send, "Пригласить друзей"));
             }
         });
-        row("Выбрать интерфейс", android.R.drawable.ic_menu_set_as, () -> host.presentFragment(new TelePremiumInterfaceModeActivity()));
-        row("Telegram AI Analyzer", android.R.drawable.ic_menu_search, () -> host.presentFragment(new TelePremiumAnalyzerActivity()));
+        row("Возможности Telegram", R.drawable.msg_help,
+                () -> Browser.openUrl(getContext(),
+                        LocaleController.getString(R.string.TelegramFeaturesUrl)));
+        line();
+        row(toolsExpanded ? "TelePremium  ▲" : "TelePremium  ▼",
+                android.R.drawable.ic_menu_manage, () -> {
+                    toolsExpanded = !toolsExpanded;
+                    final int y = scroll.getScrollY();
+                    rebuild();
+                    scroll.post(() -> scroll.scrollTo(0, y));
+                });
+        if (toolsExpanded) {
+            row("Облако", android.R.drawable.ic_menu_upload,
+                    () -> TelePremiumCloudAccessGate.openCloud(host, UserConfig.selectedAccount));
+            row("Медиатека", android.R.drawable.ic_media_play, () -> {
+                if (host.getParentActivity() != null) {
+                    host.getParentActivity().startActivity(new Intent(
+                            host.getParentActivity(), TelePremiumMediaCenterActivity.class));
+                }
+            });
+            row("Центр TelePremium", android.R.drawable.ic_menu_manage,
+                    () -> host.presentFragment(new TelePremiumCenterActivity()));
+            row("Telegram AI Analyzer", android.R.drawable.ic_menu_search,
+                    () -> host.presentFragment(new TelePremiumAnalyzerActivity()));
+            row("Внешний вид", android.R.drawable.ic_menu_edit,
+                    () -> host.presentFragment(new TelePremiumAppearanceActivity()));
+            row("Выбрать интерфейс", android.R.drawable.ic_menu_set_as,
+                    () -> host.presentFragment(new TelePremiumInterfaceModeActivity()));
+        }
     }
 
     public boolean isOpened() { return open; }
