@@ -54,6 +54,11 @@ public class TelePremiumFolderLockActivity extends BaseFragment {
         this.account = account; this.folderId = folderId; this.mode = mode; this.onSuccess = onSuccess;
     }
 
+    public TelePremiumFolderLockActivity(int account, String folderId, int mode, VaultSecretPolicy.Kind initial, Runnable onSuccess) {
+        this(account, folderId, mode, onSuccess);
+        if (initial != null) this.kind = initial;
+    }
+
     private CloudNode folder() { return TelePremiumCloudManager.getInstance(account).findNodeById(folderId); }
 
     @Override public View createView(Context context) {
