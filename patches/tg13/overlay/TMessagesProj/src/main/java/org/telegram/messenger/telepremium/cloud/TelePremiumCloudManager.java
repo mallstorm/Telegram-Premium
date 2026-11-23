@@ -62,6 +62,14 @@ public final class TelePremiumCloudManager {
 
     public CloudSnapshot getSnapshot() { return snapshot; }
 
+    /** Lock-aware view of the catalog; every UI-facing query below goes through it. */
+    public org.telegram.messenger.telepremium.cloud.vault.VaultVisibility.View view() {
+        return org.telegram.messenger.telepremium.cloud.vault.VaultVisibility.view(snapshot == null ? java.util.Collections.<CloudNode>emptyList() : snapshot.nodes);
+    }
+    public boolean isVisible(CloudNode node) { return view().visible(node); }
+    public boolean isProtected(CloudNode node) { return view().isProtected(node); }
+    public CloudNode findNodeById(String id) { return findById(id); }
+
     public void bootstrap(Callback callback) {
         if (!active()) { if (callback != null) callback.onComplete(TelePremiumCloudResetState.MESSAGE); return; }
         synchronized (this) {
@@ -191,6 +199,7 @@ public final class TelePremiumCloudManager {
             boolean parent = parentId == null ? n.parentId == null : parentId.equals(n.parentId);
             if(parent && !"root".equals(n.id) && (trash ? n.state==CloudNode.STATE_TRASHED : n.state==CloudNode.STATE_ACTIVE)) out.add(n);
         }
+        out=new ArrayList<>(view().filter(out));
         Collections.sort(out, Comparator.comparingInt((CloudNode n)->n.type).thenComparing(n->n.name.toLowerCase()));
         return out;
     }
@@ -236,23 +245,24 @@ public final class TelePremiumCloudManager {
             CloudNode parent=findById(n.parentId);
             if(parent==null || parent.state!=CloudNode.STATE_TRASHED) out.add(n);
         }
-        return out;
+        return new ArrayList<>(view().filter(out));
     }
 
     public List<CloudNode> favorites() {
         if(snapshot==null) return Collections.emptyList();
-        ArrayList<CloudNode> out=new ArrayList<>(); for(CloudNode n:snapshot.nodes) if(n.favorite && n.state==CloudNode.STATE_ACTIVE) out.add(n); return out;
+        ArrayList<CloudNode> out=new ArrayList<>(); for(CloudNode n:snapshot.nodes) if(n.favorite && n.state==CloudNode.STATE_ACTIVE) out.add(n); return new ArrayList<>(view().filter(out));
     }
 
     public List<CloudNode> allFiles() {
         if(snapshot==null) return Collections.emptyList();
         ArrayList<CloudNode> out=new ArrayList<>();
         for(CloudNode n:snapshot.nodes) if(n.type==CloudNode.TYPE_FILE && n.state==CloudNode.STATE_ACTIVE) out.add(n);
-        return out;
+        return new ArrayList<>(view().filter(out));
     }
 
     public int countFiles(String folderId) {
         if(snapshot==null || folderId==null) return 0;
+        if(view().contentsHidden(folderId))return 0;
         return countFiles(folderId,new HashSet<>());
     }
 
@@ -261,7 +271,8 @@ public final class TelePremiumCloudManager {
         int count=0;
         for(CloudNode n:snapshot.nodes){
             if(n.state!=CloudNode.STATE_ACTIVE || !folderId.equals(n.parentId))continue;
-            if(n.type==CloudNode.TYPE_FILE)count++;else count+=countFiles(n.id,visited);
+            if(n.type==CloudNode.TYPE_FILE){if(n.keyRef==null||org.telegram.messenger.telepremium.cloud.vault.VaultFolderSession.shared().isUnlocked(n.keyRef))count++;}
+            else if(!(n.lock!=null&&!org.telegram.messenger.telepremium.cloud.vault.VaultFolderSession.shared().isUnlocked(n.id)))count+=countFiles(n.id,visited);
         }
         return count;
     }
@@ -270,7 +281,7 @@ public final class TelePremiumCloudManager {
         if(snapshot==null || query==null) return Collections.emptyList();
         String q=query.trim().toLowerCase(); ArrayList<CloudNode> out=new ArrayList<>();
         for(CloudNode n:snapshot.nodes) if(n.state==CloudNode.STATE_ACTIVE && !"root".equals(n.id) && n.name!=null && n.name.toLowerCase().contains(q)) out.add(n);
-        return out;
+        return new ArrayList<>(view().filter(out));
     }
 
     public List<CloudNode> category(String kind) {
@@ -278,7 +289,7 @@ public final class TelePremiumCloudManager {
         for(CloudNode n:snapshot.nodes){if(n.type!=CloudNode.TYPE_FILE||n.state!=CloudNode.STATE_ACTIVE)continue; String x=(n.name==null?"":n.name).toLowerCase(); String m=n.mimeType==null?"":n.mimeType;
             boolean hit=("images".equals(kind)&&CloudImageNames.isImage(n)) || ("video".equals(kind)&&m.startsWith("video/")) || ("audio".equals(kind)&&m.startsWith("audio/")) || ("apk".equals(kind)&&x.endsWith(".apk")) || ("archives".equals(kind)&&(x.endsWith(".zip")||x.endsWith(".rar")||x.endsWith(".7z")||x.endsWith(".tar")||x.endsWith(".gz")||x.endsWith(".tgz")||x.endsWith(".bz2")||x.endsWith(".xz"))) || ("documents".equals(kind)&&(m.startsWith("text/")||x.endsWith(".pdf")||x.endsWith(".doc")||x.endsWith(".docx")||x.endsWith(".xls")||x.endsWith(".xlsx")||x.endsWith(".ppt")||x.endsWith(".pptx")||x.endsWith(".epub")||x.endsWith(".rtf")));
             if(hit)out.add(n);}
-        return out;
+        return new ArrayList<>(view().filter(out));
     }
 
     public int payloadReferenceCount(CloudNode node) {
@@ -337,6 +348,68 @@ public final class TelePremiumCloudManager {
     public void toggleFavorite(CloudNode node, Callback callback) {
         if(!requireWritable(callback))return;
         node.favorite=!node.favorite; node.modifiedAt=System.currentTimeMillis(); commit(callback);
+    }
+
+    // ---- Folder locks (FL1) -------------------------------------------------------------
+
+    /** Sets or replaces the lock record of a folder (protect / change secret). */
+    public void setFolderLock(String folderId, String record, Callback callback) {
+        if(!requireWritable(callback))return;
+        CloudNode f=findById(folderId);
+        if(f==null||f.type!=CloudNode.TYPE_FOLDER||"root".equals(f.id)||record==null){callback.onComplete("Папку нельзя защитить");return;}
+        String oldLock=f.lock; boolean oldOff=f.lockOff;
+        f.lock=record; f.lockOff=false; f.modifiedAt=System.currentTimeMillis();
+        commit(error->{ if(error!=null){f.lock=oldLock;f.lockOff=oldOff;} callback.onComplete(error); });
+    }
+
+    /** Starts removing protection: the record stays until every payload is back under the outer key. */
+    public void beginRemoveFolderLock(String folderId, Callback callback) {
+        if(!requireWritable(callback))return;
+        CloudNode f=findById(folderId);
+        if(f==null||f.lock==null){callback.onComplete("Защита не включена");return;}
+        f.lockOff=true; f.modifiedAt=System.currentTimeMillis();
+        commit(error->{ if(error!=null)f.lockOff=false; callback.onComplete(error); });
+    }
+
+    /** Drops lock records that no longer protect any payload. */
+    public void clearFinishedLocks(Callback callback) {
+        if(snapshot==null||!remoteReady){callback.onComplete(null);return;}
+        java.util.List<CloudNode> done=org.telegram.messenger.telepremium.cloud.vault.VaultLockTree.finishedUnlocks(snapshot.nodes);
+        if(done.isEmpty()){callback.onComplete(null);return;}
+        for(CloudNode f:done){f.lock=null;f.lockOff=false;f.modifiedAt=System.currentTimeMillis();}
+        commit(callback);
+    }
+
+    /**
+     * Points {@code node} at a freshly uploaded payload (re-encrypted under another key) and, once the
+     * catalog commit is acknowledged, physically deletes the old Telegram messages and local replica.
+     */
+    public void swapPayload(CloudNode node, CloudNode fresh, Callback callback) {
+        if(!requireWritable(callback))return;
+        if(node==null||fresh==null||fresh.telegramMessageId==0){callback.onComplete("Нет нового файла");return;}
+        if(node.sha256!=null&&fresh.sha256!=null&&!node.sha256.equalsIgnoreCase(fresh.sha256)){callback.onComplete("Контрольная сумма не совпала");return;}
+        final long oMsg=node.telegramMessageId,oDoc=node.telegramDocumentId; final String oBackup=node.localBackupId,oRef=node.keyRef;
+        final long[] oPm=node.partMessageIds,oPd=node.partDocumentIds,oPs=node.partSizes; final String[] oPh=node.partSha256;
+        HashSet<Integer> old=new HashSet<>();
+        if(oMsg!=0)old.add((int)oMsg);
+        if(oPm!=null)for(long m:oPm)if(m!=0)old.add((int)m);
+        node.telegramMessageId=fresh.telegramMessageId; node.telegramDocumentId=fresh.telegramDocumentId;
+        node.localBackupId=fresh.localBackupId; node.keyRef=fresh.keyRef; node.encryptionVersion=1;
+        node.copyPartsFrom(fresh); node.modifiedAt=System.currentTimeMillis();
+        commit(error->{
+            if(error!=null){
+                node.telegramMessageId=oMsg;node.telegramDocumentId=oDoc;node.localBackupId=oBackup;node.keyRef=oRef;
+                node.partMessageIds=oPm;node.partDocumentIds=oPd;node.partSizes=oPs;node.partSha256=oPh;
+                callback.onComplete(error);return;
+            }
+            if(oBackup!=null&&!oBackup.equals(node.localBackupId)){
+                try{java.io.File replica=org.telegram.messenger.telepremium.cloud.vault.TelePremiumVaultBackupStore.find(ApplicationLoader.applicationContext,oBackup);if(replica!=null)replica.delete();}catch(Throwable t){org.telegram.messenger.FileLog.e(t);}
+            }
+            ArrayList<Integer> dead=new ArrayList<>();
+            for(int id:old)if(!hasLiveReference(id))dead.add(id);
+            // Old ciphertext must really disappear: it is encrypted under the previous key.
+            deletePayloadMessages(dead,e->callback.onComplete(null));
+        });
     }
 
     private CloudNode findById(String id) {

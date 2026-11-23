@@ -71,7 +71,11 @@ public final class TelePremiumCloudMediaRepository {
     static List<TelePremiumMediaItem> project(int account, long user, long epoch, CloudSnapshot snapshot) {
         ArrayList<TelePremiumMediaItem> out = new ArrayList<>();
         if (snapshot == null || snapshot.ownerUserId != user) return out;
+        // The player library sees open data only: protected folders do not exist for it.
+        final org.telegram.messenger.telepremium.cloud.vault.VaultVisibility.View lockView =
+                org.telegram.messenger.telepremium.cloud.vault.VaultVisibility.view(snapshot.nodes);
         for (CloudNode node : snapshot.nodes) {
+            if (node != null && lockView.isProtected(node)) continue;
             if (node == null || node.type != CloudNode.TYPE_FILE || node.state != CloudNode.STATE_ACTIVE
                     || node.encryptionVersion != 1 || node.telegramMessageId <= 0 || node.telegramDocumentId == 0) continue;
             String original = node.originalName == null ? node.name : node.originalName;

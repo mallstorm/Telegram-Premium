@@ -29,6 +29,8 @@ public final class TelePremiumMediaItem {
     public String uri;
     public String artworkUri;
     public String cloudNodeId;
+    /** Viewer-only item from a locked folder: never saved to history, resume points, playlists or the library. */
+    public boolean ephemeral;
     public int cloudAccount = -1;
     public long cloudUserId;
     public long cloudEpoch = -1;

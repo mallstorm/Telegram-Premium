@@ -55,7 +55,7 @@ public final class TelePremiumPlaylistRepository {
         }
         if (!TextUtils.isEmpty(name)) target.name = name;
         target.items.clear();
-        if (items != null) target.items.addAll(items);
+        if (items != null) for (TelePremiumMediaItem it : items) if (it != null && !it.ephemeral) target.items.add(it);
         target.updatedAt = System.currentTimeMillis();
         try { if (!TelePremiumMediaLibraryStore.put("playlist", target.id, toJson(target), TextUtils.isEmpty(id))) throw new IllegalStateException("Запись не сохранена"); } catch (Exception e) { throw new IllegalStateException("Не удалось сохранить плейлист", e); }
         return target;
