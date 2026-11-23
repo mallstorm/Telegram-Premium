@@ -101,6 +101,10 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
     }
 
     private void row(String title, int iconRes, Runnable onClick) {
+        row(title, iconRes, onClick, true);
+    }
+
+    private void row(String title, int iconRes, Runnable onClick, boolean closeAfterClick) {
         LinearLayout line = new LinearLayout(getContext());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
@@ -114,7 +118,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
         LinearLayout.LayoutParams txt = new LinearLayout.LayoutParams(0, -2, 1);
         txt.leftMargin = AndroidUtilities.dp(27);
         line.addView(label, txt);
-        line.setOnClickListener(v -> { close(); onClick.run(); });
+        line.setOnClickListener(v -> { if (closeAfterClick) close(); onClick.run(); });
         rows.addView(line, new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(55)));
     }
 
@@ -295,7 +299,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout {
                     final int y = scroll.getScrollY();
                     rebuild();
                     scroll.post(() -> scroll.scrollTo(0, y));
-                });
+                }, false);
         if (toolsExpanded) {
             row("Облако", android.R.drawable.ic_menu_upload,
                     () -> TelePremiumCloudAccessGate.openCloud(host, UserConfig.selectedAccount));
