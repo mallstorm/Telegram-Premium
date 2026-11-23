@@ -1722,7 +1722,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "cc6f4c3764ffcdac5beeba0bc52791a5481242d1505ec5445e77f53c8549ea5d"
+      "sha256": "3092d598fd7e9b60a9c6dc9ffd738c911f54f314a1ee86d68ba84a1a9acc743e"
     },
     {
       "path": "settings.gradle",
