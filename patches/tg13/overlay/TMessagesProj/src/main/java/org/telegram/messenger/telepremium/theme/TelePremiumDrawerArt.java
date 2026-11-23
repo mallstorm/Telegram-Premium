@@ -63,21 +63,32 @@ public final class TelePremiumDrawerArt {
             unit = Math.max(1f, w / 320f);
             // header scenes are vivid, list scenes are a quiet watermark anchored to the lower part
             k = header ? 1f : 0.42f;
-            if (!header) {
-                // body scenes live in the lower 55% of the panel
-                y0 = b.top + h * 0.45f;
-                h = h * 0.55f;
-            }
+            fullY0 = y0;
+            fullH = h;
             Rect full = b;
             int base = header ? p.background : p.drawerBackground;
-            float tint = header ? (p.isDark ? 0.24f : 0.16f) : (p.isDark ? 0.07f : 0.05f);
-            paint.setShader(new LinearGradient(full.left, full.top, full.left + full.width() * 0.35f, full.bottom,
-                    base, mix(base, p.accent, tint), Shader.TileMode.CLAMP));
+            if (header) {
+                float tint = p.isDark ? 0.24f : 0.16f;
+                paint.setShader(new LinearGradient(full.left, full.top, full.left + full.width() * 0.35f, full.bottom,
+                        base, mix(base, p.accent, tint), Shader.TileMode.CLAMP));
+            } else {
+                // continues the header's tint at the top and settles into the panel color, no flat band
+                float tint = p.isDark ? 0.12f : 0.09f;
+                paint.setShader(new LinearGradient(0, full.top, 0, full.bottom,
+                        new int[]{mix(base, p.accent, tint), base, mix(base, p.accent, tint * 1.3f)},
+                        new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
+            }
             paint.setStyle(Paint.Style.FILL);
             c.drawRect(full, paint);
             paint.setShader(null);
 
             String type = p.wallpaperType == null ? "" : p.wallpaperType;
+            // pattern scenes cover the whole panel (no flat band between header and list);
+            // landscapes of the list sit in its lower part
+            boolean pattern = type.equals("leaves") || type.equals("graphite") || type.equals("silver")
+                    || type.equals("ice") || type.equals("paper") || type.isEmpty() || type.equals("graphite");
+            if (!header && pattern) k = 0.6f;
+            if (pattern) whole(); else lower();
             switch (type) {
                 case "frost": frost(c); break;
                 case "leaves": leaves(c); break;
@@ -93,6 +104,7 @@ public final class TelePremiumDrawerArt {
             if (header) {
                 // legibility scrim under the name/phone block: text always reads on top of the scene
                 paint.setStyle(Paint.Style.FILL);
+                whole();
                 paint.setShader(new LinearGradient(0, y0 + h * 0.45f, 0, y0 + h,
                         mix(base, base, 0f) & 0x00FFFFFF, (base & 0x00FFFFFF) | (0xA0 << 24), Shader.TileMode.CLAMP));
                 paint.setAlpha(255);
@@ -102,6 +114,24 @@ public final class TelePremiumDrawerArt {
         }
 
         // ---------------------------------------------------------------- helpers
+
+        private float fullY0;
+        private float fullH;
+
+        private void whole() {
+            y0 = fullY0;
+            h = fullH;
+        }
+
+        private void lower() {
+            if (header) {
+                y0 = fullY0;
+                h = fullH;
+            } else {
+                y0 = fullY0 + fullH * 0.45f;
+                h = fullH * 0.55f;
+            }
+        }
 
         private int al(float alpha) {
             return Math.max(0, Math.min(255, (int) (alpha * k * (p.isDark ? 1.15f : 1f))));
@@ -396,6 +426,7 @@ public final class TelePremiumDrawerArt {
                 float yy = py(0.10f + i * 0.105f);
                 c.drawLine(px(0.06f), yy, px(0.94f), yy + h * 0.012f, paint);
             }
+            lower();
             hills(c, 0.76f, 0.05f, 0.7f, mix(p.accent, p.background, 0.7f), 90);
             hills(c, 0.90f, 0.05f, 2.4f, mix(p.accent, p.background, 0.5f), 90);
         }

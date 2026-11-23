@@ -895,7 +895,7 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
             name.setEllipsizeByGradient(true);
             FrameLayout.LayoutParams nlp = new FrameLayout.LayoutParams(-1, AndroidUtilities.dp(20), Gravity.LEFT | Gravity.BOTTOM);
             nlp.leftMargin = AndroidUtilities.dp(16);
-            nlp.rightMargin = AndroidUtilities.dp(76);
+            nlp.rightMargin = AndroidUtilities.dp(84);
             nlp.bottomMargin = AndroidUtilities.dp(28);
             addView(name, nlp);
 
@@ -910,7 +910,41 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
 
             arrow = new ImageView(context);
             arrow.setScaleType(ImageView.ScaleType.CENTER);
-            addView(arrow, new FrameLayout.LayoutParams(AndroidUtilities.dp(59), AndroidUtilities.dp(59), Gravity.RIGHT | Gravity.BOTTOM));
+            // generous hit area; the arrow owns its gesture so drawer drag / list click can't swallow the tap
+            arrow.setClickable(true);
+            arrow.setOnTouchListener(new View.OnTouchListener() {
+                private float sx;
+                private float sy;
+                private boolean down;
+
+                @Override
+                public boolean onTouch(View v, MotionEvent e) {
+                    switch (e.getActionMasked()) {
+                        case MotionEvent.ACTION_DOWN:
+                            down = true;
+                            sx = e.getX();
+                            sy = e.getY();
+                            v.setPressed(true);
+                            if (v.getParent() != null) {
+                                v.getParent().requestDisallowInterceptTouchEvent(true);
+                            }
+                            return true;
+                        case MotionEvent.ACTION_UP:
+                            v.setPressed(false);
+                            if (down && Math.abs(e.getX() - sx) < touchSlop * 3 && Math.abs(e.getY() - sy) < touchSlop * 3) {
+                                toggleAccounts();
+                            }
+                            down = false;
+                            return true;
+                        case MotionEvent.ACTION_CANCEL:
+                            v.setPressed(false);
+                            down = false;
+                            return true;
+                    }
+                    return true;
+                }
+            });
+            addView(arrow, new FrameLayout.LayoutParams(AndroidUtilities.dp(84), AndroidUtilities.dp(72), Gravity.RIGHT | Gravity.BOTTOM));
 
             themeButton = new ImageView(context);
             themeButton.setScaleType(ImageView.ScaleType.CENTER);
