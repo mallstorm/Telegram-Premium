@@ -33,7 +33,7 @@ FILES.update({
 'org/telegram/messenger/telepremium/media/TelePremiumMultipartDataSource.java':'package org.telegram.messenger.telepremium.media;import android.net.Uri;import org.telegram.tgnet.TLRPC;public class TelePremiumMultipartDataSource{public static void unregister(Uri u){}public static Uri register(int a,Uri[] u,TLRPC.Document[] d,long[] s,byte[] k){return Uri.parse("tpmulti://test");}}',
 'org/telegram/messenger/telepremium/media/TelePremiumMediaRequest.java':'package org.telegram.messenger.telepremium.media;public class TelePremiumMediaRequest{public boolean cancelled;public void cancel(){cancelled=true;}}',
 'org/telegram/messenger/telepremium/media/TelePremiumYouTube.java':'''package org.telegram.messenger.telepremium.media;import java.util.*;public class TelePremiumYouTube{public interface Callback{void done(Playback p,String e);}public static class Playback{public long durationMs;public boolean live,hls;public String audioUrl,videoUrl;}public static List<Callback> pending=new ArrayList<>();public static List<TelePremiumMediaRequest> requests=new ArrayList<>();public static boolean isYouTube(TelePremiumMediaItem i){return i.uri!=null&&i.uri.contains("youtube");}public static TelePremiumMediaRequest resolvePlayback(String u,Callback c){pending.add(c);var r=new TelePremiumMediaRequest();requests.add(r);return r;}}''',
-'org/telegram/messenger/telepremium/media/TelePremiumQueueManager.java':'''package org.telegram.messenger.telepremium.media;import java.util.*;public class TelePremiumQueueManager{static final TelePremiumQueueManager I=new TelePremiumQueueManager();List<TelePremiumMediaItem> all=new ArrayList<>();int at;public static TelePremiumQueueManager getInstance(){return I;}public List<TelePremiumMediaItem> snapshot(){return new ArrayList<>(all);}public boolean append(TelePremiumMediaItem i){all.add(i);return true;}public void replace(List<TelePremiumMediaItem> l,int a){all=new ArrayList<>(l);at=a;}public int size(){return all.size();}public void setCurrentIndex(int a){at=a;}public TelePremiumMediaItem current(){return all.isEmpty()?null:all.get(at);}public TelePremiumMediaItem next(){return null;}public TelePremiumMediaItem previous(){return null;}}''',
+'org/telegram/messenger/telepremium/media/TelePremiumQueueManager.java':'''package org.telegram.messenger.telepremium.media;import java.util.*;public class TelePremiumQueueManager{static final TelePremiumQueueManager I=new TelePremiumQueueManager();List<TelePremiumMediaItem> all=new ArrayList<>();int at;public static TelePremiumQueueManager getInstance(){return I;}public List<TelePremiumMediaItem> snapshot(){return new ArrayList<>(all);}public boolean append(TelePremiumMediaItem i){all.add(i);return true;}public void replace(List<TelePremiumMediaItem> l,int a){all=new ArrayList<>(l);at=a;}public void clear(){all.clear();at=0;}public int size(){return all.size();}public void setCurrentIndex(int a){at=a;}public TelePremiumMediaItem current(){return all.isEmpty()?null:all.get(at);}public TelePremiumMediaItem next(){return null;}public TelePremiumMediaItem previous(){return null;}}''',
 'org/telegram/messenger/telepremium/media/TelePremiumMediaSessionService.java':'package org.telegram.messenger.telepremium.media;public class TelePremiumMediaSessionService{}',
 'org/telegram/messenger/telepremium/media/TelePremiumAudioEffects.java':'package org.telegram.messenger.telepremium.media;public class TelePremiumAudioEffects{public static boolean isSkipSilence(){return false;}}',
 'org/telegram/messenger/telepremium/media/TelePremiumBalanceAudioProcessor.java':'package org.telegram.messenger.telepremium.media;public class TelePremiumBalanceAudioProcessor{public static Object chain(){return null;}}',
@@ -60,13 +60,16 @@ public class PlaybackRuntimeTest{
  c.play(local);p=last();p.delegate.onError(p,new Exception(new java.security.cert.CertificateException("TLS")));check(!errors.get(errors.size()-1).contains("Vault"),"network certificate failures must not be reported as Vault authentication errors");c.stopAndRelease();System.out.println("PlaybackRuntimeTest OK: "+checks+" checks");}
 }'''
 })
+import sys; sys.path.insert(0,str(Path(__file__).resolve().parent))
+import folder_lock_stubs as FL; FILES.update(FL.STUBS); FILES.update(FL.KEY_STUBS)
+
 def run():
  with tempfile.TemporaryDirectory(prefix='tp-playback-tests-') as folder:
   base=Path(folder);src=base/'src';out=base/'classes';src.mkdir();out.mkdir()
   for name,content in FILES.items():
    p=src/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content,encoding='utf-8')
   paths=['cloud/CloudNode','cloud/CloudSnapshot','cloud/TelePremiumCloudResetState','media/TelePremiumMediaItem','media/TelePremiumPlaybackController']
-  sources=sorted(src.rglob('*.java'))+sorted((ROOT/'scripts/tests/stubs').rglob('*.java'))+[PROD/('org/telegram/messenger/telepremium/'+p+'.java') for p in paths]
+  sources=sorted(src.rglob('*.java'))+sorted((ROOT/'scripts/tests/stubs').rglob('*.java'))+[PROD/('org/telegram/messenger/telepremium/'+p+'.java') for p in paths]+FL.pure_sources(ROOT/'patches/tg13/overlay/TMessagesProj/src/main/java')
   javac=['javac'] if shutil.which('javac') else ['java','com.sun.tools.javac.Main']
   subprocess.run([*javac,'-d',str(out),*map(str,sources)],check=True)
   subprocess.run(['java','-cp',str(out),'PlaybackRuntimeTest'],check=True)
