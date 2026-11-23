@@ -227,7 +227,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                         case MotionEvent.ACTION_DOWN:
                             drawerSwipeStartX = event.getX();
                             drawerSwipeStartY = event.getY();
-                            trackDrawerSwipe = drawerSwipeStartX <= insetLeft + dp(22)
+                            trackDrawerSwipe = drawerSwipeStartX <= insetLeft + dp(26)
                                     && dialogsActivity != null && getCurrentVisibleFragment() == dialogsActivity
                                     && dialogsActivity.canOpenClassicDrawer();
                             break;
@@ -235,9 +235,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                             if (trackDrawerSwipe) {
                                 float dx = event.getX() - drawerSwipeStartX;
                                 float dy = Math.abs(event.getY() - drawerSwipeStartY);
-                                if (dx > dp(32) && dx > 2 * dy) {
+                                if (dx > dp(12) && dx > 1.5f * dy) {
                                     trackDrawerSwipe = false;
-                                    classicDrawer.open();
+                                    classicDrawer.beginEdgeDrag(event.getRawX() - dx);
                                     return true;
                                 }
                                 if (dy > dp(16) || dx < -dp(16)) {
@@ -257,6 +257,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
             @Override
             public boolean onTouchEvent(MotionEvent event) {
+                if (classicDrawer != null && classicDrawer.isDragging()) {
+                    return classicDrawer.handleHostTouch(event);
+                }
                 return (classicDrawer != null && classicDrawer.isOpened()) || super.onTouchEvent(event);
             }
 
@@ -460,6 +463,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             tabsViewWrapper.setVisibility(View.GONE);
             fadeView.setVisibility(View.GONE);
             classicDrawer = new TelePremiumClassicDrawer(this, context);
+            classicDrawer.setProgressListener(progress -> {
+                if (dialogsActivity != null) {
+                    dialogsActivity.setClassicMenuProgress(progress);
+                }
+            });
             contentView.addView(classicDrawer, LayoutHelper.createFrameMatchParent());
         }
         return contentView;

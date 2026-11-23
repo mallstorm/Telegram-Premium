@@ -683,4 +683,15 @@
     <string name="TP_MEDIA_REFRESH">Refresh</string>
     <string name="TP_MEDIA_VAULT_LOCKED">Unlock the cloud to view your media. Tap here to continue.</string>
     <string name="TP_MEDIA_PARTIAL">Some clouds are unavailable</string>
+    <string name="TP_ShellTitle">Interface</string>
+    <string name="TP_ShellRow">App interface</string>
+    <string name="TP_ShellExplain">Both interfaces run on the same Telegram 13.1.1 engine: the same accounts, messages, Cloud Vault, settings and themes. Only the shell changes.</string>
+    <string name="TP_ShellClassic">Classic Telegram 11.x</string>
+    <string name="TP_ShellClassicInfo">Side menu, chat list without bottom tabs, classic settings</string>
+    <string name="TP_ShellModern">Modern Telegram 13.1.1</string>
+    <string name="TP_ShellModernInfo">Bottom navigation, new profile and settings</string>
+    <string name="TP_ShellClassicShort">Classic 11.x</string>
+    <string name="TP_ShellModernShort">Modern 13.x</string>
+    <string name="TP_ShellFooter">TelePremium · Telegram 13.1.1</string>
+    <string name="TP_FullSettings">Full Telegram settings</string>
 </resources>

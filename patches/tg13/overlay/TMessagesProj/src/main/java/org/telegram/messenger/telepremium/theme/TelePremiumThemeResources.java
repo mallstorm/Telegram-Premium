@@ -108,6 +108,34 @@ public final class TelePremiumThemeResources {
         c.put("chats_actionBackgroundPressed", darken(shellAccent, 0.12f));
         c.put("chats_actionIcon", contrastOn(shellAccent));
 
+        // Chat-list widgets that otherwise keep Telegram's stock blue on non-blue presets; both
+        // shells render the same dialog cells, so this is what makes a preset "sit" on either one.
+        c.put("chats_sentCheck", shellAccent);
+        c.put("chats_sentReadCheck", shellAccent);
+        c.put("chats_sentClock", p.textSecondary);
+        c.put("chats_nameMessage", shellAccent);
+        c.put("chats_nameMessage_threeLines", shellAccent);
+        c.put("chats_attachMessage", shellAccent);
+        c.put("chats_actionMessage", shellAccent);
+        c.put("chats_verifiedBackground", shellAccent);
+        c.put("chats_verifiedCheck", contrastOn(shellAccent));
+        c.put("chats_unreadCounterMuted", p.iconSecondary);
+        c.put("chats_tabUnreadActiveBackground", shellAccent);
+        c.put("chats_tabUnreadUnactiveBackground", p.iconSecondary);
+        c.put("chats_pinnedOverlay", TelePremiumThemeRegistry.blend(p.surface, p.textPrimary, p.isDark ? 0.06f : 0.04f));
+        c.put("chats_archiveBackground", shellAccent);
+        c.put("chats_archivePinBackground", p.iconSecondary);
+        c.put("chats_archiveIcon", contrastOn(shellAccent));
+        c.put("chats_archiveText", contrastOn(shellAccent));
+        c.put("inappPlayerPlayPause", shellAccent);
+        c.put("inappPlayerTitle", p.textPrimary);
+        c.put("inappPlayerPerformer", p.textSecondary);
+        c.put("inappPlayerClose", p.iconSecondary);
+        c.put("windowBackgroundWhiteInputField", p.divider);
+        c.put("windowBackgroundWhiteInputFieldActivated", shellAccent);
+        c.put("profile_actionBackground", shellAccent);
+        c.put("profile_actionIcon", contrastOn(shellAccent));
+
         // Chat-only layer. Stock Chat Settings may change message size, wallpaper and
         // bubble geometry, but TelePremium remains owner of the application shell.
         c.put("chat_wallpaper", chatBackground);

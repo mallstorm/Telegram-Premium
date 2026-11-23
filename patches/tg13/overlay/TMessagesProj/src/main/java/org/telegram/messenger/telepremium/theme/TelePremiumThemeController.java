@@ -16,6 +16,7 @@ import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.ui.ActionBar.Theme;
 
 import java.io.File;
@@ -93,21 +94,14 @@ public final class TelePremiumThemeController {
         }
     }
 
+    /**
+     * System bars belong to Telegram: it derives status/navigation icon colors from the visible
+     * fragment and the active theme (edge-to-edge in 13.x). Writing window colors/flags here fought
+     * that logic and left mismatched bars on light/dark presets, so only ask Telegram to re-check.
+     */
     public static void applySystemBars(Context context, TelePremiumThemePreset preset) {
-        if (!(context instanceof Activity)) return;
-        Window window = ((Activity) context).getWindow();
-        window.setStatusBarColor(preset.statusBarColor);
-        window.setNavigationBarColor(preset.navigationBarColor);
-        if (Build.VERSION.SDK_INT >= 23) {
-            int flags = window.getDecorView().getSystemUiVisibility();
-            if (!preset.isDark) flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            else flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            if (Build.VERSION.SDK_INT >= 26) {
-                if (!preset.isDark) flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                else flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-            }
-            window.getDecorView().setSystemUiVisibility(flags);
-        }
+        AndroidUtilities.runOnUIThread(() -> NotificationCenter.getGlobalInstance()
+                .postNotificationName(NotificationCenter.needCheckSystemBarColors, true));
     }
 
     public static void showQuickThemeSelector(Context context, View anchor, Runnable onApplied) {

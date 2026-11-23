@@ -28,3 +28,17 @@ The build retains the release keystore selection already present in `.github/wor
 ## Validation
 
 Run `python3 scripts/verify_classic_shell.py` and `python3 scripts/verify_tg13.py` after applying the overlay, followed by Java/resources compilation and a release APK build. On Android, open the same forum in both modes, open a topic and go back, check **View as Messages**, and open a topic from search or a link. Check search, multi-select, the drawer gesture, system bar insets, account switching and persistence after reopening the app.
+
+## Dual shell architecture (stabilization pass)
+
+* **Two shells, one engine.** `TelePremiumShell` (CLASSIC 11.x / MODERN 13.x) is the single switch. The choice is
+  written with `commit()`, the saved theme preset is re-asserted (`ensureShellTheme`) and the activity is recreated,
+  so the next `MainTabsActivity` is built from scratch in the selected shell. Both shells read the same
+  `Theme.key_*` map; a TelePremium preset is therefore shared by both.
+* **No drifting home screen.** The 13.x 48dp search-pill slot is genuinely `0` on the classic home
+  (`DialogsActivity.searchSlot()`), instead of being kept in layout/padding and cancelled by a scroll translation.
+* **Drawer.** `TelePremiumClassicDrawer` is a `RecyclerListView` with 11.x row metrics (148dp profile header, 48dp
+  rows, 19/72dp icon/text insets), accounts toggle, localized Telegram strings, a finger-following edge drag with
+  velocity settle, live theme refresh and a hamburger that morphs with the drawer progress.
+* **System bars** are no longer written by the theme controller; it only posts `needCheckSystemBarColors`, so
+  Telegram derives status/navigation icon colors from the visible fragment (light and dark presets).

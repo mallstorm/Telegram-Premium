@@ -19,7 +19,7 @@ public final class TelePremiumUiPrefs {
     }
 
     public static void setClassicUiEnabled(boolean enabled) {
-        prefs().edit().putBoolean("classic_ui_11x_enabled", enabled).apply();
+        prefs().edit().putBoolean("classic_ui_11x_enabled", enabled).commit();
     }
 
     /** Telegram Premium / Stars / Business / Gift rows in Settings (off: they duplicated TelePremium). */

@@ -2,153 +2,297 @@ package org.telegram.ui;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.os.Bundle;
-import android.text.TextUtils;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
-import org.telegram.tgnet.TLRPC;
-import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Stars.StarsIntroActivity;
+import org.telegram.messenger.browser.Browser;
+import org.telegram.messenger.telepremium.TPStrings;
+import org.telegram.messenger.telepremium.TelePremiumShell;
+import org.telegram.messenger.telepremium.TelePremiumUiPrefs;
 import org.telegram.messenger.telepremium.cloud.TelePremiumCloudAccessGate;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.SimpleTextView;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.HeaderCell;
+import org.telegram.ui.Cells.ShadowSectionCell;
+import org.telegram.ui.Cells.TextCell;
+import org.telegram.ui.Components.AvatarDrawable;
+import org.telegram.ui.Components.BackupImageView;
+import org.telegram.ui.Components.RecyclerListView;
 
-/** Classic Telegram 11 settings presentation routing into Telegram 13 handlers. */
-public final class TelePremiumClassicSettingsActivity extends BaseFragment {
-    private LinearLayout body;
+import java.util.ArrayList;
 
-    @Override public View createView(Context context) {
+/**
+ * Telegram 11.x style settings list (profile card, grouped rows) routing into the Telegram 13
+ * handlers. Built from stock cells, so it follows whatever theme preset is active.
+ */
+public final class TelePremiumClassicSettingsActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
+    private static final int VIEW_PROFILE = 0;
+    private static final int VIEW_HEADER = 1;
+    private static final int VIEW_ROW = 2;
+    private static final int VIEW_SHADOW = 3;
+
+    private static final class Row {
+        final int type;
+        final CharSequence title;
+        final int icon;
+        final CharSequence value;
+        final Runnable action;
+
+        Row(int type, CharSequence title, int icon, CharSequence value, Runnable action) {
+            this.type = type;
+            this.title = title;
+            this.icon = icon;
+            this.value = value;
+            this.action = action;
+        }
+    }
+
+    private final ArrayList<Row> rows = new ArrayList<>();
+    private RecyclerListView listView;
+    private ListAdapter adapter;
+
+    @Override
+    public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setBackgroundColor(getThemedColor(Theme.key_actionBarDefault));
-        actionBar.setTitle("Настройки");
+        actionBar.setAllowOverlayTitle(true);
+        actionBar.setTitle(LocaleController.getString(R.string.Settings));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
-            @Override public void onItemClick(int id) { if (id == -1) finishFragment(); }
+            @Override
+            public void onItemClick(int id) {
+                if (id == -1) finishFragment();
+            }
         });
         FrameLayout screen = new FrameLayout(context);
         screen.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
-        ScrollView scrolling = new ScrollView(context);
-        scrolling.setFillViewport(true);
-        screen.addView(scrolling, new FrameLayout.LayoutParams(-1, -1));
-        body = new LinearLayout(context);
-        body.setOrientation(LinearLayout.VERTICAL);
-        scrolling.addView(body, new ScrollView.LayoutParams(-1, -2));
-
-        LinearLayout profile = new LinearLayout(context);
-        profile.setGravity(Gravity.CENTER_VERTICAL);
-        profile.setPadding(dp(24), 0, dp(24), 0);
-        profile.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-        TextView avatar = new TextView(context);
-        avatar.setText("◉");
-        avatar.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
-        avatar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
-        profile.addView(avatar, new LinearLayout.LayoutParams(dp(55), dp(72)));
-        TLRPC.User user = UserConfig.getInstance(currentAccount).getCurrentUser();
-        TextView name = new TextView(context);
-        name.setText(user == null ? "Telegram" : UserObject.getUserName(user));
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19);
-        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        name.setGravity(Gravity.CENTER_VERTICAL);
-        name.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-        profile.addView(name, new LinearLayout.LayoutParams(-1, dp(72)));
-        profile.setOnClickListener(v -> presentFragment(new UserInfoActivity()));
-        body.addView(profile);
-
-        section("Учётная запись");
-        row("Мой профиль", android.R.drawable.ic_menu_myplaces, null, () -> presentFragment(new UserInfoActivity()));
-        row("Настройки чатов", android.R.drawable.ic_menu_edit, null, () -> presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC)));
-        row("Конфиденциальность", android.R.drawable.ic_lock_lock, null, () -> presentFragment(new PrivacySettingsActivity()));
-        row("Уведомления и звуки", android.R.drawable.ic_lock_silent_mode_off, null, () -> presentFragment(new NotificationsSettingsActivity()));
-        row("Данные и память", android.R.drawable.ic_menu_save, null, () -> presentFragment(new DataSettingsActivity()));
-        row("Энергосбережение", android.R.drawable.ic_lock_idle_charging, null, () -> presentFragment(new LiteModeSettingsActivity()));
-        row("Папки с чатами", android.R.drawable.ic_menu_agenda, null, () -> presentFragment(new FiltersSetupActivity()));
-        row("Устройства", android.R.drawable.ic_menu_manage, null, () -> presentFragment(new SessionsActivity(0)));
-        row("Язык", android.R.drawable.ic_menu_set_as, LocaleController.getCurrentLanguageName(), () -> presentFragment(new LanguageSelectActivity()));
-
-        section("Telegram и TelePremium");
-        row("Telegram Premium", android.R.drawable.btn_star_big_on, null, () -> presentFragment(new PremiumPreviewFragment("settings")));
-        row("Мои звёзды", android.R.drawable.btn_star_big_on, null, () -> presentFragment(new StarsIntroActivity()));
-        row("Облако", android.R.drawable.ic_menu_upload, null, () -> TelePremiumCloudAccessGate.openCloud(this, currentAccount));
-        row("Медиатека", android.R.drawable.ic_media_play, null, () -> {
-            if (getParentActivity() != null) getParentActivity().startActivity(new Intent(getParentActivity(), TelePremiumMediaCenterActivity.class));
+        listView = new RecyclerListView(context);
+        listView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
+        listView.setVerticalScrollBarEnabled(false);
+        adapter = new ListAdapter();
+        listView.setAdapter(adapter);
+        listView.setOnItemClickListener((RecyclerListView.OnItemClickListener) (view, position) -> {
+            if (position < 0 || position >= rows.size()) return;
+            Row row = rows.get(position);
+            if (row.action != null) row.action.run();
         });
-        row("Центр TelePremium", android.R.drawable.ic_menu_manage, null, () -> presentFragment(new TelePremiumCenterActivity()));
-        row("Оформление TelePremium", android.R.drawable.ic_menu_edit, null, () -> presentFragment(new TelePremiumAppearanceActivity()));
-        row("Интерфейс приложения", android.R.drawable.ic_menu_preferences, "Классический 11.x", () -> presentFragment(new TelePremiumInterfaceModeActivity()));
-
-        section("Помощь");
-        row("Задать вопрос", android.R.drawable.ic_dialog_email, null, () -> presentFragment(new SettingsActivity()));
-        row("Полные настройки Telegram", android.R.drawable.ic_menu_preferences, null, () -> presentFragment(new SettingsActivity()));
-        TextView footer = new TextView(context);
-        footer.setText("TelePremium · Telegram 13.1.1 · интерфейс 11.x");
-        footer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        footer.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
-        footer.setGravity(Gravity.CENTER);
-        body.addView(footer, new LinearLayout.LayoutParams(-1, dp(54)));
+        screen.addView(listView, new FrameLayout.LayoutParams(-1, -1));
         fragmentView = screen;
+        rebuildRows();
         return fragmentView;
     }
 
-    private int dp(float value) { return AndroidUtilities.dp(value); }
-
-    private void section(String title) {
-        LinearLayout spacer = new LinearLayout(getContext());
-        spacer.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
-        body.addView(spacer, new LinearLayout.LayoutParams(-1, dp(18)));
-        TextView heading = new TextView(getContext());
-        heading.setText(title);
-        heading.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
-        heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        heading.setPadding(dp(24), 0, dp(8), 0);
-        heading.setGravity(Gravity.CENTER_VERTICAL);
-        heading.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-        body.addView(heading, new LinearLayout.LayoutParams(-1, dp(37)));
+    @Override
+    public boolean onFragmentCreate() {
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.didSetNewTheme);
+        return super.onFragmentCreate();
     }
 
-    private void row(String title, int image, String value, Runnable action) {
-        LinearLayout row = new LinearLayout(getContext());
-        row.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(27), 0, dp(24), 0);
-        ImageView icon = new ImageView(getContext());
-        icon.setImageResource(image);
-        icon.setColorFilter(getThemedColor(Theme.key_chats_menuItemIcon));
-        row.addView(icon, new LinearLayout.LayoutParams(dp(24), dp(24)));
-        TextView label = new TextView(getContext());
-        label.setText(title);
-        label.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        label.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(0, -1, 1);
-        textLp.leftMargin = dp(26);
-        row.addView(label, textLp);
-        if (!TextUtils.isEmpty(value)) {
-            TextView side = new TextView(getContext());
-            side.setText(value);
-            side.setSingleLine(true);
-            side.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            side.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueText));
-            row.addView(side);
+    @Override
+    public void onFragmentDestroy() {
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didSetNewTheme);
+        super.onFragmentDestroy();
+    }
+
+    @Override
+    public void didReceivedNotification(int id, int account, Object... args) {
+        if (id == NotificationCenter.didSetNewTheme && adapter != null) {
+            adapter.notifyDataSetChanged();
         }
-        row.setOnClickListener(v -> action.run());
-        body.addView(row, new LinearLayout.LayoutParams(-1, dp(55)));
-        View divider = new View(getContext());
-        divider.setBackgroundColor(getThemedColor(Theme.key_divider));
-        LinearLayout.LayoutParams lineLp = new LinearLayout.LayoutParams(-1, dp(1));
-        lineLp.leftMargin = dp(83);
-        body.addView(divider, lineLp);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (adapter != null) {
+            rebuildRows();
+        }
+    }
+
+    private void rebuildRows() {
+        rows.clear();
+        rows.add(new Row(VIEW_PROFILE, null, 0, null, () -> presentFragment(new UserInfoActivity())));
+        rows.add(new Row(VIEW_SHADOW, null, 0, null, null));
+
+        rows.add(new Row(VIEW_HEADER, LocaleController.getString(R.string.Settings), 0, null, null));
+        rows.add(row(R.string.ChatSettings, R.drawable.msg_theme, null, () -> presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC))));
+        rows.add(row(R.string.NotificationsAndSounds, R.drawable.msg_notifications, null, () -> presentFragment(new NotificationsSettingsActivity())));
+        rows.add(row(R.string.PrivacySettings, R.drawable.menu_privacy, null, () -> presentFragment(new PrivacySettingsActivity())));
+        rows.add(row(R.string.DataSettings, R.drawable.msg_filled_datausage, null, () -> presentFragment(new DataSettingsActivity())));
+        rows.add(row(R.string.PowerUsage, R.drawable.msg_settings_old, null, () -> presentFragment(new LiteModeSettingsActivity())));
+        rows.add(row(R.string.Filters, R.drawable.msg_folders, null, () -> presentFragment(new FiltersSetupActivity())));
+        rows.add(row(R.string.Devices, R.drawable.menu_devices, null, () -> presentFragment(new SessionsActivity(0))));
+        rows.add(row(R.string.Language, R.drawable.msg_language, LocaleController.getCurrentLanguageName(), () -> presentFragment(new LanguageSelectActivity())));
+        rows.add(new Row(VIEW_SHADOW, null, 0, null, null));
+
+        rows.add(new Row(VIEW_HEADER, TPStrings.get("TP_SettingsSection", R.string.TP_SettingsSection), 0, null, null));
+        rows.add(new Row(VIEW_ROW, TPStrings.get("TP_SettingsCloud", R.string.TP_SettingsCloud), R.drawable.tp_ic_cloud, null,
+                () -> TelePremiumCloudAccessGate.openCloud(this, currentAccount)));
+        rows.add(new Row(VIEW_ROW, TPStrings.get("TP_SettingsMedia", R.string.TP_SettingsMedia), R.drawable.tp_ic_play, null, () -> {
+            if (getParentActivity() != null) {
+                getParentActivity().startActivity(new Intent(getParentActivity(), TelePremiumMediaCenterActivity.class));
+            }
+        }));
+        rows.add(new Row(VIEW_ROW, TPStrings.get("TP_SettingsCenter", R.string.TP_SettingsCenter), R.drawable.tp_ic_tune, null,
+                () -> presentFragment(new TelePremiumCenterActivity())));
+        rows.add(new Row(VIEW_ROW, TPStrings.get("TP_SettingsAppearance", R.string.TP_SettingsAppearance), R.drawable.tp_ic_palette, null,
+                () -> presentFragment(new TelePremiumAppearanceActivity())));
+        rows.add(new Row(VIEW_ROW, "Telegram AI Analyzer", R.drawable.tp_ic_ai, null,
+                () -> presentFragment(new TelePremiumAnalyzerActivity())));
+        rows.add(new Row(VIEW_ROW, TPStrings.get("TP_ShellRow", R.string.TP_ShellRow), R.drawable.tp_ic_device, TelePremiumShell.shortName(),
+                () -> presentFragment(new TelePremiumInterfaceModeActivity())));
+        rows.add(new Row(VIEW_SHADOW, null, 0, null, null));
+
+        rows.add(new Row(VIEW_HEADER, LocaleController.getString(R.string.SettingsHelp), 0, null, null));
+        if (TelePremiumUiPrefs.showTelegramPremiumBlock()) {
+            rows.add(row(R.string.TelegramPremium, R.drawable.msg_premium_liststar, null, () -> presentFragment(new PremiumPreviewFragment("settings"))));
+        }
+        rows.add(row(R.string.TelegramFaq, R.drawable.msg_help, null,
+                () -> Browser.openUrl(getParentActivity(), LocaleController.getString(R.string.TelegramFaqUrl))));
+        rows.add(new Row(VIEW_ROW, TPStrings.get("TP_FullSettings", R.string.TP_FullSettings), R.drawable.msg_settings, null,
+                () -> presentFragment(new SettingsActivity())));
+        rows.add(new Row(VIEW_SHADOW, null, 0, null, null));
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    private Row row(int titleRes, int icon, CharSequence value, Runnable action) {
+        return new Row(VIEW_ROW, LocaleController.getString(titleRes), icon, value, action);
+    }
+
+    private final class ListAdapter extends RecyclerListView.SelectionAdapter {
+        @Override
+        public int getItemCount() {
+            return rows.size();
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            return rows.get(position).type;
+        }
+
+        @Override
+        public boolean isEnabled(RecyclerView.ViewHolder holder) {
+            int type = holder.getItemViewType();
+            return type == VIEW_ROW || type == VIEW_PROFILE;
+        }
+
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            Context context = parent.getContext();
+            View view;
+            switch (viewType) {
+                case VIEW_PROFILE:
+                    view = new ProfileView(context);
+                    break;
+                case VIEW_HEADER:
+                    view = new HeaderCell(context);
+                    view.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                    break;
+                case VIEW_SHADOW:
+                    view = new ShadowSectionCell(context);
+                    break;
+                case VIEW_ROW:
+                default:
+                    view = new TextCell(context);
+                    view.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                    break;
+            }
+            view.setLayoutParams(new RecyclerView.LayoutParams(-1, -2));
+            return new RecyclerListView.Holder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+            Row row = rows.get(position);
+            switch (holder.getItemViewType()) {
+                case VIEW_PROFILE:
+                    ((ProfileView) holder.itemView).bind();
+                    break;
+                case VIEW_HEADER:
+                    holder.itemView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                    ((HeaderCell) holder.itemView).setText(row.title);
+                    break;
+                case VIEW_ROW: {
+                    holder.itemView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                    boolean divider = position + 1 < rows.size() && rows.get(position + 1).type == VIEW_ROW;
+                    TextCell cell = (TextCell) holder.itemView;
+                    if (row.value != null) {
+                        cell.setTextAndValueAndIcon(row.title, row.value, row.icon, divider);
+                    } else {
+                        cell.setTextAndIcon(row.title, row.icon, divider);
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+
+    private final class ProfileView extends FrameLayout {
+        private final BackupImageView avatar;
+        private final SimpleTextView name;
+        private final SimpleTextView phone;
+
+        ProfileView(Context context) {
+            super(context);
+            setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+            avatar = new BackupImageView(context);
+            avatar.setRoundRadius(AndroidUtilities.dp(32));
+            FrameLayout.LayoutParams alp = new FrameLayout.LayoutParams(AndroidUtilities.dp(64), AndroidUtilities.dp(64), Gravity.LEFT | Gravity.CENTER_VERTICAL);
+            alp.leftMargin = AndroidUtilities.dp(17);
+            addView(avatar, alp);
+            name = new SimpleTextView(context);
+            name.setTextSize(19);
+            name.setTypeface(AndroidUtilities.bold());
+            name.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+            FrameLayout.LayoutParams nlp = new FrameLayout.LayoutParams(-1, AndroidUtilities.dp(26), Gravity.LEFT | Gravity.CENTER_VERTICAL);
+            nlp.leftMargin = AndroidUtilities.dp(97);
+            nlp.rightMargin = AndroidUtilities.dp(16);
+            nlp.bottomMargin = AndroidUtilities.dp(22);
+            addView(name, nlp);
+            phone = new SimpleTextView(context);
+            phone.setTextSize(14);
+            phone.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+            FrameLayout.LayoutParams plp = new FrameLayout.LayoutParams(-1, AndroidUtilities.dp(22), Gravity.LEFT | Gravity.CENTER_VERTICAL);
+            plp.leftMargin = AndroidUtilities.dp(97);
+            plp.rightMargin = AndroidUtilities.dp(16);
+            plp.topMargin = AndroidUtilities.dp(26);
+            addView(phone, plp);
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(96), MeasureSpec.EXACTLY));
+        }
+
+        void bind() {
+            setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+            name.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            phone.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText2));
+            TLRPC.User user = UserConfig.getInstance(currentAccount).getCurrentUser();
+            if (user == null) return;
+            name.setText(UserObject.getUserName(user));
+            phone.setText(android.text.TextUtils.isEmpty(user.phone) ? "" : PhoneFormat.getInstance().format("+" + user.phone));
+            AvatarDrawable drawable = new AvatarDrawable();
+            drawable.setInfo(user);
+            avatar.getImageReceiver().setCurrentAccount(currentAccount);
+            avatar.setForUserOrChat(user, drawable);
+        }
     }
 }

@@ -109,7 +109,7 @@ final class TelePremiumAccountSwitcher {
             if (activity != null) {
                 if (TelePremiumUiPrefs.classicUiEnabled()) {
                     activity.switchToAccount(account, true);
-                    activity.presentFragment(new SettingsActivity());
+                    activity.presentFragment(new TelePremiumClassicSettingsActivity());
                 } else {
                     activity.switchToAccount(account, true, obj -> MainTabsActivity.openedOnSettings());
                 }
