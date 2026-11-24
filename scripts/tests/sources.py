@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium"
 SOURCES = [
     "aicenter/CenterData.java",
+    "aicenter/CenterEnvelope.java",
     "aicenter/CenterReports.java",
     "cloud/vault/TelePremiumVaultCrypto.java",
     "cloud/vault/VaultFileOps.java",

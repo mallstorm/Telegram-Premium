@@ -8,7 +8,8 @@ sync=(core/"CenterSync.java").read_text()
 store=(core/"CenterStore.java").read_text()
 assert 'MAX_SOURCES' not in ui and 'msg:' not in ui
 assert 'center_lock' in ui
-assert 'AES/GCM/NoPadding' in store and 'AndroidKeyStore' in store
+assert 'AES/GCM/NoPadding' in (core/'CenterEnvelope.java').read_text() and 'AndroidKeyStore' in store
+assert 'CenterEnvelope.seal' in store and 'CenterEnvelope.open' in store
 assert 'TL_messages_getHistory' in sync and 'TL_messages_getDialogs' in sync
 assert not any(x in sync for x in ['markDialogAsRead(', 'sendMessage(', 'joinChannel('])
 assert 'protectedMedia' in sync and 'isEncryptedDialog' in sync

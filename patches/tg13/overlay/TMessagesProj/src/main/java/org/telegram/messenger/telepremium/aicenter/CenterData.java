@@ -8,7 +8,7 @@ public final class CenterData {
     private CenterData() {}
     public static final class Source {
         public int account, topic, lastId, offset, total;
-        public long owner, dialog, readAt;
+        public long owner, dialog, readAt, rangeFrom, rangeTo, loadedAt;
         public String canonical="", title="", accountName="", type="group", role="member", folder="";
         public boolean pinned, archived, muted, available=true, complete;
         public String key(){return account+":"+dialog+":"+topic;}
@@ -16,18 +16,18 @@ public final class CenterData {
             return new JSONObject().put("account",account).put("owner",owner).put("dialog",dialog).put("topic",topic)
                 .put("canonical",canonical).put("title",title).put("accountName",accountName).put("type",type)
                 .put("role",role).put("folder",folder).put("pinned",pinned).put("archived",archived).put("muted",muted)
-                .put("available",available).put("readAt",readAt).put("lastId",lastId).put("offset",offset).put("total",total).put("complete",complete);
+                .put("loadedAt",loadedAt).put("rangeFrom",rangeFrom).put("rangeTo",rangeTo).put("available",available).put("readAt",readAt).put("lastId",lastId).put("offset",offset).put("total",total).put("complete",complete);
         }
         public static Source parse(JSONObject o){
             Source s=new Source();s.account=o.optInt("account");s.owner=o.optLong("owner");s.dialog=o.optLong("dialog");s.topic=o.optInt("topic");
             s.canonical=o.optString("canonical");s.title=o.optString("title");s.accountName=o.optString("accountName");s.type=o.optString("type","group");
             s.role=o.optString("role","member");s.folder=o.optString("folder");s.pinned=o.optBoolean("pinned");s.archived=o.optBoolean("archived");
             s.muted=o.optBoolean("muted");s.available=o.optBoolean("available",true);s.readAt=o.optLong("readAt");s.lastId=o.optInt("lastId");
-            s.offset=o.optInt("offset");s.total=o.optInt("total");s.complete=o.optBoolean("complete");return s;
+            s.loadedAt=o.optLong("loadedAt");s.rangeFrom=o.optLong("rangeFrom");s.rangeTo=o.optLong("rangeTo");s.offset=o.optInt("offset");s.total=o.optInt("total");s.complete=o.optBoolean("complete");return s;
         }
     }
     public static final class Message {
-        public int account,id,date,topic,replies,forwards,reactions;
+        public int account,id,date,topic,replies,forwards,reactions,pages;
         public long owner,dialog,author,bytes,duration;
         public String source="",sourceTitle="",accountName="",authorName="",text="",kind="text",ocr="",transcript="",description="",forwardSource="",hash="";
         public boolean own,deleted,protectedMedia,personal;
@@ -41,14 +41,14 @@ public final class CenterData {
              .put("source",source).put("sourceTitle",sourceTitle).put("accountName",accountName).put("author",author).put("authorName",authorName)
              .put("text",text).put("kind",kind).put("ocr",ocr).put("transcript",transcript).put("description",description).put("forwardSource",forwardSource)
              .put("hash",hash).put("bytes",bytes).put("duration",duration).put("own",own).put("deleted",deleted).put("protectedMedia",protectedMedia)
-             .put("personal",personal).put("transport",transport).put("replies",replies).put("forwards",forwards).put("reactions",reactions);
+             .put("personal",personal).put("transport",transport).put("replies",replies).put("forwards",forwards).put("reactions",reactions).put("pages",pages);
         }
         public static Message parse(JSONObject o){
             Message m=new Message();m.account=o.optInt("account");m.owner=o.optLong("owner");m.dialog=o.optLong("dialog");m.id=o.optInt("id");m.date=o.optInt("date");
             m.topic=o.optInt("topic");m.source=o.optString("source");m.sourceTitle=o.optString("sourceTitle");m.accountName=o.optString("accountName");m.author=o.optLong("author");m.authorName=o.optString("authorName");
             m.text=o.optString("text");m.kind=o.optString("kind","text");m.ocr=o.optString("ocr");m.transcript=o.optString("transcript");m.description=o.optString("description");m.forwardSource=o.optString("forwardSource");m.hash=o.optString("hash");
             m.bytes=o.optLong("bytes");m.duration=o.optLong("duration");m.own=o.optBoolean("own");m.deleted=o.optBoolean("deleted");m.protectedMedia=o.optBoolean("protectedMedia");m.personal=o.optBoolean("personal");m.transport=o.optString("transport");
-            m.replies=o.optInt("replies");m.forwards=o.optInt("forwards");m.reactions=o.optInt("reactions");return m;
+            m.replies=o.optInt("replies");m.forwards=o.optInt("forwards");m.reactions=o.optInt("reactions");m.pages=o.optInt("pages");return m;
         }
     }
     public static final class Scope {
@@ -66,7 +66,7 @@ public final class CenterData {
     public static List<Message> select(Collection<Message> input,Collection<Source> sources,Scope scope){
         Map<String,Source> allowed=new HashMap<>();for(Source s:sources)if(scope.allows(s))allowed.put(s.key(),s);
         Map<String,Message> unique=new LinkedHashMap<>();
-        for(Message m:input){Source s=allowed.get(m.account+":"+m.dialog+":"+m.topic);if(s==null||!scope.matches(m)||(scope.sinceRead&&m.date<=s.readAt/1000))continue;
+        for(Message m:input){Source s=allowed.get(m.account+":"+m.dialog+":"+m.topic);if(s==null)s=allowed.get(m.account+":"+m.dialog+":0");if(s==null||!scope.matches(m)||(scope.sinceRead&&m.date<=s.readAt/1000))continue;
             Message old=unique.get(m.key());if(old==null||m.searchable().length()>old.searchable().length())unique.put(m.key(),m);}
         ArrayList<Message> out=new ArrayList<>(unique.values());out.sort(Comparator.comparingInt((Message m)->m.date).thenComparing(m->m.key()));return out;
     }

@@ -15,6 +15,14 @@ public class CenterIndexTest {
   check(CenterData.Scope.parse(scope.json()).excluded.equals(scope.excluded));
   check(CenterData.Message.parse(ms.get(0).json()).text.equals("verified quote"));
   CenterData.SourceFilter f=new CenterData.SourceFilter();f.text="forex";f.role="admin";check(!f.matches(a,ms,0,200));a.role="admin";check(f.matches(a,ms,0,200));f.accounts.add(2);check(!f.matches(a,ms,0,200));
+  scope.excluded.clear();scope.whole.clear();scope.sources.add(a.key());scope.from=0;
+  CenterData.Message topic=m(0,"c:100",43);topic.topic=7;
+  check(CenterData.select(Arrays.asList(topic),Arrays.asList(a),scope).size()==1);
+  a.readAt=101000;scope.sinceRead=true;check(CenterData.select(ms,Arrays.asList(a),scope).isEmpty());scope.sinceRead=false;
+  ms.get(0).deleted=true;check(CenterData.select(ms,Arrays.asList(a),scope).isEmpty());ms.get(0).deleted=false;
+  a.type="private";check(CenterData.select(ms,Arrays.asList(a),scope).isEmpty());scope.includePrivate=true;check(CenterData.select(ms,Arrays.asList(a),scope).size()==1);
+  ArrayList<CenterData.Message> large=new ArrayList<>();for(int i=0;i<40000;i++)large.add(m(0,"c:100",i+1));
+  check(CenterData.select(large,Arrays.asList(a),scope).size()==40000);
   System.out.println("CenterIndexTest OK: account isolation, chat identity, deduplication, filters, dates and persistence");
  }
 }

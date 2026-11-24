@@ -174,7 +174,14 @@ public final class TPAiStore {
         return getSecret("private_" + key);
     }
 
-    private static SecretKey key() throws Exception {
+    /** Delete only feature-owned encrypted values; leaves AI credentials untouched. */
+    public static synchronized void erasePrivatePrefix(String prefix) {
+        SharedPreferences.Editor editor=prefs().edit();
+        for(String key:prefs().getAll().keySet())if(key.startsWith("secret_private_"+prefix))editor.remove(key);
+        if(!editor.commit())throw new IllegalStateException("Private data deletion failed");
+    }
+
+    private static synchronized SecretKey key() throws Exception {
         KeyStore store = KeyStore.getInstance("AndroidKeyStore");
         store.load(null);
         java.security.Key existing = store.getKey(ALIAS, null);
