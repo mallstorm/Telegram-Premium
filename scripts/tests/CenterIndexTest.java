@@ -1,0 +1,20 @@
+import org.telegram.messenger.telepremium.aicenter.*;
+import java.util.*;
+public class CenterIndexTest {
+ static void check(boolean b){if(!b)throw new AssertionError();}
+ static CenterData.Source s(int a,String canonical){CenterData.Source s=new CenterData.Source();s.account=a;s.dialog=-100;s.canonical=canonical;s.title="Forex";return s;}
+ static CenterData.Message m(int a,String source,int id){CenterData.Message m=new CenterData.Message();m.account=a;m.dialog=-100;m.source=source;m.id=id;m.date=100;m.text="verified quote";return m;}
+ public static void main(String[]args)throws Exception{
+  CenterData.Source a=s(0,"c:100"),b=s(1,"c:100"),c=s(2,"g:100");CenterData.Scope scope=new CenterData.Scope();scope.from=0;scope.to=200;scope.whole.addAll(Arrays.asList(0,1,2));
+  List<CenterData.Message> ms=Arrays.asList(m(0,"c:100",42),m(1,"c:100",42),m(2,"g:100",42));
+  check(CenterData.select(ms,Arrays.asList(a,b,c),scope).size()==2);
+  scope.excluded.add(2);check(CenterData.select(ms,Arrays.asList(a,b,c),scope).size()==1);
+  scope.excluded.add(0);check(CenterData.select(ms,Arrays.asList(a,b,c),scope).get(0).account==1);
+  scope.from=101;check(CenterData.select(ms,Arrays.asList(a,b,c),scope).isEmpty());scope.from=0;
+  b.available=false;check(CenterData.select(ms,Arrays.asList(a,b,c),scope).isEmpty());b.available=true;
+  check(CenterData.Scope.parse(scope.json()).excluded.equals(scope.excluded));
+  check(CenterData.Message.parse(ms.get(0).json()).text.equals("verified quote"));
+  CenterData.SourceFilter f=new CenterData.SourceFilter();f.text="forex";f.role="admin";check(!f.matches(a,ms,0,200));a.role="admin";check(f.matches(a,ms,0,200));f.accounts.add(2);check(!f.matches(a,ms,0,200));
+  System.out.println("CenterIndexTest OK: account isolation, chat identity, deduplication, filters, dates and persistence");
+ }
+}

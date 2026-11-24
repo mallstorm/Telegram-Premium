@@ -8,6 +8,10 @@ public class JSONArray {
     final List<Object> values = new ArrayList<>();
 
     public JSONArray() {}
+    public JSONArray(java.util.Collection<?> c){values.addAll(c);}
+    public int optInt(int i){Object x=opt(i);return x instanceof Number?((Number)x).intValue():0;}
+    public long optLong(int i){Object x=opt(i);return x instanceof Number?((Number)x).longValue():0;}
+    public String optString(int i){Object x=opt(i);return x==null?"":String.valueOf(x);}
     public JSONArray(String raw) throws JSONException {JSONArray parsed=new JSONObject("{\"array\":"+raw+"}").getJSONArray("array");values.addAll(parsed.values);}
     public int getInt(int index) throws JSONException {return (int)getLong(index);}
     public String getString(int index) throws JSONException {Object value=opt(index);if(value==null)throw new JSONException("Missing string");return String.valueOf(value);}
