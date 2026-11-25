@@ -35,6 +35,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   private long profileAuthor = Long.MIN_VALUE;
   private String authorKind = "";
   private AlertDialog mediaDialog;
+  private final List<AlertDialog> centerDialogs = new ArrayList<>();
   private final Set<String> pickedMedia = new HashSet<>();
   private String mediaSearch = "";
   private String mediaKind = "";
@@ -189,6 +190,35 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     container.addView(image, lp);
   }
 
+  private AlertDialog.Builder dialogBuilder() {
+    int background = getThemedColor(Theme.key_windowBackgroundWhite);
+    boolean dark =
+        Color.red(background) * 299 + Color.green(background) * 587 + Color.blue(background) * 114
+            < 128000;
+    Context themed =
+        new android.view.ContextThemeWrapper(
+            getParentActivity(),
+            dark
+                ? android.R.style.Theme_Material_Dialog_Alert
+                : android.R.style.Theme_Material_Light_Dialog_Alert);
+    return new AlertDialog.Builder(themed) {
+      @Override
+      public AlertDialog create() {
+        AlertDialog dialog = super.create();
+        centerDialogs.add(dialog);
+        dialog.setOnDismissListener(d -> centerDialogs.remove(dialog));
+        if (dialog.getWindow() != null) {
+          dialog
+              .getWindow()
+              .setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(background));
+          if (CenterIndex.settings().optBoolean("secure", true))
+            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
+        return dialog;
+      }
+    };
+  }
+
   private void heading(String key) {
     TextView v = label(t(key), 19);
     v.setTypeface(AndroidUtilities.bold());
@@ -227,10 +257,15 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       return;
     }
     EditText in = new EditText(getParentActivity());
+    in.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+    in.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
+    in.setBackgroundTintList(
+        android.content.res.ColorStateList.valueOf(
+            getThemedColor(Theme.key_windowBackgroundWhiteBlueText)));
     if (key.equals("password") || key.equals("pin")) in.setInputType(key.equals("pin") ? 18 : 129);
     in.setText(value);
     in.setMaxLines(5);
-    new AlertDialog.Builder(getParentActivity())
+    dialogBuilder()
         .setTitle(t(key))
         .setView(in)
         .setPositiveButton(t("save"), (d, w) -> result.accept(in.getText().toString().trim()))
@@ -283,7 +318,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       }
     }
     Grid grid = new Grid(getParentActivity());
-    new AlertDialog.Builder(getParentActivity())
+    dialogBuilder()
         .setTitle(t("pattern"))
         .setView(grid)
         .setPositiveButton(t("confirm"), (d, w) -> done.accept(grid.pattern.toString()))
@@ -292,10 +327,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void choices(String title, String[] values, java.util.function.IntConsumer result) {
-    new AlertDialog.Builder(getParentActivity())
-        .setTitle(t(title))
-        .setItems(values, (d, w) -> result.accept(w))
-        .show();
+    dialogBuilder().setTitle(t(title)).setItems(values, (d, w) -> result.accept(w)).show();
   }
 
   private void toggle(String key, boolean checked, java.util.function.Consumer<Boolean> change) {
@@ -369,6 +401,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     super.onPause();
     savedScroll = scroll == null ? 0 : scroll.getScrollY();
     foreground = false;
+    for (AlertDialog dialog : new ArrayList<>(centerDialogs)) dialog.dismiss();
     if (mediaDialog != null) {
       mediaDialog.dismiss();
       mediaDialog = null;
@@ -391,8 +424,11 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void applySecure() {
-    if (getParentActivity() != null && CenterIndex.settings().optBoolean("secure", true))
-      getParentActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+    if (getParentActivity() != null) {
+      if (CenterIndex.settings().optBoolean("secure", true))
+        getParentActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+      else getParentActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+    }
   }
 
   private void unlock() {
@@ -404,7 +440,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       button(
           "clear",
           () ->
-              new AlertDialog.Builder(getParentActivity())
+              dialogBuilder()
                   .setMessage(t("confirmClear"))
                   .setPositiveButton(
                       t("confirm"),
@@ -656,7 +692,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         index.scope.includePrivate,
         b -> {
           if (b)
-            new AlertDialog.Builder(getParentActivity())
+            dialogBuilder()
                 .setMessage(t("privateChats"))
                 .setPositiveButton(
                     t("confirm"),
@@ -726,7 +762,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           boolean[] chosen = new boolean[accounts.size()];
           for (int i = 0; i < chosen.length; i++)
             chosen[i] = filter.accounts.isEmpty() || filter.accounts.contains(accounts.get(i));
-          new AlertDialog.Builder(getParentActivity())
+          dialogBuilder()
               .setTitle(t("account"))
               .setMultiChoiceItems(
                   names.toArray(new String[0]), chosen, (d, i, on) -> chosen[i] = on)
@@ -931,6 +967,11 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     reportKind = i;
                   }));
     EditText composer = new EditText(getParentActivity());
+    composer.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+    composer.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
+    composer.setBackgroundTintList(
+        android.content.res.ColorStateList.valueOf(
+            getThemedColor(Theme.key_windowBackgroundWhiteBlueText)));
     composer.setHint(t("query"));
     composer.setMaxLines(4);
     composer.setText(query);
@@ -1100,7 +1141,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                   + ((chars + 2) / 3 + ((chars + 17999) / 18000) * 2500 + 4000)
                   + " · "
                   + t("usage");
-          new AlertDialog.Builder(getParentActivity())
+          dialogBuilder()
               .setTitle(t("estimate"))
               .setMessage(estimate)
               .setPositiveButton(
@@ -1145,7 +1186,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         };
     if (CenterIndex.settings().optBoolean("consent", false)) action.run();
     else
-      new AlertDialog.Builder(getParentActivity())
+      dialogBuilder()
           .setMessage(t("consent"))
           .setPositiveButton(
               t("confirm"),
@@ -1435,7 +1476,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           } else {
             Set<String> authors = new LinkedHashSet<>();
             for (CenterReports.Evidence ev : claim.evidence) authors.add(ev.message.authorName);
-            new AlertDialog.Builder(getParentActivity())
+            dialogBuilder()
                 .setTitle(t("authors"))
                 .setMessage(android.text.TextUtils.join("\n", authors))
                 .setPositiveButton(t("done"), null)
@@ -1468,7 +1509,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       return;
     }
     if (m.deleted) {
-      new AlertDialog.Builder(getParentActivity())
+      dialogBuilder()
           .setTitle(t("deleted"))
           .setMessage(m.text)
           .setPositiveButton(t("done"), null)
@@ -1494,7 +1535,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         };
     if (UserConfig.selectedAccount == m.account) open.run();
     else
-      new AlertDialog.Builder(getParentActivity())
+      dialogBuilder()
           .setMessage(t("switchAccount"))
           .setPositiveButton(t("confirm"), (d, w) -> open.run())
           .setNegativeButton(t("cancel"), null)
@@ -1630,7 +1671,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     mediaSearch = "";
                     List<CenterData.Message> data = mediaMessages(false);
                     mediaSearch = previous;
-                    new AlertDialog.Builder(getParentActivity())
+                    dialogBuilder()
                         .setMessage(
                             t("consent")
                                 + "\n"
@@ -1769,7 +1810,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       button(
           "cloudAsr",
           () ->
-              new AlertDialog.Builder(getParentActivity())
+              dialogBuilder()
                   .setMessage(t("cloudAsrConsent"))
                   .setPositiveButton(
                       t("confirm"),
@@ -1833,8 +1874,9 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       details.setOnClickListener(w -> mediaDetails(m, 0));
       if (!m.transcript.isEmpty())
         for (CenterTranscript.Segment segment :
-            CenterTranscript.parse(m.transcript,m.duration)
-                .subList(0, Math.min(12, CenterTranscript.parse(m.transcript,m.duration).size()))) {
+            CenterTranscript.parse(m.transcript, m.duration)
+                .subList(
+                    0, Math.min(12, CenterTranscript.parse(m.transcript, m.duration).size()))) {
           TextView v = label(CenterTranscript.stamp(segment.start) + " · " + segment.text, 14);
           v.setOnClickListener(w -> playAt(m, segment.start));
           card.addView(v);
@@ -1888,7 +1930,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     long totalBytes = bytes, totalDuration = duration;
     Runnable launch =
         () ->
-            new AlertDialog.Builder(getParentActivity())
+            dialogBuilder()
                 .setTitle(t("estimate"))
                 .setMessage(
                     t("media")
@@ -1920,7 +1962,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 .setNegativeButton(t("cancel"), null)
                 .show();
     if (op.equals("describe") && !CenterIndex.settings().optBoolean("consent", false))
-      new AlertDialog.Builder(getParentActivity())
+      dialogBuilder()
           .setMessage(t("consent"))
           .setPositiveButton(
               t("confirm"),
@@ -2047,7 +2089,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             14);
     metadata.setTextIsSelectable(true);
     content.addView(metadata);
-    List<CenterTranscript.Segment> segments = CenterTranscript.parse(m.transcript,m.duration);
+    List<CenterTranscript.Segment> segments = CenterTranscript.parse(m.transcript, m.duration);
     for (int n = transcriptPage * 40;
         n < Math.min(segments.size(), (transcriptPage + 1) * 40);
         n++) {
@@ -2057,7 +2099,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       line.setOnClickListener(v -> playAt(m, segment.start));
     }
     AlertDialog dialog =
-        new AlertDialog.Builder(getParentActivity())
+        dialogBuilder()
             .setView(panel)
             .setPositiveButton(t("open"), (d, w) -> openEvidence(m))
             .setNeutralButton(
@@ -2069,7 +2111,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                         question -> {
                           Runnable launch =
                               () ->
-                                  new AlertDialog.Builder(getParentActivity())
+                                  dialogBuilder()
                                       .setMessage(
                                           t("estimate")
                                               + ": "
@@ -2089,7 +2131,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                                       .show();
                           if (CenterIndex.settings().optBoolean("consent", false)) launch.run();
                           else
-                            new AlertDialog.Builder(getParentActivity())
+                            dialogBuilder()
                                 .setMessage(t("consent"))
                                 .setPositiveButton(
                                     t("confirm"),
@@ -2161,7 +2203,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                       i == 0
                           ? m.transcript
                           : CenterTranscript.subtitles(
-                              CenterTranscript.parse(m.transcript,m.duration), i == 2);
+                              CenterTranscript.parse(m.transcript, m.duration), i == 2);
                   TPAiClient.async(
                       () -> CenterFiles.transcript(m, i == 0 ? "txt" : i == 1 ? "srt" : "vtt"),
                       (file, failure) -> {
@@ -2232,9 +2274,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         .getWindow()
         .setLayout(
             WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
-    dialog
-        .getWindow()
-        .setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+    if (CenterIndex.settings().optBoolean("secure", true))
+      dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
   }
 
   private final class ZoomImage extends android.widget.ImageView {
@@ -2552,7 +2593,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             names[i] = stats.groups.get(i).title;
             selected[i] = chartGroups.contains(stats.groups.get(i).id);
           }
-          new AlertDialog.Builder(getParentActivity())
+          dialogBuilder()
               .setTitle(t("groups"))
               .setMultiChoiceItems(
                   names,
@@ -3304,7 +3345,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         "account",
         names.toArray(new String[0]),
         i ->
-            new AlertDialog.Builder(getParentActivity())
+            dialogBuilder()
                 .setMessage(t("saveCloud") + " · " + names.get(i) + " · " + file.length())
                 .setPositiveButton(
                     t("confirm"),
@@ -3369,7 +3410,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                             if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
                               throw new Exception();
                             JSONObject template = saved.getJSONObject(names.get(i));
-                            new AlertDialog.Builder(getParentActivity())
+                            dialogBuilder()
                                 .setMessage(t("scheduleConsent"))
                                 .setPositiveButton(
                                     t("confirm"),
@@ -3462,7 +3503,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         names,
         i -> {
           CenterData.Source source = sources.get(i);
-          new AlertDialog.Builder(getParentActivity())
+          dialogBuilder()
               .setMessage(t("clearHistorySource"))
               .setPositiveButton(
                   t("confirm"),
@@ -3717,7 +3758,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     button(
         "clear",
         () ->
-            new AlertDialog.Builder(getParentActivity())
+            dialogBuilder()
                 .setMessage(t("confirmClear"))
                 .setPositiveButton(t("confirm"), (d, w) -> clearCenterData())
                 .setNegativeButton(t("cancel"), null)

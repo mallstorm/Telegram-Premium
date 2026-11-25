@@ -1242,7 +1242,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAnalyzerActivity.java",
       "base_sha256": null,
-      "sha256": "f37ca3a655b7b870cb47660ea75e6506ca2ab1f9155db13d7a5825a84b2f0c0a"
+      "sha256": "978cd1519ac0c695f75c09f95243a8938c4ae5c153f6e995a29144fb01a2ddef"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAppearanceActivity.java",
