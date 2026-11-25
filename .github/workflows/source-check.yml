@@ -33,6 +33,7 @@ jobs:
           OUT="$RUNNER_TEMP/tp-tests"; mkdir -p "$OUT"
           javac -d "$OUT" $(python3 scripts/tests/sources.py) scripts/tests/*.java
           for t in $(cd scripts/tests && ls *Test.java | sed 's/\.java$//'); do java -cp "$OUT" "$t"; done
+          python3 scripts/test_ai_center_usage.py
       - name: Vault default encryption and sync regression tests
         run: |
           python3 scripts/test_vault_keys.py
