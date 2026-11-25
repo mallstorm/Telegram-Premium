@@ -76,3 +76,7 @@
 
 # Tesseract JNI entry points used by the local AI Center OCR.
 -keep class com.googlecode.tesseract.android.** { *; }
+
+# PDFBox extracts document text only. Android PdfRenderer rasterizes pages for OCR;
+# its optional third-party JPEG2000 raster decoder is never invoked.
+-dontwarn com.gemalto.jp2.**

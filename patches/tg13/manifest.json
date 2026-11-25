@@ -32,7 +32,7 @@
     {
       "path": "TMessagesProj/proguard-rules.pro",
       "base_sha256": "22eb51bec8534b1a21f90cc277a24cf42b17eb53697065bf2dc1e56329b0c4f9",
-      "sha256": "d61b15e11e117bd58ef08648d85e19d138cdb2cf677974dfcc390ceb1cebaf93"
+      "sha256": "7342a0e68ef5177d11c086f4a7d625f137900729a4fa4ca8637e7a5ebc8411ea"
     },
     {
       "path": "TMessagesProj/src/main/AndroidManifest.xml",
