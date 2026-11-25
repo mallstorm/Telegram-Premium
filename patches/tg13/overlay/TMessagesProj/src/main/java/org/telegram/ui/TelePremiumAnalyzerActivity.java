@@ -35,7 +35,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     if (!TPAiStore.getPrivate("center_lock").isEmpty() || lockPresent()) {
       savedScroll = scroll == null ? savedScroll : scroll.getScrollY();
       unlocked = false;
-      if (body != null) body.removeAllViews();
+      if (body != null) clearBody();
       for (AlertDialog dialog : new ArrayList<>(centerDialogs)) dialog.dismiss();
     }
   }
@@ -96,6 +96,9 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   private CenterSync sync;
   private LinearLayout root, body, navigation;
   private TelePremiumCenterUi ui;
+  private LinearLayout dock;
+  private int backTo = -1;
+  private static final int[] NAV = {1, 6, 2, 4, 5, 7};
   private ProgressBar loadingBar;
   private HorizontalScrollView navigationScroll;
   private final ArrayList<LinearLayout> navItems = new ArrayList<>();
@@ -113,7 +116,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   };
   private TextView scopeLine, status;
   private ScrollView scroll;
-  private int screen;
+  private int screen = 1;
   private boolean unlocked, foreground;
   private String secretKind = "PASSWORD";
   private final VaultAttemptLimiter limiter =
@@ -189,53 +192,85 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     return v;
   }
 
+  private String navTitle(int tab) {
+    switch (tab) {
+      case 1:
+        return tr("Summary", "Сводка");
+      case 6:
+        return tr("Analyst", "Аналитик");
+      case 2:
+        return tr("Activity", "Активность");
+      case 4:
+        return tr("Media", "Медиа");
+      case 5:
+        return tr("Transcriber", "Транскрибатор");
+      case 7:
+        return tr("Reports", "Отчёты");
+      case 8:
+        return tr("Settings", "Настройки");
+      case 0:
+        return tr("Sources", "Источники");
+      case 9:
+        return tr("Accounts", "Аккаунты и фильтры");
+      default:
+        return tr("Authors", "Авторы");
+    }
+  }
+
   private String describe(int tab) {
     switch (tab) {
-      case 0:
-        return tr(
-            "Choose what to analyze: accounts, groups, period",
-            "Что анализировать: аккаунты, группы и период");
       case 1:
         return tr(
-            "Sourced summaries of one or many groups",
-            "Сводки по одной или нескольким группам с источниками");
+            "A structured digest of your groups for the chosen period, with proof for every point.",
+            "Структурированная сводка по вашим группам за период. К каждому пункту — доказательства.");
       case 2:
-        return tr(
-            "Which groups are more and less active",
-            "Какие группы активнее, а какие тише");
       case 3:
-        return tr("Who published what, with evidence", "Кто что публиковал — с доказательствами");
+        return tr(
+            "Which groups and people were active, and when.",
+            "Какие группы и люди были активны и когда.");
       case 4:
-        return tr("Images, video and documents of your groups", "Изображения, видео и документы групп");
+        return tr(
+            "Photos, videos and documents from your groups. Search them, read the text on them, ask AI to describe them.",
+            "Фото, видео и документы из ваших групп. Ищите их, распознавайте текст, просите ИИ описать.");
       case 5:
-        return tr("Speech to text with timecodes", "Речь в текст с таймкодами");
-      case 6:
-        return tr("Ask a question across your selection", "Вопрос по выбранным источникам");
+        return tr(
+            "Turns voice messages, audio and video into text with timecodes.",
+            "Превращает голосовые, аудио и видео в текст с таймкодами.");
       case 7:
-        return tr("Saved reports, exports and digests", "Сохранённые отчёты, экспорт и дайджесты");
+        return tr("Everything you have saved.", "Всё, что вы сохранили.");
       case 8:
-        return tr("Models, limits, privacy and protection", "Модели, лимиты, приватность и защита");
+        return tr(
+            "Sources, models, limits, background work and protection.",
+            "Источники, модели, лимиты, фоновая работа и защита.");
+      case 0:
+        return tr(
+            "Choose which groups of each account are analysed.",
+            "Выберите, какие группы каждого аккаунта анализируются.");
       default:
-        return tr("Accounts and source filters", "Аккаунты и фильтры источников");
+        return "";
     }
   }
 
   private void updateNavigation() {
     if (navItems.isEmpty()) return;
-    int active = screen == 9 ? 0 : screen;
+    int current = screen == 3 ? 2 : screen;
+    int activeIndex = -1;
+    for (int i = 0; i < NAV.length; i++) if (NAV[i] == current) activeIndex = i;
     for (int i = 0; i < navItems.size(); i++) {
       LinearLayout item = navItems.get(i);
-      boolean on = i == active;
+      boolean on = i == activeIndex;
       int color = on ? ui.accent() : ui.sub();
-      ((ImageView) item.getChildAt(0)).setImageDrawable(ui.drawable(NAV_ICONS[i], color));
+      ((ImageView) item.getChildAt(0)).setImageDrawable(ui.drawable(NAV_ICONS[NAV[i]], color));
       TextView title = (TextView) item.getChildAt(1);
       title.setTextColor(color);
       title.setTypeface(on ? AndroidUtilities.bold() : Typeface.DEFAULT);
       item.setBackground(on ? ui.shape(TelePremiumCenterUi.alpha(ui.accent(), 28), 14, 0, 0) : null);
     }
-    final LinearLayout current = navItems.get(active);
-    navigationScroll.post(
-        () -> navigationScroll.smoothScrollTo(Math.max(0, current.getLeft() - dp(120)), 0));
+    if (activeIndex >= 0) {
+      final LinearLayout item = navItems.get(activeIndex);
+      navigationScroll.post(
+          () -> navigationScroll.smoothScrollTo(Math.max(0, item.getLeft() - dp(120)), 0));
+    }
   }
 
   private boolean lockPresent() {
@@ -459,56 +494,42 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         new ActionBar.ActionBarMenuOnItemClick() {
           @Override
           public void onItemClick(int id) {
-            if (id == -1) finishFragment();
+            if (id == -1) {
+              if (unlocked && screen == 9) show(0);
+              else if (unlocked && screen == 0) show(backTo >= 0 ? backTo : 8);
+              else finishFragment();
+            } else if (id == 1 && unlocked) show(8);
           }
         });
+    actionBar.createMenu().addItem(1, R.drawable.tp_aic_settings);
     ui = new TelePremiumCenterUi(context, this::getThemedColor);
     root = new LinearLayout(context);
     root.setOrientation(LinearLayout.VERTICAL);
     root.setBackgroundColor(ui.page());
-    LinearLayout scopeCard =
-        ui.clickableCard(
-            14,
-            10,
-            v -> {
-              drilldown = null;
-              authorReport = false;
-              show(0);
-            });
-    scopeCard.setOrientation(LinearLayout.HORIZONTAL);
-    scopeCard.setGravity(Gravity.CENTER_VERTICAL);
-    android.widget.FrameLayout scopeBadge = ui.badge(R.drawable.tp_aic_sources, ui.accent(), 38, 22);
-    LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(dp(38), dp(38));
-    badgeParams.rightMargin = dp(12);
-    scopeCard.addView(scopeBadge, badgeParams);
-    LinearLayout scopeColumn = new LinearLayout(context);
-    scopeColumn.setOrientation(LinearLayout.VERTICAL);
-    scopeLine = ui.text(t("sources"), 13.5f, ui.text(), false);
-    scopeLine.setMaxLines(3);
-    scopeColumn.addView(scopeLine);
+    scopeLine = new TextView(context);
+    LinearLayout statusStrip = new LinearLayout(context);
+    statusStrip.setOrientation(LinearLayout.VERTICAL);
     status =
         new TextView(context) {
           @Override
           public void setText(CharSequence text, BufferType type) {
             super.setText(text, type);
-            if (loadingBar != null)
-              loadingBar.setVisibility(text == null || text.length() == 0 ? View.GONE : View.VISIBLE);
-            setVisibility(text == null || text.length() == 0 ? View.GONE : View.VISIBLE);
+            boolean empty = text == null || text.length() == 0;
+            if (loadingBar != null) loadingBar.setVisibility(empty ? View.GONE : View.VISIBLE);
+            setVisibility(empty ? View.GONE : View.VISIBLE);
           }
         };
-    status.setTextSize(12);
+    status.setTextSize(12.5f);
     status.setTextColor(ui.accent());
-    status.setPadding(0, dp(3), 0, 0);
+    status.setPadding(dp(18), dp(6), dp(18), dp(6));
     status.setVisibility(View.GONE);
-    scopeColumn.addView(status);
-    scopeCard.addView(scopeColumn, new LinearLayout.LayoutParams(0, -2, 1));
-    scopeCard.addView(ui.icon(R.drawable.tp_aic_chevron, ui.sub(), 22));
-    root.addView(scopeCard, ui.cardParams());
+    statusStrip.addView(status);
     loadingBar = new ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
     loadingBar.setIndeterminate(true);
     loadingBar.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(ui.accent()));
     loadingBar.setVisibility(View.GONE);
-    root.addView(loadingBar, new LinearLayout.LayoutParams(-1, dp(3)));
+    statusStrip.addView(loadingBar, new LinearLayout.LayoutParams(-1, dp(3)));
+    root.addView(statusStrip, new LinearLayout.LayoutParams(-1, -2));
     scroll = new ScrollView(context);
     scroll.setBackgroundColor(ui.page());
     scroll.setClipToPadding(false);
@@ -517,6 +538,11 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     body.setPadding(0, 0, 0, dp(28));
     scroll.addView(body);
     root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    dock = new LinearLayout(context);
+    dock.setOrientation(LinearLayout.VERTICAL);
+    dock.setBackgroundColor(ui.card());
+    dock.setVisibility(View.GONE);
+    root.addView(dock, new LinearLayout.LayoutParams(-1, -2));
     View navLine = new View(context);
     navLine.setBackgroundColor(ui.line());
     root.addView(navLine, new LinearLayout.LayoutParams(-1, Math.max(1, dp(0.5f))));
@@ -528,20 +554,20 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     navigationScroll.addView(navigation);
     root.addView(navigationScroll, new LinearLayout.LayoutParams(-1, dp(66)));
     navItems.clear();
-    for (int i = 0; i < SCREENS.length; i++) {
-      final int tab = i;
+    for (int i = 0; i < NAV.length; i++) {
+      final int tab = NAV[i];
       LinearLayout item = new LinearLayout(context);
       item.setOrientation(LinearLayout.VERTICAL);
       item.setGravity(Gravity.CENTER);
-      item.setPadding(dp(4), dp(4), dp(4), dp(4));
-      item.addView(ui.icon(NAV_ICONS[i], ui.sub(), 24));
-      TextView title = ui.text(t(SCREENS[i]), 11, ui.sub(), false);
+      item.setPadding(dp(2), dp(4), dp(2), dp(4));
+      item.addView(ui.icon(NAV_ICONS[tab], ui.sub(), 24));
+      TextView title = ui.text(navTitle(tab), 11, ui.sub(), false);
       title.setSingleLine(true);
       title.setGravity(Gravity.CENTER);
       title.setPadding(0, dp(2), 0, 0);
       item.addView(title);
-      item.setOnClickListener(w -> show(tab));
-      navigation.addView(item, new LinearLayout.LayoutParams(dp(82), -1));
+      item.setOnClickListener(w -> openTab(tab));
+      navigation.addView(item, new LinearLayout.LayoutParams(dp(88), -1));
       navItems.add(item);
     }
     fragmentView = root;
@@ -572,7 +598,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     if (ApplicationLoader.mainInterfacePaused
         && (!TPAiStore.getPrivate("center_lock").isEmpty() || lockPresent())) {
       unlocked = false;
-      if (body != null) body.removeAllViews();
+      if (body != null) clearBody();
     }
     if (getParentActivity() != null)
       getParentActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
@@ -596,10 +622,18 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     }
   }
 
+  private void clearBody() {
+    body.removeAllViews();
+    if (dock != null) {
+      dock.removeAllViews();
+      dock.setVisibility(View.GONE);
+    }
+  }
+
   private void unlock() {
     String record = TPAiStore.getPrivate("center_lock");
     if (record.isEmpty() && lockPresent()) {
-      body.removeAllViews();
+      clearBody();
       heading("locked");
       info(t("lockLost"));
       button(
@@ -624,7 +658,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       reload();
       return;
     }
-    body.removeAllViews();
+    clearBody();
     heading("locked");
     button(
         "unlock",
@@ -761,24 +795,38 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   private void show(int tab) {
     if (!unlocked) return;
     int oldScreen = screen;
+    if (tab == 0 && oldScreen != 0 && oldScreen != 9) backTo = oldScreen;
     screen = tab;
     if (tab == 7 && oldScreen != 7) archiveDetail = false;
     uiVersion++;
-    body.removeAllViews();
-    scopeLine.setText(scopeSummary());
-    body.addView(
-        ui.hero(
-            NAV_ICONS[tab],
-            tab == 9 ? tr("Accounts and filters", "Аккаунты и фильтры") : t(SCREENS[tab]),
-            describe(tab)));
+    clearBody();
+    dock.removeAllViews();
+    dock.setVisibility(View.GONE);
+    actionBar.setTitle(navTitle(tab == 3 ? 2 : tab));
     updateNavigation();
     scroll.scrollTo(0, 0);
+    String caption = describe(tab);
+    boolean flow = tab == 1 || tab == 2 || tab == 3 || tab == 4 || tab == 5 || tab == 6;
+    if (tab == 2 || tab == 3) {
+      LinearLayout seg =
+          ui.segmented(
+              new String[] {tr("Groups", "Группы"), tr("Authors", "Авторы")},
+              tab == 2 ? 0 : 1,
+              i -> show(i == 0 ? 2 : 3));
+      body.addView(seg, margins(-1, -2, 12, 10, 12, 0));
+    }
+    if (!caption.isEmpty() && tab != 6) {
+      TextView hint = ui.text(caption, 13, ui.sub(), false);
+      hint.setPadding(dp(18), dp(10), dp(18), dp(2));
+      body.addView(hint);
+    }
+    if (flow) body.addView(scopeBar());
     switch (tab) {
       case 0:
         sources();
         break;
       case 1:
-        summaries(false);
+        summary();
         break;
       case 2:
         statistics(false);
@@ -787,13 +835,13 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         statistics(true);
         break;
       case 4:
-        media(false);
+        mediaLibrary();
         break;
       case 5:
-        media(true);
+        transcriber();
         break;
       case 6:
-        summaries(true);
+        analyst();
         break;
       case 7:
         reportArchive();
@@ -807,6 +855,57 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       default:
         info(t("empty"));
     }
+  }
+
+  private String periodLabel() {
+    if (index.scope.sinceRead) return t("sinceRead");
+    long span = Math.round((index.scope.to - index.scope.from) / 86400.0);
+    if (span == 1) return tr("1 day", "1 день");
+    if (span == 7) return tr("7 days", "7 дней");
+    if (span == 30) return tr("30 days", "30 дней");
+    if (span == 90) return tr("90 days", "90 дней");
+    return dateOnly(index.scope.from) + " — " + dateOnly(index.scope.to);
+  }
+
+  private void choosePeriod() {
+    choices(
+        "period",
+        new String[] {
+          tr("1 day", "1 день"),
+          tr("7 days", "7 дней"),
+          tr("30 days", "30 дней"),
+          tr("90 days", "90 дней"),
+          t("customDates"),
+          t("sinceRead")
+        },
+        this::pickPeriod);
+  }
+
+  /** One light row under every analysis screen: what is analysed and for which period. */
+  private View scopeBar() {
+    android.widget.HorizontalScrollView row = ui.chipRow();
+    long sourceCount = index.sources.stream().filter(index.scope::requests).count();
+    row.getChildAt(0).setPadding(dp(12), dp(8), dp(12), dp(2));
+    ui.addChip(
+        row,
+        ui.chip(
+            sourceCount == 0
+                ? tr("Choose sources", "Выбрать источники")
+                : tr("Sources", "Источники") + ": " + sourceCount,
+            sourceCount == 0,
+            v -> show(0)));
+    ui.addChip(row, ui.chip(periodLabel(), false, v -> choosePeriod()));
+    if (drilldown != null)
+      ui.addChip(
+          row,
+          ui.chip(
+              tr("Subset of a report", "Выборка из отчёта") + "  ✕",
+              true,
+              v -> {
+                drilldown = null;
+                show(screen);
+              }));
+    return row;
   }
 
   // ------------------------------------------------------------------ sources and accounts
@@ -897,7 +996,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       index.scope.to = System.currentTimeMillis() / 1000;
       index.scope.from = index.scope.to - new int[] {1, 7, 30, 90}[i] * 86400L;
       index.saveScope();
-      show(0);
+      show(screen);
     } else if (i == 4)
       input(
           "customDates",
@@ -911,7 +1010,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
               index.scope.to = f.parse(v[1].trim()).getTime() / 1000 + 86399;
               if (index.scope.to < index.scope.from) throw new Exception();
               index.saveScope();
-              show(0);
+              show(screen);
             } catch (Exception e) {
               error(t("customDates"));
             }
@@ -920,7 +1019,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       index.scope.to = System.currentTimeMillis() / 1000;
       index.scope.from = reviewFrom(index.scope);
       index.saveScope();
-      show(0);
+      show(screen);
     }
   }
 
@@ -1534,107 +1633,313 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     return r;
   }
 
-  private void summaries(boolean chat) {
-    LinearLayout box = ui.card(14, 12);
-    if (!chat) {
-      box.addView(ui.text(tr("Report type", "Тип отчёта"), 12.5f, ui.sub(), true));
-      String[] kinds = {t("groupReport"), t("authorsReport"), t("new"), t("compare")};
-      android.widget.HorizontalScrollView kindRow = ui.chipRow();
-      kindRow.getChildAt(0).setPadding(0, dp(6), 0, dp(10));
-      for (int i = 0; i < kinds.length; i++) {
-        final int pick = i;
-        ui.addChip(
-            kindRow,
-            ui.chip(
-                kinds[i],
-                reportKind == i,
-                v -> {
-                  reportKind = pick;
-                  show(screen);
-                }));
-      }
-      box.addView(kindRow);
+  private String defaultQuestion(int kind) {
+    switch (kind) {
+      case 1:
+        return tr(
+            "Who published what, and what matters in those posts?",
+            "Кто что публиковал и что важно в этих публикациях?");
+      case 2:
+        return tr(
+            "What is new since I last reviewed these groups?",
+            "Что нового с моего последнего просмотра этих групп?");
+      case 3:
+        return tr(
+            "What changed compared with the previous period?",
+            "Что изменилось по сравнению с предыдущим периодом?");
+      default:
+        return tr(
+            "What was discussed and what matters most?", "Что обсуждалось и что важнее всего?");
     }
-    box.addView(
-        ui.text(
-            chat ? tr("Your question", "Ваш вопрос") : tr("What to find out", "Что выяснить"),
-            12.5f,
-            ui.sub(),
-            true));
-    final EditText composer = ui.field(t("query"), query, 4);
-    box.addView(composer, margins(-1, -2, 0, 6, 0, 0));
-    String[] examples =
-        org.telegram.messenger.telepremium.TPStrings.isRussian()
-            ? new String[] {
-              "Что произошло за период?",
-              "Какие решения приняты?",
-              "Кто о чём спорил?",
-              "Какие вопросы остались без ответа?"
-            }
-            : new String[] {
-              "What happened in this period?",
-              "Which decisions were made?",
-              "Who argued about what?",
-              "Which questions stayed unanswered?"
-            };
-    android.widget.HorizontalScrollView exampleRow = ui.chipRow();
-    exampleRow.getChildAt(0).setPadding(0, dp(8), 0, dp(2));
-    for (String example : examples)
-      ui.addChip(exampleRow, ui.chip(example, false, v -> composer.setText(example)));
-    box.addView(exampleRow);
+  }
+
+  private View kindOption(int kind, String title, String subtitle) {
+    boolean on = reportKind == kind;
+    LinearLayout r = new LinearLayout(getParentActivity());
+    r.setGravity(Gravity.CENTER_VERTICAL);
+    r.setPadding(dp(14), dp(10), dp(14), dp(10));
+    r.setBackground(
+        ui.ripple(
+            on
+                ? ui.shape(TelePremiumCenterUi.alpha(ui.accent(), 22), 14, ui.accent(), 1.5f)
+                : ui.shape(ui.card(), 14, ui.line(), 1),
+            14));
+    LinearLayout col = new LinearLayout(getParentActivity());
+    col.setOrientation(LinearLayout.VERTICAL);
+    col.addView(ui.text(title, 15, ui.text(), true));
+    TextView sub = ui.text(subtitle, 12.5f, ui.sub(), false);
+    sub.setPadding(0, dp(2), 0, 0);
+    col.addView(sub);
+    r.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
+    if (on) r.addView(ui.icon(R.drawable.tp_aic_check, ui.accent(), 22));
+    r.setOnClickListener(
+        v -> {
+          reportKind = kind;
+          show(1);
+        });
+    return r;
+  }
+
+  private String focusDraft = "";
+
+  /** "Сводка": pick what to collect, press one button, read the result with proof. */
+  private void summary() {
+    body.addView(ui.section(tr("What to collect", "Что собрать")));
+    String[][] kinds = {
+      {
+        tr("Summary of the groups", "Сводка по группам"),
+        tr("What was discussed and what matters", "Что обсуждали и что важно")
+      },
+      {
+        tr("Who published what", "Кто что публиковал"),
+        tr("Posts of each author, with quotes and pictures", "Публикации авторов с цитатами и картинками")
+      },
+      {
+        tr("What is new", "Что нового"),
+        tr("Only what you have not reviewed yet", "Только то, что вы ещё не просматривали")
+      },
+      {
+        tr("Compare with the previous period", "Сравнить с прошлым периодом"),
+        tr("What changed against the same-length period before", "Что изменилось по сравнению с таким же периодом до этого")
+      }
+    };
+    for (int i = 0; i < kinds.length; i++)
+      body.addView(kindOption(i, kinds[i][0], kinds[i][1]), margins(-1, -2, 12, 3, 12, 3));
+
+    LinearLayout box = ui.card(14, 12);
+    box.addView(ui.text(tr("Focus (optional)", "Уточнение (необязательно)"), 12.5f, ui.sub(), true));
+    final EditText focus =
+        ui.field(
+            tr("For example: decisions, deadlines, disputes", "Например: решения, сроки, споры"),
+            focusDraft,
+            2);
+    focus.addTextChangedListener(
+        new android.text.TextWatcher() {
+          public void beforeTextChanged(CharSequence c, int a, int b, int d) {}
+
+          public void onTextChanged(CharSequence c, int a, int b, int d) {
+            focusDraft = c.toString();
+          }
+
+          public void afterTextChanged(android.text.Editable e) {}
+        });
+    box.addView(focus, margins(-1, -2, 0, 6, 0, 0));
     box.addView(ui.divider());
-    CenterExport.Options current = exportOptions();
-    int mode = (current.images ? 2 : 0) + (detailed ? 1 : 0);
-    box.addView(ui.text(t("responseMode"), 12.5f, ui.sub(), true));
+    box.addView(ui.text(tr("Format", "Формат"), 12.5f, ui.sub(), true));
     LinearLayout seg =
         ui.segmented(
-            new String[] {
-              tr("Short", "Кратко"),
-              tr("Detailed", "Подробно"),
-              tr("Short + images", "Кратко + картинки"),
-              tr("Detailed + images", "Подробно + картинки")
-            },
-            mode,
-            picked -> {
-              detailed = picked % 2 == 1;
+            new String[] {tr("Short", "Кратко"), tr("Detailed", "Подробно")},
+            detailed ? 1 : 0,
+            picked -> detailed = picked == 1);
+    box.addView(seg, margins(-1, -2, 0, 6, 0, 0));
+    LinearLayout switches = new LinearLayout(getParentActivity());
+    switches.setOrientation(LinearLayout.VERTICAL);
+    switches.setPadding(0, dp(8), 0, 0);
+    final Switch pictures =
+        ui.switchView(
+            exportOptions().images,
+            on -> {
               CenterExport.Options options = exportOptions();
-              options.images = picked >= 2;
+              options.images = on;
               saveExportOptions(options);
             });
-    box.addView(seg, margins(-1, -2, 0, 6, 0, 0));
+    switches.addView(
+        switchLine(
+            tr("Add pictures", "Добавить картинки"),
+            tr("Show images from the messages next to the points", "Показывать изображения из сообщений рядом с пунктами"),
+            pictures));
     final Switch personal =
         ui.switchView(
             index.scope.includePersonal,
-            b -> {
-              index.scope.includePersonal = b;
+            on -> {
+              index.scope.includePersonal = on;
               index.saveScope();
             });
-    LinearLayout personalRow = new LinearLayout(getParentActivity());
-    personalRow.setGravity(Gravity.CENTER_VERTICAL);
-    personalRow.setPadding(dp(2), dp(12), dp(2), 0);
-    personalRow.addView(
-        ui.text(t("personal"), 14, ui.text(), false), new LinearLayout.LayoutParams(0, -2, 1));
-    personalRow.addView(personal);
-    personalRow.setOnClickListener(w -> personal.toggle());
-    box.addView(personalRow);
-    TextView ask =
+    switches.addView(
+        switchLine(
+            tr("Include personal messages", "Учитывать личные сообщения"),
+            tr("Only if you chose private chats among the sources", "Только если среди источников выбраны личные чаты"),
+            personal));
+    box.addView(switches);
+    final TextView ask =
         ui.button(
-            t("ask"),
-            true,
-            R.drawable.tp_aic_send,
+            reportRunning ? t("cancel") : tr("Collect summary", "Собрать сводку"),
+            !reportRunning,
+            reportRunning ? R.drawable.tp_aic_close : R.drawable.tp_aic_summaries,
             v -> {
-              query = composer.getText().toString().trim();
-              if (query.isEmpty()) {
-                toast(t("query"));
+              if (reportRunning) {
+                aiCancelled.set(true);
+                reportRunning = false;
+                show(1);
                 return;
               }
+              String extra = focusDraft.trim();
+              query = defaultQuestion(reportKind) + (extra.isEmpty() ? "" : " " + extra);
               runReport(query);
             });
-    TextView stop =
-        ui.button(t("cancel"), false, R.drawable.tp_aic_close, v -> aiCancelled.set(true));
-    box.addView(ui.buttonRow(stop, ask), margins(-1, -2, 0, 14, 0, 0));
+    box.addView(ask, margins(-1, -2, 0, 14, 0, 0));
     body.addView(box, ui.cardParams());
+    reportSection(false);
+  }
 
+  private LinearLayout switchLine(String title, String subtitle, Switch sw) {
+    LinearLayout line = new LinearLayout(getParentActivity());
+    line.setGravity(Gravity.CENTER_VERTICAL);
+    line.setPadding(dp(2), dp(8), dp(2), dp(8));
+    LinearLayout col = new LinearLayout(getParentActivity());
+    col.setOrientation(LinearLayout.VERTICAL);
+    col.addView(ui.text(title, 14.5f, ui.text(), false));
+    TextView sub = ui.text(subtitle, 12, ui.sub(), false);
+    sub.setPadding(0, dp(2), dp(8), 0);
+    col.addView(sub);
+    line.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
+    line.addView(sw);
+    line.setOnClickListener(w -> sw.toggle());
+    return line;
+  }
+
+  private String draft = "";
+  private CenterReports.Report summaryReport, analystReport;
+
+  private void openTab(int tab) {
+    if (screen == 1 && tab != 1) summaryReport = report;
+    else if (screen == 6 && tab != 6) analystReport = report;
+    if (tab == 1 && screen != 1) report = summaryReport;
+    else if (tab == 6 && screen != 6) report = analystReport;
+    drilldown = tab == 6 ? drilldown : null;
+    authorReport = tab == 6 && authorReport;
+    show(tab);
+  }
+
+  /** "Аналитик": a conversation. The answer is above, the input is docked at the bottom. */
+  private void analyst() {
+    if (!authorReport) reportKind = 0;
+    if (report == null) {
+      LinearLayout empty =
+          ui.empty(
+              R.drawable.tp_aic_analyst,
+              tr("Ask about your groups", "Спросите про ваши группы"),
+              tr(
+                  "Ask any question. The analyst answers only from the selected sources and shows the messages that prove each point.",
+                  "Задайте любой вопрос. Аналитик отвечает только по выбранным источникам и показывает сообщения, подтверждающие каждый пункт."));
+      body.addView(empty);
+      String[] examples =
+          org.telegram.messenger.telepremium.TPStrings.isRussian()
+              ? new String[] {
+                "Какие решения приняты?",
+                "Кто о чём спорил?",
+                "Какие вопросы остались без ответа?",
+                "Что обещали сделать и к какому сроку?"
+              }
+              : new String[] {
+                "Which decisions were made?",
+                "Who argued about what?",
+                "Which questions stayed unanswered?",
+                "What was promised and by when?"
+              };
+      LinearLayout list = new LinearLayout(getParentActivity());
+      list.setOrientation(LinearLayout.VERTICAL);
+      for (String example : examples) {
+        TextView row = ui.chip(example, false, v -> {
+          draft = example;
+          show(6);
+        });
+        row.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        list.addView(row, margins(-1, -2, 16, 4, 16, 4));
+      }
+      body.addView(list);
+    }
+    reportSection(true);
+    buildDock();
+  }
+
+  private void buildDock() {
+    dock.setVisibility(View.VISIBLE);
+    View line = new View(getParentActivity());
+    line.setBackgroundColor(ui.line());
+    dock.addView(line, new LinearLayout.LayoutParams(-1, Math.max(1, dp(0.5f))));
+    android.widget.HorizontalScrollView options = ui.chipRow();
+    options.getChildAt(0).setPadding(dp(10), dp(8), dp(10), dp(2));
+    final TextView shortChip = ui.chip(tr("Short", "Кратко"), !detailed, null);
+    final TextView detailedChip = ui.chip(tr("Detailed", "Подробно"), detailed, null);
+    shortChip.setOnClickListener(
+        v -> {
+          detailed = false;
+          ui.restyleChip(shortChip, true);
+          ui.restyleChip(detailedChip, false);
+        });
+    detailedChip.setOnClickListener(
+        v -> {
+          detailed = true;
+          ui.restyleChip(shortChip, false);
+          ui.restyleChip(detailedChip, true);
+        });
+    ui.addChip(options, shortChip);
+    ui.addChip(options, detailedChip);
+    ui.addChip(
+        options,
+        ui.toggleChip(
+            tr("With pictures", "С картинками"),
+            exportOptions().images,
+            on -> {
+              CenterExport.Options o = exportOptions();
+              o.images = on;
+              saveExportOptions(o);
+            }));
+    ui.addChip(
+        options,
+        ui.toggleChip(
+            t("personal"),
+            index.scope.includePersonal,
+            on -> {
+              index.scope.includePersonal = on;
+              index.saveScope();
+            }));
+    ui.addChip(options, ui.chip(tr("History", "История"), false, v -> history()));
+    dock.addView(options);
+    LinearLayout inputRow = new LinearLayout(getParentActivity());
+    inputRow.setGravity(Gravity.BOTTOM);
+    inputRow.setPadding(dp(10), dp(4), dp(10), dp(10));
+    final EditText input = ui.field(tr("Ask a question…", "Задайте вопрос…"), draft, 4);
+    input.addTextChangedListener(
+        new android.text.TextWatcher() {
+          public void beforeTextChanged(CharSequence c, int a, int b, int d) {}
+
+          public void onTextChanged(CharSequence c, int a, int b, int d) {
+            draft = c.toString();
+          }
+
+          public void afterTextChanged(android.text.Editable e) {}
+        });
+    inputRow.addView(input, new LinearLayout.LayoutParams(0, -2, 1));
+    FrameLayout send = ui.badge(reportRunning ? R.drawable.tp_aic_close : R.drawable.tp_aic_send, ui.onAccent(), 46, 22);
+    send.setBackground(ui.shape(reportRunning ? ui.bad() : ui.accent(), 23, 0, 0));
+    send.setOnClickListener(
+        v -> {
+          if (reportRunning) {
+            aiCancelled.set(true);
+            reportRunning = false;
+            show(6);
+            return;
+          }
+          String question = input.getText().toString().trim();
+          if (question.isEmpty()) {
+            toast(t("query"));
+            return;
+          }
+          query = question;
+          draft = "";
+          input.setText("");
+          AndroidUtilities.hideKeyboard(input);
+          runReport(question);
+        });
+    LinearLayout.LayoutParams sendParams = new LinearLayout.LayoutParams(dp(46), dp(46));
+    sendParams.leftMargin = dp(8);
+    inputRow.addView(send, sendParams);
+    dock.addView(inputRow);
+  }
+
+  private void reportSection(boolean chat) {
     android.widget.HorizontalScrollView tools = ui.chipRow();
     ui.addChip(
         tools,
@@ -1656,6 +1961,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     try {
                       JSONObject value = saved.getJSONObject(names.get(i));
                       query = value.optString("query");
+                      draft = query;
                       index.scope = CenterData.Scope.parse(value.getJSONObject("scope"));
                       index.saveScope();
                       show(screen);
@@ -1691,8 +1997,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 }
               toast(t("done"));
             }));
-    if (chat) ui.addChip(tools, ui.chip(t("reports"), false, v -> history()));
-    body.addView(tools, margins(-1, -2, 8, 0, 8, 0));
+    if (!chat) body.addView(tools, margins(-1, -2, 8, 0, 8, 0));
     if (report != null) {
       renderReport(report);
       android.widget.HorizontalScrollView actions = ui.chipRow();
@@ -2249,6 +2554,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 drilldown = new ArrayList<>();
                 for (CenterReports.Evidence ev : claim.evidence) drilldown.add(ev.message);
                 query = t("expand") + ": " + claim.title;
+                draft = query;
                 show(6);
               }),
           margins(-2, -2, 8, 0, 0, 0));
@@ -2431,21 +2737,42 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
               () -> {
                 if (!unlocked || !foreground) return;
                 status.setText("");
-                body.removeAllViews();
-                heading(kind.equals("thread") ? "analyst" : "reports");
+                clearBody();
+                body.addView(
+                    ui.segmented(
+                        new String[] {tr("Reports", "Отчёты"), tr("Analyst chats", "Диалоги аналитика")},
+                        kind.equals("report") ? 0 : 1,
+                        i -> listReports(i == 0 ? "report" : "thread")),
+                    margins(-1, -2, 12, 10, 12, 4));
+                if (values.isEmpty())
+                  body.addView(
+                      ui.empty(
+                          R.drawable.tp_aic_reports,
+                          tr("Nothing saved yet", "Пока ничего не сохранено"),
+                          tr(
+                              "Collect a summary or ask the analyst, then tap “Save” under the result.",
+                              "Соберите сводку или задайте вопрос аналитику, затем нажмите «В архив» под результатом.")));
                 for (JSONObject o : values) {
                   CenterReports.Report r = CenterReports.restore(o, index.readable());
-                  row(
-                      r.question + " · " + new Date(r.created),
-                      () -> {
-                        report = r;
-                        query = r.question;
-                        reportPage = 0;
-                        if (kind.equals("report")) {
-                          archiveDetail = true;
-                          show(7);
-                        } else show(6);
-                      });
+                  LinearLayout item =
+                      ui.row(
+                          R.drawable.tp_aic_reports,
+                          r.question,
+                          dateTime(r.created) + " · " + r.claims.size() + " " + t("evidence"),
+                          ui.icon(R.drawable.tp_aic_chevron, ui.sub(), 20),
+                          w -> {
+                            report = r;
+                            query = r.question;
+                            reportPage = 0;
+                            if (kind.equals("report")) {
+                              archiveDetail = true;
+                              show(7);
+                            } else {
+                              analystReport = r;
+                              show(6);
+                            }
+                          });
+                  body.addView(item, margins(-1, -2, 12, 3, 12, 3));
                 }
                 button(
                     "delete",
@@ -2476,15 +2803,81 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         });
   }
 
+  private boolean kindMatches(String filter, String kind) {
+    switch (filter) {
+      case "":
+        return true;
+      case "photo":
+        return kind.equals("photo") || kind.equals("image");
+      case "video":
+        return kind.equals("video") || kind.equals("round");
+      case "docs":
+        return kind.equals("pdf") || kind.equals("document");
+      case "audio":
+        return kind.equals("audio") || kind.equals("voice");
+      default:
+        return filter.equals(kind);
+    }
+  }
+
+  private int kindIcon(String kind) {
+    switch (kind) {
+      case "video":
+      case "round":
+        return R.drawable.tp_aic_play;
+      case "audio":
+      case "voice":
+        return R.drawable.tp_aic_transcriber;
+      case "pdf":
+      case "document":
+        return R.drawable.tp_aic_reports;
+      default:
+        return R.drawable.tp_aic_media;
+    }
+  }
+
+  private String kindName(String kind) {
+    switch (kind) {
+      case "video":
+        return tr("Video", "Видео");
+      case "round":
+        return tr("Video message", "Видеосообщение");
+      case "audio":
+        return tr("Audio", "Аудио");
+      case "voice":
+        return tr("Voice message", "Голосовое");
+      case "pdf":
+        return "PDF";
+      case "document":
+        return tr("Document", "Документ");
+      case "photo":
+      case "image":
+        return tr("Photo", "Фото");
+      default:
+        return t(kind.equals("link") ? "links" : kind);
+    }
+  }
+
+  private String clock(long millis) {
+    long seconds = Math.max(0, millis / 1000);
+    return seconds >= 3600
+        ? String.format(Locale.ROOT, "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
+        : String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60);
+  }
+
   private List<CenterData.Message> mediaMessages(boolean speech) {
     List<CenterData.Message> out = new ArrayList<>();
     for (CenterData.Message m : index.selected())
       if (!m.protectedMedia
           && !m.kind.equals("text")
+          && !m.kind.equals("link")
           && (!speech || Arrays.asList("video", "audio", "voice", "round").contains(m.kind))
-          && (mediaKind.isEmpty() || mediaKind.equals(m.kind))
+          && kindMatches(mediaKind, m.kind)
           && (mediaCategory.isEmpty() || mediaCategory.equals(CenterTopics.category(m)))
           && (semanticHits == null || semanticHits.contains(m.qualified()))
+          && (!speech
+              || transcriberFilter == 2
+              || (transcriberFilter == 0) == m.transcript.isEmpty())
           && m.searchable()
               .toLowerCase(Locale.ROOT)
               .contains(mediaSearch.toLowerCase(Locale.ROOT))) {
@@ -2496,222 +2889,251 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     return out;
   }
 
-  private void media(boolean speech) {
-    if (!speech) {
-      button(
-          "semanticSearch",
-          () ->
-              input(
-                  "query",
-                  "",
-                  question -> {
-                    semanticHits = null;
-                    String previous = mediaSearch;
-                    mediaSearch = "";
-                    List<CenterData.Message> data = mediaMessages(false);
-                    mediaSearch = previous;
-                    dialogBuilder()
-                        .setMessage(
-                            t("consent")
-                                + "\n"
-                                + t("estimate")
-                                + ": "
-                                + data.size()
-                                + " · "
-                                + t("indexedDescriptions"))
-                        .setPositiveButton(
-                            t("confirm"),
-                            (d, w) -> {
-                              CenterIndex.setting("consent", true);
-                              aiCancelled.set(false);
-                              status.setText(t("loading"));
-                              TPAiClient.async(
-                                  () -> CenterSearch.find(data, question, aiCancelled),
-                                  (hits, error) -> {
-                                    if (!foreground || !unlocked || aiCancelled.get()) return;
-                                    if (error != null) error(error);
-                                    else {
-                                      semanticHits = hits;
-                                      mediaSearch = "";
-                                      mediaPage = 0;
-                                      show(screen);
-                                    }
-                                  });
-                            })
-                        .setNegativeButton(t("cancel"), null)
-                        .show();
-                  }));
-      button(
-          "mediaType",
-          () ->
-              choices(
-                  "mediaType",
-                  new String[] {
-                    t("all"),
-                    t("chartImage"),
-                    t("receiptImage"),
-                    t("chatImage"),
-                    t("memeImage"),
-                    t("productImage"),
-                    t("peopleImage"),
-                    t("photoImage")
-                  },
-                  i -> {
-                    mediaCategory =
-                        new String[] {
-                              "",
-                              "chartImage",
-                              "receiptImage",
-                              "chatImage",
-                              "memeImage",
-                              "productImage",
-                              "peopleImage",
-                              "photoImage"
-                            }
-                            [i];
-                    mediaPage = 0;
-                    show(screen);
-                  }));
+  private int transcriberFilter;
+
+  private void semanticSearch(String question) {
+    semanticHits = null;
+    String previous = mediaSearch;
+    mediaSearch = "";
+    List<CenterData.Message> data = mediaMessages(false);
+    mediaSearch = previous;
+    dialogBuilder()
+        .setMessage(
+            t("consent") + "\n" + t("estimate") + ": " + data.size() + " · " + t("indexedDescriptions"))
+        .setPositiveButton(
+            t("confirm"),
+            (d, w) -> {
+              CenterIndex.setting("consent", true);
+              aiCancelled.set(false);
+              status.setText(t("loading"));
+              TPAiClient.async(
+                  () -> CenterSearch.find(data, question, aiCancelled),
+                  (hits, error) -> {
+                    if (!foreground || !unlocked || aiCancelled.get()) return;
+                    status.setText("");
+                    if (error != null) error(error);
+                    else {
+                      semanticHits = hits;
+                      mediaSearch = "";
+                      mediaPage = 0;
+                      show(screen);
+                    }
+                  });
+            })
+        .setNegativeButton(t("cancel"), null)
+        .show();
+  }
+
+  private EditText mediaSearchField(String hint) {
+    final EditText search = ui.field(hint, mediaSearch, 1);
+    search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+    search.setOnEditorActionListener(
+        (v, action, event) -> {
+          mediaSearch = v.getText().toString().trim();
+          semanticHits = null;
+          mediaPage = 0;
+          AndroidUtilities.hideKeyboard(v);
+          show(screen);
+          return true;
+        });
+    return search;
+  }
+
+  private void addFileChips(android.widget.HorizontalScrollView row) {
+    ui.addChip(row, ui.chip("+ " + tr("File", "Файл"), false, v -> pickFile()));
+    ui.addChip(row, ui.chip("+ " + tr("From cloud", "Из облака"), false, v -> pickCloud()));
+  }
+
+  private void pickFile() {
+    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    i.addCategory(Intent.CATEGORY_OPENABLE);
+    i.setType("*/*");
+    i.putExtra(
+        Intent.EXTRA_MIME_TYPES,
+        new String[] {
+          "audio/*",
+          "video/*",
+          "image/*",
+          "application/pdf",
+          "text/*",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/vnd.oasis.opendocument.text"
+        });
+    i.addFlags(
+        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+    startActivityForResult(i, 72581);
+  }
+
+  private void selectionMark(View mark, boolean on) {
+    mark.setBackground(
+        on ? ui.shape(ui.accent(), 13, 0, 0) : ui.shape(TelePremiumCenterUi.alpha(0xff000000, 90), 13, 0xffffffff, 1.5f));
+    if (mark instanceof FrameLayout) {
+      FrameLayout f = (FrameLayout) mark;
+      f.getChildAt(0).setVisibility(on ? View.VISIBLE : View.INVISIBLE);
     }
-    button(
-        "search",
-        () ->
-            input(
-                "search",
-                mediaSearch,
-                v -> {
-                  mediaSearch = v;
-                  semanticHits = null;
-                  mediaPage = 0;
-                  show(screen);
-                }));
-    button(
-        "type",
-        () ->
-            choices(
-                "type",
-                new String[] {
-                  t("all"), t("photo"), t("video"), t("audio"), t("voice"), t("pdf"), t("document")
-                },
-                i -> {
-                  mediaKind =
-                      new String[] {"", "photo", "video", "audio", "voice", "pdf", "document"}[i];
-                  mediaPage = 0;
-                  show(screen);
-                }));
-    button(
-        "authors",
-        () -> {
-          Map<Long, String> map = new LinkedHashMap<>();
-          for (CenterData.Message m : index.selected()) map.put(m.author, m.authorName);
-          List<Long> ids = new ArrayList<>(map.keySet());
-          String[] names = new String[ids.size() + 1];
-          names[0] = t("all");
-          for (int i = 0; i < ids.size(); i++) names[i + 1] = map.get(ids.get(i));
-          choices(
-              "authors",
-              names,
-              i -> {
-                index.scope.authors.clear();
-                if (i > 0) index.scope.authors.add(ids.get(i - 1));
-                index.saveScope();
+  }
+
+  /** "Медиа": a library of pictures, video and documents with search, filters and AI actions. */
+  private void mediaLibrary() {
+    LinearLayout box = ui.card(12, 10);
+    LinearLayout line = new LinearLayout(getParentActivity());
+    line.setGravity(Gravity.CENTER_VERTICAL);
+    final EditText search =
+        mediaSearchField(tr("Search by text, caption or description", "Поиск по тексту, подписи, описанию"));
+    line.addView(search, new LinearLayout.LayoutParams(0, -2, 1));
+    line.addView(
+        ui.chip(
+            "✨ " + tr("By meaning", "По смыслу"),
+            semanticHits != null,
+            v -> {
+              String question = search.getText().toString().trim();
+              if (question.isEmpty()) {
+                toast(
+                    tr(
+                        "Type what you are looking for, e.g. “receipt for the laptop”.",
+                        "Введите, что ищете, например «чек на ноутбук»."));
+                return;
+              }
+              semanticSearch(question);
+            }),
+        margins(-2, -2, 8, 0, 0, 0));
+    box.addView(line);
+    String[] kinds = {"", "photo", "video", "docs", "audio"};
+    String[] names = {
+      tr("All", "Все"),
+      tr("Photos", "Фото"),
+      tr("Video", "Видео"),
+      tr("Documents", "Документы"),
+      tr("Audio", "Аудио")
+    };
+    android.widget.HorizontalScrollView kindRow = ui.chipRow();
+    kindRow.getChildAt(0).setPadding(0, dp(10), 0, dp(2));
+    for (int i = 0; i < kinds.length; i++) {
+      final String value = kinds[i];
+      ui.addChip(
+          kindRow,
+          ui.chip(
+              names[i],
+              mediaKind.equals(value),
+              v -> {
+                mediaKind = value;
+                mediaPage = 0;
                 show(screen);
-              });
-        });
-    button(
-        "file",
-        () -> {
-          Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-          i.addCategory(Intent.CATEGORY_OPENABLE);
-          i.setType("*/*");
-          i.putExtra(
-              Intent.EXTRA_MIME_TYPES,
-              new String[] {
-                "audio/*",
-                "video/*",
-                "image/*",
-                "application/pdf",
-                "text/*",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "application/vnd.oasis.opendocument.text"
-              });
-          i.addFlags(
-              Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-          startActivityForResult(i, 72581);
-        });
-    button("cloud", this::pickCloud);
-    if (speech) {
-      info(t("offlineSpeech"));
-      info(t("speakerScopeHint"));
-      button(
-          "language",
-          () ->
-              input(
-                  "language",
-                  CenterIndex.settings().optString("language", "auto"),
-                  v -> CenterIndex.setting("language", v)));
+              }));
     }
-    List<CenterData.Message> list = mediaMessages(speech);
-    button(
-        "selectAll",
-        () -> {
-          for (CenterData.Message m : list) pickedMedia.add(m.qualified());
-          show(screen);
-        });
-    button(
-        "cancel",
-        () -> {
-          pickedMedia.clear();
-          show(screen);
-        });
-    if (speech) {
-      button("transcribe", () -> queueMedia(list, "transcribe"));
-      button(
-          "cloudAsr",
-          () ->
-              dialogBuilder()
-                  .setMessage(t("cloudAsrConsent"))
-                  .setPositiveButton(
-                      t("confirm"),
-                      (d, w) -> {
-                        CenterIndex.setting("consent", true);
-                        queueMedia(list, "cloudAsr");
-                      })
-                  .setNegativeButton(t("cancel"), null)
-                  .show());
-    } else {
-      button("download", () -> queueMedia(list, "download"));
-      button("ocr", () -> queueMedia(list, "ocr"));
-      button("describe", () -> queueMedia(list, "describe"));
-      button("transcriber", () -> show(5));
+    box.addView(kindRow);
+    if (mediaKind.isEmpty() || mediaKind.equals("photo")) {
+      TextView what =
+          ui.text(
+              tr("What is in the picture (found by AI after “Describe”)", "Что на изображении (определяет ИИ после «Описать»)"),
+              12,
+              ui.sub(),
+              false);
+      what.setPadding(dp(2), dp(8), 0, 0);
+      box.addView(what);
+      String[] values = {"", "chartImage", "receiptImage", "chatImage", "memeImage", "productImage", "peopleImage", "photoImage"};
+      String[] labels = {
+        tr("Any", "Любое"),
+        tr("Charts", "Графики"),
+        tr("Receipts", "Чеки"),
+        tr("Chats", "Переписки"),
+        tr("Memes", "Мемы"),
+        tr("Products", "Товары"),
+        tr("People", "Люди"),
+        tr("Other photos", "Прочие фото")
+      };
+      android.widget.HorizontalScrollView categoryRow = ui.chipRow();
+      categoryRow.getChildAt(0).setPadding(0, dp(4), 0, 0);
+      for (int i = 0; i < values.length; i++) {
+        final String value = values[i];
+        ui.addChip(
+            categoryRow,
+            ui.chip(
+                labels[i],
+                mediaCategory.equals(value),
+                v -> {
+                  mediaCategory = value;
+                  mediaPage = 0;
+                  show(screen);
+                }));
+      }
+      box.addView(categoryRow);
     }
-    button("queue", this::taskQueue);
-    button("refresh", this::reload);
-    info(t("media") + ": " + list.size() + " · " + pickedMedia.size());
+    body.addView(box, ui.cardParams());
+
+    final List<CenterData.Message> list = mediaMessages(false);
+    android.widget.HorizontalScrollView tools = ui.chipRow();
+    ui.addChip(
+        tools,
+        ui.chip(
+            tr("Select all", "Выбрать все") + " (" + list.size() + ")",
+            false,
+            v -> {
+              for (CenterData.Message m : list) pickedMedia.add(m.qualified());
+              show(screen);
+            }));
+    ui.addChip(tools, ui.chip(tr("Task queue", "Очередь задач"), false, v -> taskQueue()));
+    addFileChips(tools);
+    body.addView(tools, margins(-1, -2, 4, 2, 4, 0));
+    if (list.isEmpty()) {
+      body.addView(
+          ui.empty(
+              R.drawable.tp_aic_media,
+              tr("No media here", "Здесь нет медиа"),
+              tr(
+                  "Pictures, video and documents appear after you load the groups on the Sources screen. Only items already downloaded to the Center are shown.",
+                  "Изображения, видео и документы появляются после загрузки групп на экране «Источники». Показаны только те, что уже сохранены в центре.")));
+    } else if (pickedMedia.isEmpty()) {
+      TextView hint =
+          ui.text(
+              tr(
+                  "Tick the items you need — actions appear at the bottom: Download (save to the phone), Read text (find the writing on pictures), Describe (AI tells what is shown).",
+                  "Отметьте нужные галочкой — внизу появятся действия: «Скачать» (сохранить на телефон), «Читать текст» (найти надписи на картинках), «Описать» (ИИ расскажет, что изображено)."),
+              12.5f,
+              ui.sub(),
+              false);
+      hint.setPadding(dp(18), dp(8), dp(18), dp(4));
+      body.addView(hint);
+    }
     int version = uiVersion;
     LinearLayout galleryRow = null;
-    int gridCells = 0;
     for (int i = mediaPage * 40; i < Math.min(list.size(), (mediaPage + 1) * 40); i++) {
-      CenterData.Message m = list.get(i);
-      LinearLayout card = new LinearLayout(getParentActivity());
-      card.setOrientation(LinearLayout.VERTICAL);
-      if (!speech && Arrays.asList("photo", "image", "video", "round").contains(m.kind)) {
-        if (galleryRow == null || gridCells == 2) {
+      final CenterData.Message m = list.get(i);
+      boolean grid = Arrays.asList("photo", "image", "video", "round").contains(m.kind);
+      LinearLayout card = ui.card(0, 0);
+      card.setPadding(0, 0, 0, dp(10));
+      final boolean picked = pickedMedia.contains(m.qualified());
+      if (picked) card.setBackground(ui.ripple(ui.shape(TelePremiumCenterUi.alpha(ui.accent(), 22), 14, ui.accent(), 2), 14));
+      if (grid) {
+        if (galleryRow == null || galleryRow.getChildCount() == 2) {
           galleryRow = new LinearLayout(getParentActivity());
-          body.addView(galleryRow);
-          gridCells = 0;
+          body.addView(galleryRow, margins(-1, -2, 8, 4, 8, 0));
         }
-        galleryRow.addView(card, new LinearLayout.LayoutParams(0, -2, 1));
-        gridCells++;
+        galleryRow.addView(card, margins(0, -2, 4, 0, 4, 0));
+        ((LinearLayout.LayoutParams) card.getLayoutParams()).weight = 1;
+        ((LinearLayout.LayoutParams) card.getLayoutParams()).width = 0;
       } else {
         galleryRow = null;
-        gridCells = 0;
-        body.addView(card);
+        body.addView(card, ui.cardParams());
       }
-      if (!m.frameTimes.isEmpty() || m.pages > 0) {
-        android.widget.ImageView preview = new android.widget.ImageView(getParentActivity());
-        preview.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
-        card.addView(preview, new LinearLayout.LayoutParams(-1, dp(160)));
+      FrameLayout frame = new FrameLayout(getParentActivity());
+      final ImageView preview = new ImageView(getParentActivity());
+      preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      preview.setBackgroundColor(TelePremiumCenterUi.alpha(ui.sub(), 30));
+      preview.setClipToOutline(true);
+      preview.setOutlineProvider(
+          new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+              outline.setRoundRect(0, 0, view.getWidth(), view.getHeight() + dp(14), dp(14));
+            }
+          });
+      boolean hasPreview = !m.frameTimes.isEmpty() || m.pages > 0;
+      frame.addView(preview, new FrameLayout.LayoutParams(-1, dp(grid ? 130 : 72)));
+      if (!hasPreview) {
+        ImageView symbol = ui.icon(kindIcon(m.kind), ui.sub(), 30);
+        frame.addView(symbol, new FrameLayout.LayoutParams(dp(30), dp(30), Gravity.CENTER));
+      } else {
         CenterThumbnails.load(
             m,
             m.frameTimes.isEmpty() ? 0 : m.frameTimes.get(0),
@@ -2719,72 +3141,79 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             b -> {
               if (version == uiVersion && b != null) preview.setImageBitmap(b);
             });
-        preview.setOnClickListener(w -> mediaDetails(m, 0));
       }
-      CheckBox choice = new CheckBox(getParentActivity());
-      choice.setText(
-          m.authorName
-              + " · "
-              + m.sourceTitle
-              + " · "
-              + m.accountName
-              + "\n"
-              + new Date(m.date * 1000L)
-              + " · "
-              + t(m.kind.equals("link") ? "links" : m.kind)
-              + "\n"
-              + (m.text.length() > 160 ? m.text.substring(0, 160) + "…" : m.text));
-      choice.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-      choice.setChecked(pickedMedia.contains(m.qualified()));
-      choice.setOnCheckedChangeListener(
-          (v, on) -> {
-            if (on) pickedMedia.add(m.qualified());
-            else pickedMedia.remove(m.qualified());
-          });
-      card.addView(choice);
-      TextView details = label(t("details"), 14);
-      card.addView(details);
-      details.setOnClickListener(w -> mediaDetails(m, 0));
+      final FrameLayout mark = new FrameLayout(getParentActivity());
+      final ImageView tick = ui.icon(R.drawable.tp_aic_check, 0xffffffff, 16);
+      mark.addView(tick, new FrameLayout.LayoutParams(dp(16), dp(16), Gravity.CENTER));
+      selectionMark(mark, picked);
+      FrameLayout.LayoutParams markParams = new FrameLayout.LayoutParams(dp(26), dp(26), Gravity.TOP | Gravity.END);
+      markParams.setMargins(0, dp(8), dp(8), 0);
+      frame.addView(mark, markParams);
+      Runnable toggle =
+          () -> {
+            if (!pickedMedia.remove(m.qualified())) pickedMedia.add(m.qualified());
+            show(screen);
+          };
+      mark.setOnClickListener(v -> toggle.run());
+      card.addView(frame, new LinearLayout.LayoutParams(-1, -2));
+      LinearLayout meta = new LinearLayout(getParentActivity());
+      meta.setOrientation(LinearLayout.VERTICAL);
+      meta.setPadding(dp(10), dp(8), dp(10), 0);
+      TextView who = ui.text(m.authorName, 13.5f, ui.text(), true);
+      who.setSingleLine(true);
+      who.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      meta.addView(who);
+      TextView where =
+          ui.text(m.sourceTitle + " · " + dateOnly(m.date), 11.5f, ui.sub(), false);
+      where.setSingleLine(true);
+      where.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      meta.addView(where);
+      LinearLayout pills = new LinearLayout(getParentActivity());
+      pills.setPadding(0, dp(6), 0, 0);
+      pills.addView(ui.pill(kindName(m.kind), ui.accent()));
+      if (!m.ocr.isEmpty())
+        pills.addView(ui.pill(tr("Text", "Текст"), ui.good()), margins(-2, -2, 4, 0, 0, 0));
+      if (!m.description.isEmpty())
+        pills.addView(ui.pill(tr("Described", "Описано"), ui.good()), margins(-2, -2, 4, 0, 0, 0));
       if (!m.transcript.isEmpty())
-        for (CenterTranscript.Segment segment :
-            CenterTranscript.parse(m.transcript, m.duration)
-                .subList(
-                    0, Math.min(12, CenterTranscript.parse(m.transcript, m.duration).size()))) {
-          TextView v = label(transcriptLine(segment), 14);
-          v.setOnClickListener(w -> playAt(m, segment.start));
-          card.addView(v);
-        }
+        pills.addView(ui.pill(tr("Transcript", "Расшифровка"), ui.good()), margins(-2, -2, 4, 0, 0, 0));
+      meta.addView(pills);
+      if (!grid && !m.text.isEmpty()) {
+        TextView caption = ui.text(m.text.length() > 140 ? m.text.substring(0, 140) + "…" : m.text, 12.5f, ui.sub(), false);
+        caption.setPadding(0, dp(6), 0, 0);
+        meta.addView(caption);
+      }
       if (!m.hash.isEmpty())
         try {
           long hash = Long.parseUnsignedLong(m.hash, 16);
           List<CenterData.Message> copies = new ArrayList<>();
-          for (CenterData.Message message : index.selected())
-            if (!message.hash.isEmpty()
-                && Long.bitCount(hash ^ Long.parseUnsignedLong(message.hash, 16)) <= 6)
-              copies.add(message);
+          for (CenterData.Message other : index.selected())
+            if (!other.hash.isEmpty()
+                && Long.bitCount(hash ^ Long.parseUnsignedLong(other.hash, 16)) <= 6)
+              copies.add(other);
           copies.sort(
-              Comparator.comparingInt((CenterData.Message message) -> message.date)
-                  .thenComparingInt(message -> message.id));
+              Comparator.comparingInt((CenterData.Message x) -> x.date)
+                  .thenComparingInt(x -> x.id));
           if (copies.size() > 1) {
-            CenterData.Message first = copies.get(0);
-            TextView earliest =
-                label(
-                    t("firstInScope")
-                        + " · "
-                        + first.authorName
-                        + " · "
-                        + first.sourceTitle
-                        + " · "
-                        + new Date(first.date * 1000L),
-                    13);
-            earliest.setOnClickListener(v -> openEvidence(first));
-            card.addView(earliest);
-            TextView duplicates = label(t("copies") + " (" + copies.size() + ")", 13);
+            TextView duplicates =
+                ui.text(
+                    tr("Seen in ", "Встречается в ") + copies.size() + " " + tr("places · first: ", "местах · первым: ") + copies.get(0).authorName,
+                    11.5f,
+                    ui.warn(),
+                    true);
+            duplicates.setPadding(0, dp(6), 0, 0);
             duplicates.setOnClickListener(v -> messageDetails(copies));
-            card.addView(duplicates);
+            meta.addView(duplicates);
           }
         } catch (NumberFormatException invalid) {
         }
+      card.addView(meta);
+      card.setOnClickListener(v -> mediaDetails(m, 0));
+      card.setOnLongClickListener(
+          v -> {
+            toggle.run();
+            return true;
+          });
     }
     if (mediaPage > 0)
       button(
@@ -2800,6 +3229,277 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             mediaPage++;
             show(screen);
           });
+    if (!pickedMedia.isEmpty()) {
+      dock.setVisibility(View.VISIBLE);
+      View separator = new View(getParentActivity());
+      separator.setBackgroundColor(ui.line());
+      dock.addView(separator, new LinearLayout.LayoutParams(-1, Math.max(1, dp(0.5f))));
+      LinearLayout head = new LinearLayout(getParentActivity());
+      head.setGravity(Gravity.CENTER_VERTICAL);
+      head.setPadding(dp(16), dp(8), dp(10), 0);
+      head.addView(
+          ui.text(tr("Selected", "Выбрано") + ": " + pickedMedia.size(), 14, ui.text(), true),
+          new LinearLayout.LayoutParams(0, -2, 1));
+      head.addView(
+          ui.chip(
+              tr("Clear", "Снять"),
+              false,
+              v -> {
+                pickedMedia.clear();
+                show(screen);
+              }));
+      dock.addView(head);
+      dock.addView(
+          ui.buttonRow(
+              ui.button(tr("Download", "Скачать"), false, R.drawable.tp_aic_download, v -> queueMedia(list, "download")),
+              ui.button(tr("Read text", "Читать текст"), false, 0, v -> queueMedia(list, "ocr")),
+              ui.button(tr("Describe", "Описать"), true, 0, v -> queueMedia(list, "describe"))));
+    }
+  }
+
+  private void chooseLanguage() {
+    String[] codes = {"auto", "ru", "en", "uk", "de", "es", "fr", "tr", "ar", "zh"};
+    String[] names = {
+      tr("Detect automatically", "Определять автоматически"),
+      "Русский",
+      "English",
+      "Українська",
+      "Deutsch",
+      "Español",
+      "Français",
+      "Türkçe",
+      "العربية",
+      "中文",
+      tr("Other code…", "Другой код…")
+    };
+    choices(
+        "language",
+        names,
+        i -> {
+          if (i < codes.length) {
+            CenterIndex.setting("language", codes[i]);
+            show(screen);
+          } else
+            input(
+                "language",
+                CenterIndex.settings().optString("language", "auto"),
+                v -> {
+                  CenterIndex.setting("language", v);
+                  show(screen);
+                });
+        });
+  }
+
+  private String languageName() {
+    String code = CenterIndex.settings().optString("language", "auto");
+    return code.equals("auto") ? tr("auto", "авто") : code;
+  }
+
+  /** "Транскрибатор": choose how, pick recordings, press the one button. */
+  private void transcriber() {
+    JSONObject settings = CenterIndex.settings();
+    final boolean cloud = "cloud".equals(settings.optString("asrEngine", "device"));
+    LinearLayout how = ui.card(14, 12);
+    how.addView(ui.text(tr("1 · How to recognise", "1 · Как распознавать"), 15, ui.text(), true));
+    LinearLayout engine =
+        ui.segmented(
+            new String[] {tr("On this phone", "На телефоне"), tr("In the cloud", "В облаке")},
+            cloud ? 1 : 0,
+            i -> {
+              CenterIndex.setting("asrEngine", i == 1 ? "cloud" : "device");
+              show(5);
+            });
+    how.addView(engine, margins(-1, -2, 0, 8, 0, 0));
+    TextView explain =
+        ui.text(
+            cloud
+                ? tr(
+                    "Audio is sent to your speech-recognition model (" + settings.optString("asrModel", "whisper-1") + "). Needs internet and your confirmation.",
+                    "Аудио отправляется вашей модели распознавания речи (" + settings.optString("asrModel", "whisper-1") + "). Нужен интернет и ваше подтверждение.")
+                : tr(
+                    "Recognised on the phone: the audio never leaves the device.",
+                    "Распознаётся на телефоне: аудио не покидает устройство."),
+            12.5f,
+            ui.sub(),
+            false);
+    explain.setPadding(dp(2), dp(8), dp(2), dp(4));
+    how.addView(explain);
+    android.widget.HorizontalScrollView options = ui.chipRow();
+    options.getChildAt(0).setPadding(0, dp(4), 0, dp(4));
+    ui.addChip(options, ui.chip(tr("Language", "Язык") + ": " + languageName(), false, v -> chooseLanguage()));
+    if (cloud)
+      ui.addChip(options, ui.chip(tr("Model", "Модель") + ": " + settings.optString("asrModel", "whisper-1"), false, v -> chooseRole("speechModel", "cloudAsr")));
+    how.addView(options);
+    final Switch speakers =
+        ui.switchView(settings.optBoolean("asrDiarization", false), on -> CenterIndex.setting("asrDiarization", on));
+    how.addView(
+        switchLine(
+            tr("Separate speakers", "Разделять по спикерам"),
+            t("speakerScopeHint"),
+            speakers));
+    body.addView(how, ui.cardParams());
+
+    LinearLayout pick = ui.card(14, 12);
+    pick.addView(ui.text(tr("2 · Choose recordings", "2 · Выберите записи"), 15, ui.text(), true));
+    final EditText search = mediaSearchField(tr("Search recordings", "Поиск по записям"));
+    pick.addView(search, margins(-1, -2, 0, 8, 0, 0));
+    LinearLayout filter =
+        ui.segmented(
+            new String[] {tr("Waiting", "Ждут"), tr("Done", "Готово"), tr("All", "Все")},
+            transcriberFilter,
+            i -> {
+              transcriberFilter = i;
+              mediaPage = 0;
+              show(5);
+            });
+    pick.addView(filter, margins(-1, -2, 0, 8, 0, 0));
+    android.widget.HorizontalScrollView sourcesRow = ui.chipRow();
+    sourcesRow.getChildAt(0).setPadding(0, dp(8), 0, 0);
+    ui.addChip(sourcesRow, ui.chip("+ " + tr("My file", "Мой файл"), false, v -> pickFile()));
+    ui.addChip(sourcesRow, ui.chip("+ " + tr("From cloud", "Из облака"), false, v -> pickCloud()));
+    pick.addView(sourcesRow);
+    body.addView(pick, ui.cardParams());
+
+    final List<CenterData.Message> list = mediaMessages(true);
+    if (list.isEmpty()) {
+      body.addView(
+          ui.empty(
+              R.drawable.tp_aic_transcriber,
+              transcriberFilter == 1 ? tr("Nothing recognised yet", "Пока ничего не расшифровано") : tr("No recordings", "Записей нет"),
+              tr(
+                  "Voice messages, audio and video from your groups appear here after loading. You can also add your own file.",
+                  "Голосовые, аудио и видео из ваших групп появляются здесь после загрузки. Можно добавить и свой файл.")));
+    }
+    int version = uiVersion;
+    for (int i = mediaPage * 40; i < Math.min(list.size(), (mediaPage + 1) * 40); i++) {
+      final CenterData.Message m = list.get(i);
+      final boolean picked = pickedMedia.contains(m.qualified());
+      LinearLayout card = ui.clickableCard(12, 10, null);
+      card.setBackground(
+          ui.ripple(
+              picked
+                  ? ui.shape(TelePremiumCenterUi.alpha(ui.accent(), 22), 14, ui.accent(), 2)
+                  : ui.shape(ui.card(), 14, ui.line(), 1),
+              14));
+      LinearLayout line = new LinearLayout(getParentActivity());
+      line.setGravity(Gravity.CENTER_VERTICAL);
+      line.addView(
+          ui.badge(kindIcon(m.kind), ui.accent(), 40, 22),
+          new LinearLayout.LayoutParams(dp(40), dp(40)));
+      LinearLayout col = new LinearLayout(getParentActivity());
+      col.setOrientation(LinearLayout.VERTICAL);
+      col.setPadding(dp(12), 0, dp(8), 0);
+      TextView who = ui.text(m.authorName + " · " + m.sourceTitle, 14.5f, ui.text(), true);
+      who.setSingleLine(true);
+      who.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      col.addView(who);
+      col.addView(
+          ui.text(
+              kindName(m.kind) + " · " + (m.duration > 0 ? clock(m.duration) + " · " : "") + dateTime(m.date * 1000L),
+              12,
+              ui.sub(),
+              false));
+      line.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
+      final FrameLayout mark = new FrameLayout(getParentActivity());
+      mark.addView(ui.icon(R.drawable.tp_aic_check, 0xffffffff, 16), new FrameLayout.LayoutParams(dp(16), dp(16), Gravity.CENTER));
+      selectionMark(mark, picked);
+      line.addView(mark, new LinearLayout.LayoutParams(dp(26), dp(26)));
+      card.addView(line);
+      if (!m.transcript.isEmpty()) {
+        List<CenterTranscript.Segment> segments = CenterTranscript.parse(m.transcript, m.duration);
+        for (int k = 0; k < Math.min(3, segments.size()); k++) {
+          final CenterTranscript.Segment segment = segments.get(k);
+          TextView text = ui.text(transcriptLine(segment), 13, ui.text(), false);
+          text.setPadding(dp(4), dp(8), dp(4), 0);
+          text.setOnClickListener(w -> playAt(m, segment.start));
+          card.addView(text);
+        }
+        LinearLayout actions = new LinearLayout(getParentActivity());
+        actions.setPadding(0, dp(8), 0, 0);
+        actions.addView(
+            ui.chip(
+                tr("Open full transcript", "Открыть всю расшифровку") + " (" + segments.size() + ")",
+                true,
+                w -> mediaDetails(m, 0)));
+        card.addView(actions);
+      } else {
+        card.addView(ui.pill(tr("Waiting for recognition", "Ждёт распознавания"), ui.warn()), margins(-2, -2, 0, 8, 0, 0));
+      }
+      card.setOnClickListener(
+          v -> {
+            if (!pickedMedia.remove(m.qualified())) pickedMedia.add(m.qualified());
+            show(screen);
+          });
+      body.addView(card, ui.cardParams());
+    }
+    if (mediaPage > 0)
+      button(
+          "previous",
+          () -> {
+            mediaPage--;
+            show(screen);
+          });
+    if ((mediaPage + 1) * 40 < list.size())
+      button(
+          "next",
+          () -> {
+            mediaPage++;
+            show(screen);
+          });
+
+    dock.setVisibility(View.VISIBLE);
+    View separator = new View(getParentActivity());
+    separator.setBackgroundColor(ui.line());
+    dock.addView(separator, new LinearLayout.LayoutParams(-1, Math.max(1, dp(0.5f))));
+    long minutes = 0;
+    int count = 0;
+    for (CenterData.Message m : list)
+      if (pickedMedia.contains(m.qualified())) {
+        count++;
+        minutes += m.duration / 60000;
+      }
+    TextView summaryLine =
+        ui.text(
+            count == 0
+                ? tr("3 · Nothing selected. Tap a recording to select it.", "3 · Ничего не выбрано. Нажмите на запись, чтобы выбрать.")
+                : tr("3 · Selected", "3 · Выбрано") + ": " + count + " · ≈ " + Math.max(1, minutes) + " " + tr("min of audio", "мин записи"),
+            13.5f,
+            ui.text(),
+            true);
+    summaryLine.setPadding(dp(16), dp(8), dp(16), 0);
+    dock.addView(summaryLine);
+    TextView selectWaiting =
+        ui.button(
+            tr("Select all waiting", "Выбрать все ждущие"),
+            false,
+            0,
+            v -> {
+              for (CenterData.Message m : list) if (m.transcript.isEmpty()) pickedMedia.add(m.qualified());
+              show(screen);
+            });
+    TextView queue = ui.button(tr("Queue", "Очередь"), false, 0, v -> taskQueue());
+    TextView go =
+        ui.button(
+            tr("Recognise", "Распознать"),
+            true,
+            R.drawable.tp_aic_play,
+            v -> {
+              if (!cloud) {
+                queueMedia(list, "transcribe");
+                return;
+              }
+              dialogBuilder()
+                  .setMessage(t("cloudAsrConsent"))
+                  .setPositiveButton(
+                      t("confirm"),
+                      (d, w) -> {
+                        CenterIndex.setting("consent", true);
+                        queueMedia(list, "cloudAsr");
+                      })
+                  .setNegativeButton(t("cancel"), null)
+                  .show();
+            });
+    dock.addView(ui.buttonRow(selectWaiting, queue, go));
   }
 
   private void enqueueDescriptions(List<CenterData.Message> selected, String question) {
@@ -2911,7 +3611,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
 
   private void taskQueue() {
     int version = ++uiVersion;
-    body.removeAllViews();
+    clearBody();
     heading("queue");
     CenterStore.IO.execute(
         () -> {
@@ -3507,7 +4207,6 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void statistics(boolean authors) {
-    button("period", () -> show(0));
     status.setText(t("loading"));
     int version = uiVersion;
     CenterData.Scope scope;
@@ -3831,7 +4530,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
 
   private void messageDetails(List<CenterData.Message> messages) {
     uiVersion++;
-    body.removeAllViews();
+    clearBody();
     heading("details");
     info(t("messages") + ": " + messages.size());
     button(
@@ -3895,7 +4594,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
               toast(tr("Switch on two or more authors first.", "Сначала включите двух или больше авторов."));
               return;
             }
-            body.removeAllViews();
+            clearBody();
             heading("compareAuthors");
             info(t("authorWarning"));
             for (CenterStats.Author a : stats.authors)
@@ -4030,7 +4729,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       authorPage = 0;
       authorKind = "";
     }
-    body.removeAllViews();
+    clearBody();
     info(t("authorWarning"));
     TextView name = row(a.name, null);
     name.setTypeface(AndroidUtilities.bold());
@@ -4493,7 +5192,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void reportBuilder() {
-    body.removeAllViews();
+    clearBody();
     heading("blocks");
     CenterExport.Options options = exportOptions();
     toggle(
@@ -4733,7 +5432,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void digestList() {
-    body.removeAllViews();
+    clearBody();
     heading("schedule");
     button("addSchedule", this::configureDigest);
     JSONObject schedules = CenterIndex.settings().optJSONObject("schedules");
@@ -4866,6 +5565,15 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
 
   private void settings() {
     JSONObject o = CenterIndex.settings();
+    long sourceCount = index.sources.stream().filter(index.scope::requests).count();
+    body.addView(ui.section(tr("What is analysed", "Что анализируется")));
+    row(tr("Sources", "Источники") + " · " + sourceCount + " / " + index.sources.size()
+        + "\n" + tr("Choose groups and channels of each account", "Выберите группы и каналы каждого аккаунта"),
+        () -> show(0));
+    row(tr("Accounts and filters", "Аккаунты и фильтры") + "\n"
+        + tr("Which accounts take part, search and filter sources", "Какие аккаунты участвуют, поиск и фильтры по источникам"),
+        () -> show(9));
+    body.addView(ui.section(tr("Speech recognition", "Распознавание речи")));
     button(
         "asrModel",
         () ->
@@ -4879,9 +5587,12 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         o.optBoolean("asrDiarization", false),
         enabled -> CenterIndex.setting("asrDiarization", enabled));
     info(t("speakerScopeHint"));
+    body.addView(ui.section(tr("AI models", "Модели ИИ")));
     button("fastModel", () -> chooseRole("fastModel", "fastModel"));
     button("reportModel", () -> chooseRole("reportModel", "reportModel"));
     button("visionModel", () -> chooseRole("visionModel", "visionModel"));
+    button("aiConnections", () -> presentFragment(new TelePremiumAiActivity()));
+    body.addView(ui.section(tr("Usage and limits", "Расход и лимиты")));
     info(t("usage") + "\n" + CenterUsage.summary());
     for (String budget : new String[] {"dailyLimit", "monthlyLimit"})
       button(
@@ -4897,12 +5608,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                       error(e.getMessage());
                     }
                   }));
+    body.addView(ui.section(tr("Background work", "Фоновая работа")));
     button("schedule", this::digestList);
-    button("clearHistorySource", this::clearHistorySource);
-    toggle(
-        "removeDeleted",
-        o.optBoolean("removeDeleted", false),
-        v -> CenterIndex.setting("removeDeleted", v));
     toggle(
         "wifi",
         o.optBoolean("wifi", true),
@@ -4930,6 +5637,12 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     error(e.getMessage());
                   }
                 }));
+    body.addView(ui.section(tr("Data", "Данные")));
+    button("clearHistorySource", this::clearHistorySource);
+    toggle(
+        "removeDeleted",
+        o.optBoolean("removeDeleted", false),
+        v -> CenterIndex.setting("removeDeleted", v));
     button(
         "cacheClear",
         () -> {
@@ -4946,14 +5659,6 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                   FileLog.e(e);
                 }
               });
-        });
-    toggle("local", o.optBoolean("localOnly", false), b -> CenterIndex.setting("localOnly", b));
-    toggle(
-        "secure",
-        o.optBoolean("secure", true),
-        b -> {
-          CenterIndex.setting("secure", b);
-          applySecure();
         });
     for (String[] pair :
         new String[][] {
@@ -4977,6 +5682,16 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                       error(e.getMessage());
                     }
                   }));
+    info(t("indexSize") + ": " + CenterStore.get().bytes());
+    body.addView(ui.section(tr("Protection", "Защита")));
+    toggle("local", o.optBoolean("localOnly", false), b -> CenterIndex.setting("localOnly", b));
+    toggle(
+        "secure",
+        o.optBoolean("secure", true),
+        b -> {
+          CenterIndex.setting("secure", b);
+          applySecure();
+        });
     button(
         "security",
         () ->
@@ -5053,8 +5768,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
               });
           Arrays.fill(key, (byte) 0);
         });
-    info(t("indexSize") + ": " + CenterStore.get().bytes());
-    button("aiConnections", () -> presentFragment(new TelePremiumAiActivity()));
+    body.addView(ui.section(tr("Danger zone", "Опасная зона")));
     button(
         "clear",
         () ->

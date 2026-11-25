@@ -297,10 +297,41 @@ public final class TelePremiumCenterUi {
       v.setEllipsize(android.text.TextUtils.TruncateAt.END);
       v.setPadding(dp(6), dp(9), dp(6), dp(9));
       v.setBackground(on ? shape(accent(), 10, 0, 0) : null);
-      v.setOnClickListener(w -> pick.accept(index));
+      v.setOnClickListener(
+          w -> {
+            for (int k = 0; k < l.getChildCount(); k++) {
+              TextView other = (TextView) l.getChildAt(k);
+              boolean now = k == index;
+              other.setTextColor(now ? onAccent() : text());
+              other.setTypeface(now ? AndroidUtilities.bold() : android.graphics.Typeface.DEFAULT);
+              other.setBackground(now ? shape(accent(), 10, 0, 0) : null);
+            }
+            pick.accept(index);
+          });
       l.addView(v, new LinearLayout.LayoutParams(0, -2, 1));
     }
     return l;
+  }
+
+  /** Re-colours a chip made by chip() without rebuilding the screen. */
+  public void restyleChip(TextView v, boolean selected) {
+    v.setTextColor(selected ? onAccent() : text());
+    v.setTypeface(selected ? AndroidUtilities.bold() : android.graphics.Typeface.DEFAULT);
+    v.setBackground(
+        ripple(selected ? shape(accent(), 18, 0, 0) : shape(card(), 18, line(), 1), 18));
+  }
+
+  /** A chip that flips on and off by itself and reports the new state. */
+  public TextView toggleChip(String s, boolean initial, Consumer<Boolean> change) {
+    final boolean[] state = {initial};
+    final TextView v = chip(s, initial, null);
+    v.setOnClickListener(
+        w -> {
+          state[0] = !state[0];
+          restyleChip(v, state[0]);
+          change.accept(state[0]);
+        });
+    return v;
   }
 
   public TextView button(String s, boolean primary, int iconRes, View.OnClickListener l) {
