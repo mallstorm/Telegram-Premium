@@ -57,7 +57,9 @@ public final class CenterTaskService extends Service {
                     && !"cancelled".equals(old.optString("state"))) {
                   existing = true;
                   if ("error".equals(old.optString("state"))
-                      || "paused".equals(old.optString("state"))) {
+                      || "paused".equals(old.optString("state"))
+                      || "done".equals(old.optString("state"))) {
+                    if ("done".equals(old.optString("state"))) old.put("cursor", 0);
                     old.put("state", "queued").put("retryAt", 0);
                     CenterStore.get().put(m.account, m.owner, "job", old.optString("id"), old);
                   }
@@ -491,6 +493,7 @@ public final class CenterTaskService extends Service {
             .put("accounts", CenterAi.accounts(data))
             .put("state", "running")
             .put("created", System.currentTimeMillis());
+    if (cancel.get() || generation != CenterIndex.generation()) throw new InterruptedException();
     EXTERNAL.put(id, cancel);
     try {
       if (!ephemeral) save(job);

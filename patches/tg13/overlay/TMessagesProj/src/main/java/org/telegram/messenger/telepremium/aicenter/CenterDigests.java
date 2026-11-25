@@ -75,11 +75,19 @@ public final class CenterDigests {
 
   public static synchronized void update(JSONObject job) throws Exception {
     JSONObject schedules = CenterIndex.settings().optJSONObject("schedules");
-    if (schedules == null) schedules = new JSONObject();
+    if (schedules == null || !schedules.has(job.optString("id"))) return;
     if (job.optBoolean("deleted")) {
       schedules.remove(job.optString("id"));
     } else schedules.put(job.optString("id"), job);
     CenterIndex.setting("schedules", schedules);
+  }
+
+  private static synchronized void progress(JSONObject job) throws Exception {
+    JSONObject schedules = CenterIndex.settings().optJSONObject("schedules");
+    JSONObject current = schedules == null ? null : schedules.optJSONObject(job.optString("id"));
+    if (current == null) return;
+    job.put("enabled", current.optBoolean("enabled"));
+    update(job);
   }
 
   public static void schedule() {
@@ -172,7 +180,7 @@ public final class CenterDigests {
                             : scope.to - job.optLong("span", 86400);
             scope.sinceRead = false;
             job.put("runTo", scope.to).put("runFrom", scope.from);
-            update(job);
+            progress(job);
             index.scope = scope;
             CenterSync sync =
                 new CenterSync(
@@ -241,7 +249,7 @@ public final class CenterDigests {
                                           : latestSchedules.optJSONObject(job.optString("id"));
                                   if (latestJob != null && !cancelled.get()) {
                                     job.put("enabled", latestJob.optBoolean("enabled"));
-                                    update(job);
+                                    progress(job);
                                   }
                                 } catch (Exception e) {
                                   FileLog.e(e);
@@ -271,7 +279,7 @@ public final class CenterDigests {
                                   job.optInt("hour", 9),
                                   job.optInt("minute", 0),
                                   job.optString("zone", TimeZone.getDefault().getID())));
-                      update(job);
+                      progress(job);
                       notifyReady(local, index.sources.stream().filter(scope::allows).count());
                     } catch (Exception e) {
                       FileLog.e(e);
@@ -303,7 +311,8 @@ public final class CenterDigests {
     report.indexed = report.analyzed = messages.size();
     report.complete = true;
     for (CenterData.Source source : sources)
-      if (scope.allows(source) && !source.covers(scope.from, scope.to)) report.complete = false;
+      if (scope.requests(source) && (!source.available || !source.covers(scope.from, scope.to)))
+        report.complete = false;
     report.statistics = stats.json();
     report.dataset.addAll(messages);
     report.unclear.add(CenterText.get("local"));

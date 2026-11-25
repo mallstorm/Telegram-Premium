@@ -13,6 +13,24 @@ public final class CenterIndex {
   }
 
   private static boolean installed;
+  private static final long PROCESS_START = System.currentTimeMillis();
+  private static final java.util.concurrent.atomic.AtomicBoolean TEMP_CLEANED =
+      new java.util.concurrent.atomic.AtomicBoolean();
+
+  private static void cleanupTemporary() {
+    if (!TEMP_CLEANED.compareAndSet(false, true)) return;
+    java.io.File[] files = ApplicationLoader.applicationContext.getCacheDir().listFiles();
+    if (files != null)
+      for (java.io.File file : files) {
+        String name = file.getName();
+        if (file.lastModified() < PROCESS_START
+            && (name.startsWith("aic_input_")
+                || name.startsWith("aic_asr_")
+                || name.startsWith("telepremium_stt_")
+                || name.startsWith("tp_ai_segment_"))) file.delete();
+      }
+  }
+
   private static JSONObject settingsCache;
   private static volatile Set<Integer> excludedCache;
 
@@ -109,7 +127,9 @@ public final class CenterIndex {
     final long generation = GENERATION.get();
     CenterStore.IO.execute(
         () -> {
+          cleanupTemporary();
           CenterStore.get().prune();
+          CenterMaintenance.schedule();
           String error = null;
           List<CenterData.Message> ms = new ArrayList<>();
           List<CenterData.Source> ss = new ArrayList<>();
@@ -120,16 +140,22 @@ public final class CenterIndex {
                 continue;
               }
               long owner = UserConfig.getInstance(a).getClientUserId();
-              for (JSONObject o : CenterStore.get().list(a, owner, "source"))
-                ss.add(CenterData.Source.parse(o));
+              CenterStore.get().visit(a, owner, "source", o -> ss.add(CenterData.Source.parse(o)));
               long cutoff =
                   System.currentTimeMillis() / 1000
                       - settings().optInt("retentionDays", 90) * 86400L;
-              for (JSONObject o : CenterStore.get().list(a, owner, "message")) {
-                CenterData.Message m = CenterData.Message.parse(o);
-                if (m.date < cutoff) CenterStore.get().remove(a, owner, "message", m.qualified());
-                else ms.add(m);
-              }
+              List<String> expired = new ArrayList<>();
+              CenterStore.get()
+                  .visit(
+                      a,
+                      owner,
+                      "message",
+                      o -> {
+                        CenterData.Message m = CenterData.Message.parse(o);
+                        if (m.date < cutoff) expired.add(m.qualified());
+                        else ms.add(m);
+                      });
+              for (String id : expired) CenterStore.get().remove(a, owner, "message", id);
             }
           } catch (Exception e) {
             error = e.getClass().getSimpleName();
@@ -161,7 +187,13 @@ public final class CenterIndex {
   }
 
   public void saveScope() {
+    Set<Integer> previous = excludedCache == null ? Collections.emptySet() : excludedCache;
     excludedCache = new HashSet<>(scope.excluded);
+    for (int account : scope.excluded)
+      if (!previous.contains(account)) {
+        CenterTaskService.stopWork();
+        logout(account);
+      }
     try {
       TPAiStore.putPrivate("center_scope", scope.json().toString());
     } catch (Exception e) {
@@ -198,6 +230,8 @@ public final class CenterIndex {
   }
 
   public static void cloudLocked() {
+    GENERATION.incrementAndGet();
+    CenterDigests.cancelWork();
     CenterThumbnails.clear();
     CenterTaskService.stopWork();
     CenterStore.IO.execute(
@@ -206,10 +240,8 @@ public final class CenterIndex {
             for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++)
               if (UserConfig.getInstance(a).isClientActivated()) {
                 long owner = UserConfig.getInstance(a).getClientUserId();
-                for (JSONObject o : CenterStore.get().list(a, owner, "message"))
-                  if (!o.optString("cloudNode").isEmpty())
-                    CenterStore.get()
-                        .remove(a, owner, "message", CenterData.Message.parse(o).qualified());
+                CenterStore.get()
+                    .removeWhere(a, owner, "message", o -> !o.optString("cloudNode").isEmpty());
                 for (String kind :
                     new String[] {
                       "report",
@@ -217,15 +249,21 @@ public final class CenterIndex {
                       "chunk",
                       "final",
                       "search",
+                      "vision_part",
                       "report_image",
                       "media_result",
                       "job"
                     })
-                  for (JSONObject o : CenterStore.get().list(a, owner, kind)) {
-                    JSONObject m = o.optJSONObject("message");
-                    if (o.optBoolean("cloud") || (m != null && !m.optString("cloudNode").isEmpty()))
-                      CenterStore.get().remove(a, owner, kind, o.optString("id"));
-                  }
+                  CenterStore.get()
+                      .removeWhere(
+                          a,
+                          owner,
+                          kind,
+                          o -> {
+                            JSONObject message = o.optJSONObject("message");
+                            return o.optBoolean("cloud")
+                                || message != null && !message.optString("cloudNode").isEmpty();
+                          });
               }
           } catch (Exception e) {
             FileLog.e(e);

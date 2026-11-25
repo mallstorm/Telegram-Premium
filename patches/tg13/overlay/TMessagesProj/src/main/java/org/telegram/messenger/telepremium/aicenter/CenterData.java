@@ -101,6 +101,7 @@ public final class CenterData {
         cloudNode = "",
         contentHash = "",
         previewBase = "";
+    public long sceneHash;
     public JSONObject pageEvidence = new JSONObject(), frameEvidence = new JSONObject();
     public final java.util.List<Long> frameTimes = new java.util.ArrayList<>();
     public boolean own, deleted, protectedMedia, personal;
@@ -152,6 +153,7 @@ public final class CenterData {
           .put("localUri", localUri)
           .put("cloudNode", cloudNode)
           .put("hash", hash)
+          .put("sceneHash", sceneHash)
           .put("bytes", bytes)
           .put("duration", duration)
           .put("own", own)
@@ -205,6 +207,7 @@ public final class CenterData {
       m.localUri = o.optString("localUri");
       m.cloudNode = o.optString("cloudNode");
       m.hash = o.optString("hash");
+      m.sceneHash = o.optLong("sceneHash");
       m.bytes = o.optLong("bytes");
       m.duration = o.optLong("duration");
       m.own = o.optBoolean("own");
@@ -232,15 +235,19 @@ public final class CenterData {
     public final Set<String> sources = new HashSet<>(), kinds = new HashSet<>();
     public final Set<Long> authors = new HashSet<>();
 
-    public boolean allows(Source s) {
-      return s.available
-          && !excluded.contains(s.account)
+    public boolean requests(Source s) {
+      return !excluded.contains(s.account)
           && (!"private".equals(s.type) || includePrivate)
           && (whole.contains(s.account) || sources.contains(s.key()));
     }
 
+    public boolean allows(Source s) {
+      return s.available && requests(s);
+    }
+
     public boolean matches(Message m) {
       return !m.deleted
+          && !m.protectedMedia
           && !excluded.contains(m.account)
           && m.date >= from
           && m.date <= to

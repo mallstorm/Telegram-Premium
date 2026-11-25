@@ -89,8 +89,8 @@ public final class CenterPdf implements AutoCloseable {
       File file)
       throws Exception {
     try (CenterPdf pdf = new CenterPdf(labels)) {
-      CenterExport.Names names = new CenterExport.Names(options, labels);
-      pdf.text(r.question, 21, true);
+      CenterExport.Names names = new CenterExport.Names(options, labels, r);
+      pdf.text(names.privatize(r.question), 21, true);
       pdf.text(CenterExport.date(r.from) + " — " + CenterExport.date(r.to), 11, false);
       pdf.text(
           labels.get("coverage")
@@ -105,21 +105,22 @@ public final class CenterPdf implements AutoCloseable {
       for (String block : options.blocks) {
         if (block.equals("main"))
           for (CenterReports.Claim claim : r.claims) {
-            pdf.text(claim.title, 15, true);
-            pdf.text(claim.text, 11, false);
+            pdf.text(names.privatize(claim.title), 15, true);
+            pdf.text(names.privatize(claim.text), 11, false);
             pdf.text(labels.get(claim.verified() ? claim.certainty : "unverified"), 10, false);
             for (CenterReports.Evidence e : claim.evidence) {
               pdf.text(
                   names.author(e.message)
                       + " · "
-                      + e.message.sourceTitle
+                      + names.privatize(e.message.sourceTitle)
                       + " · "
                       + names.account(e.message)
                       + " · "
                       + CenterExport.date(e.message.date),
                   9,
                   true);
-              if (!e.quote.isEmpty()) pdf.text("“" + e.quote + "”", 10, false);
+              if (!names.privatize(e.quote).isEmpty())
+                pdf.text("“" + names.privatize(e.quote) + "”", 10, false);
               if (e.timeMs > 0) pdf.text(CenterTranscript.stamp(e.timeMs), 9, false);
               if (e.page > 0) pdf.text(labels.get("page") + " " + e.page, 9, false);
               if (!CenterExport.link(e.message).isEmpty())
@@ -141,7 +142,7 @@ public final class CenterPdf implements AutoCloseable {
           for (int i = 0; groups != null && i < groups.length(); i++) {
             JSONObject g = groups.optJSONObject(i);
             pdf.text(
-                g.optString("title")
+                names.privatize(g.optString("title"))
                     + " · "
                     + g.optInt("messages")
                     + " · "
@@ -181,19 +182,19 @@ public final class CenterPdf implements AutoCloseable {
                 pdf.text(
                     names.author(e.message)
                         + " · "
-                        + e.message.sourceTitle
+                        + names.privatize(e.message.sourceTitle)
                         + " · "
                         + CenterExport.date(e.message.date),
                     9,
                     true);
-                pdf.text(e.message.description, 10, false);
+                pdf.text(names.privatize(e.message.description), 10, false);
                 pdf.text(CenterExport.link(e.message), 8, false);
               }
         }
         if (block.equals("transcripts")) {
           for (CenterData.Message transcript : CenterReports.transcripts(r)) {
-            pdf.text(transcript.sourceTitle, 14, true);
-            pdf.text(transcript.transcript, 10, false);
+            pdf.text(names.privatize(transcript.sourceTitle), 14, true);
+            pdf.text(names.privatize(transcript.transcript), 10, false);
           }
         }
         if (block.equals("unclear")) {

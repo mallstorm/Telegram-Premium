@@ -57,11 +57,61 @@ public final class CenterExport {
     private final Map<Long, String> names = new LinkedHashMap<>();
     private final Map<Integer, String> accounts = new LinkedHashMap<>();
     private final boolean anonymous;
+    private final Map<String, String> replacements = new LinkedHashMap<>();
     private final Labels labels;
 
     public Names(Options o, Labels l) {
       anonymous = o.anonymize;
       labels = l;
+    }
+
+    public Names(Options options, Labels labels, CenterReports.Report report) {
+      this(options, labels);
+      seedStats(report.statistics);
+      for (CenterData.Message m : report.dataset) seed(m);
+      for (CenterData.Message m : CenterReports.transcripts(report)) seed(m);
+      for (CenterReports.Claim c : report.claims)
+        for (CenterReports.Evidence e : c.evidence) seed(e.message);
+    }
+
+    public void seedStats(JSONObject stats) {
+      JSONArray authors = stats == null ? null : stats.optJSONArray("authors");
+      for (int i = 0; authors != null && i < authors.length(); i++) {
+        JSONObject author = authors.optJSONObject(i);
+        if (author != null)
+          remember(
+              author.optString("name"), author(author.optLong("id"), author.optString("name")));
+      }
+    }
+
+    private void seed(CenterData.Message m) {
+      remember(m.authorName, author(m));
+      remember(m.accountName, account(m));
+    }
+
+    private void remember(String original, String alias) {
+      if (anonymous && original != null && !original.isEmpty()) replacements.putIfAbsent(original, alias);
+    }
+
+    public String privatize(String text) {
+      if (!anonymous || text == null) return text == null ? "" : text;
+      List<String> keys = new ArrayList<>(replacements.keySet());
+      keys.sort(Comparator.comparingInt(String::length).reversed());
+      StringBuilder out = new StringBuilder();
+      for (int at = 0; at < text.length(); ) {
+        String match = null;
+        for (String key : keys)
+          if (text.startsWith(key, at)) {
+            match = key;
+            break;
+          }
+        if (match == null) out.append(text.charAt(at++));
+        else {
+          out.append(replacements.get(match));
+          at += match.length();
+        }
+      }
+      return out.toString();
     }
 
     public String author(CenterData.Message m) {
@@ -118,8 +168,8 @@ public final class CenterExport {
 
   public static String text(CenterReports.Report r, Options o, Labels l, JSONObject stats) {
     StringBuilder b = new StringBuilder();
-    Names names = new Names(o, l);
-    b.append(r.question)
+    Names names = new Names(o, l, r);
+    b.append(names.privatize(r.question))
         .append('\n')
         .append(date(r.from))
         .append(" — ")
@@ -136,9 +186,9 @@ public final class CenterExport {
     for (String block : o.blocks) {
       if (block.equals("main"))
         for (CenterReports.Claim c : r.claims) {
-          b.append(c.title)
+          b.append(names.privatize(c.title))
               .append('\n')
-              .append(c.text)
+              .append(names.privatize(c.text))
               .append('\n')
               .append(l.get(c.verified() ? c.certainty : "unverified"))
               .append('\n');
@@ -146,13 +196,14 @@ public final class CenterExport {
             CenterData.Message m = e.message;
             b.append(names.author(m))
                 .append(" · ")
-                .append(m.sourceTitle)
+                .append(names.privatize(m.sourceTitle))
                 .append(" · ")
                 .append(names.account(m))
                 .append(" · ")
                 .append(date(m.date))
                 .append('\n');
-            if (!e.quote.isEmpty()) b.append('“').append(e.quote).append("”\n");
+            if (!names.privatize(e.quote).isEmpty())
+              b.append('“').append(names.privatize(e.quote)).append("”\n");
             if (e.timeMs > 0) b.append(CenterTranscript.stamp(e.timeMs)).append('\n');
             if (e.page > 0) b.append(l.get("page")).append(' ').append(e.page).append('\n');
             b.append(link(m)).append('\n');
@@ -168,7 +219,7 @@ public final class CenterExport {
         JSONArray a = stats.optJSONArray("groups");
         for (int i = 0; a != null && i < a.length(); i++) {
           JSONObject g = a.optJSONObject(i);
-          b.append(g.optString("title"))
+          b.append(names.privatize(g.optString("title")))
               .append(" · ")
               .append(g.optInt("messages"))
               .append(" · ")
@@ -180,7 +231,10 @@ public final class CenterExport {
       }
       if (block.equals("transcripts"))
         for (CenterData.Message transcript : CenterReports.transcripts(r))
-          b.append(transcript.sourceTitle).append('\n').append(transcript.transcript).append('\n');
+          b.append(names.privatize(transcript.sourceTitle))
+              .append('\n')
+              .append(names.privatize(transcript.transcript))
+              .append('\n');
       if (block.equals("authors") && stats != null) {
         b.append(l.get("authorWarning")).append('\n');
         JSONArray a = stats.optJSONArray("authors");
@@ -199,12 +253,12 @@ public final class CenterExport {
   public static void html(
       CenterReports.Report r, Options o, Labels l, JSONObject stats, Images images, Writer out)
       throws Exception {
-    Names names = new Names(o, l);
+    Names names = new Names(o, l, r);
     out.write(
         "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\""
             + " content=\"width=device-width\"><meta http-equiv=\"Content-Security-Policy\""
             + " content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'\"><title>"
-            + escape(r.question)
+            + escape(names.privatize(r.question))
             + "</title><style>body{font:16px"
             + " system-ui;max-width:960px;margin:auto;padding:24px;line-height:1.6}img{max-width:100%}article{border-bottom:1px"
             + " solid #ccc;padding:16px 0}blockquote{border-left:3px solid"
@@ -212,7 +266,7 @@ public final class CenterExport {
             + " solid #ccc}</style></head><body>");
     out.write(
         "<h1>"
-            + escape(r.question)
+            + escape(names.privatize(r.question))
             + "</h1><p>"
             + escape(date(r.from) + " — " + date(r.to))
             + "</p><p>"
@@ -229,9 +283,9 @@ public final class CenterExport {
         for (CenterReports.Claim c : r.claims) {
           out.write(
               "<article><h2>"
-                  + escape(c.title)
+                  + escape(names.privatize(c.title))
                   + "</h2><p>"
-                  + escape(c.text).replace("\n", "<br>")
+                  + escape(names.privatize(c.text)).replace("\n", "<br>")
                   + "</p><small>"
                   + escape(l.get(c.verified() ? c.certainty : "unverified"))
                   + "</small><details><summary>"
@@ -246,13 +300,13 @@ public final class CenterExport {
                     + escape(
                         names.author(m)
                             + " · "
-                            + m.sourceTitle
+                            + names.privatize(m.sourceTitle)
                             + " · "
                             + names.account(m)
                             + " · "
                             + date(m.date))
                     + "</p><blockquote>"
-                    + escape(e.quote)
+                    + escape(names.privatize(e.quote))
                     + "</blockquote>");
             if (!link(m).isEmpty())
               out.write("<a href=\"" + escape(link(m)) + "\">" + escape(l.get("open")) + "</a>");
@@ -270,7 +324,7 @@ public final class CenterExport {
               if (bytes != null) {
                 out.write(
                     "<figure><img alt=\""
-                        + escape(e.message.sourceTitle)
+                        + escape(names.privatize(e.message.sourceTitle))
                         + "\" src=\"data:image/jpeg;base64,");
                 out.write(java.util.Base64.getEncoder().encodeToString(bytes));
                 out.write(
@@ -278,11 +332,11 @@ public final class CenterExport {
                         + escape(
                             names.author(e.message)
                                 + " · "
-                                + e.message.sourceTitle
+                                + names.privatize(e.message.sourceTitle)
                                 + " · "
                                 + date(e.message.date)
                                 + " · "
-                                + e.message.description)
+                                + names.privatize(e.message.description))
                         + "</figcaption></figure>");
                 Arrays.fill(bytes, (byte) 0);
               }
@@ -317,7 +371,7 @@ public final class CenterExport {
           JSONObject g = a.optJSONObject(i);
           out.write(
               "<tr><td>"
-                  + escape(g.optString("title"))
+                  + escape(names.privatize(g.optString("title")))
                   + "</td><td>"
                   + g.optInt("messages")
                   + "</td><td>"
@@ -348,9 +402,9 @@ public final class CenterExport {
         for (CenterData.Message transcript : CenterReports.transcripts(r))
           out.write(
               "<h3>"
-                  + escape(transcript.sourceTitle)
+                  + escape(names.privatize(transcript.sourceTitle))
                   + "</h3><pre>"
-                  + escape(transcript.transcript)
+                  + escape(names.privatize(transcript.transcript))
                   + "</pre>");
       }
       if (block.equals("unclear")) {
@@ -370,10 +424,10 @@ public final class CenterExport {
       Images images,
       Writer out)
       throws Exception {
-    Names names = new Names(options, labels);
+    Names names = new Names(options, labels, r);
     out.write(
         "# "
-            + markdown(r.question)
+            + markdown(names.privatize(r.question))
             + "\n\n"
             + markdown(date(r.from) + " — " + date(r.to))
             + "\n\n"
@@ -388,9 +442,9 @@ public final class CenterExport {
         for (CenterReports.Claim c : r.claims) {
           out.write(
               "## "
-                  + markdown(c.title)
+                  + markdown(names.privatize(c.title))
                   + "\n\n"
-                  + markdown(c.text)
+                  + markdown(names.privatize(c.text))
                   + "\n\n"
                   + markdown(labels.get(c.verified() ? c.certainty : "unverified"))
                   + "\n\n");
@@ -400,14 +454,14 @@ public final class CenterExport {
                     + markdown(
                         names.author(e.message)
                             + " · "
-                            + e.message.sourceTitle
+                            + names.privatize(e.message.sourceTitle)
                             + " · "
                             + names.account(e.message)
                             + " · "
                             + date(e.message.date))
                     + "\n");
-            if (!e.quote.isEmpty())
-              out.write("  > " + markdown(e.quote).replace("\n", "\n  > ") + "\n");
+            if (!names.privatize(e.quote).isEmpty())
+              out.write("  > " + markdown(names.privatize(e.quote)).replace("\n", "\n  > ") + "\n");
             if (!link(e.message).isEmpty())
               out.write("  [" + markdown(labels.get("open")) + "](" + link(e.message) + ")\n");
             if (e.timeMs > 0) out.write("  " + CenterTranscript.stamp(e.timeMs) + "\n");
@@ -427,13 +481,13 @@ public final class CenterExport {
                         + markdown(
                             names.author(e.message)
                                 + " · "
-                                + e.message.sourceTitle
+                                + names.privatize(e.message.sourceTitle)
                                 + " · "
                                 + date(e.message.date))
                         + "](data:image/jpeg;base64,"
                         + java.util.Base64.getEncoder().encodeToString(image)
                         + ")\n\n"
-                        + markdown(e.message.description)
+                        + markdown(names.privatize(e.message.description))
                         + "\n\n");
                 Arrays.fill(image, (byte) 0);
               }
@@ -463,7 +517,12 @@ public final class CenterExport {
                 + "|\n|---|---:|\n");
         for (int i = 0; groups != null && i < groups.length(); i++) {
           JSONObject g = groups.optJSONObject(i);
-          out.write("|" + markdown(g.optString("title")) + "|" + g.optInt("messages") + "|\n");
+          out.write(
+              "|"
+                  + markdown(names.privatize(g.optString("title")))
+                  + "|"
+                  + g.optInt("messages")
+                  + "|\n");
         }
       }
       if (block.equals("authors") && stats != null) {
@@ -483,9 +542,9 @@ public final class CenterExport {
         for (CenterData.Message transcript : CenterReports.transcripts(r))
           out.write(
               "\n### "
-                  + markdown(transcript.sourceTitle)
+                  + markdown(names.privatize(transcript.sourceTitle))
                   + "\n\n"
-                  + markdown(transcript.transcript)
+                  + markdown(names.privatize(transcript.transcript))
                   + "\n\n");
       }
       if (block.equals("unclear")) {
@@ -498,6 +557,7 @@ public final class CenterExport {
   public static String csv(JSONObject stats, Options o, Labels l) {
     StringBuilder out = new StringBuilder();
     Names names = new Names(o, l);
+    names.seedStats(stats);
     out.append(
         csvRow(
             l.get("groups"), l.get("messages"), l.get("authors"), l.get("media"), l.get("links")));
@@ -506,7 +566,7 @@ public final class CenterExport {
       JSONObject g = groups.optJSONObject(i);
       out.append(
           csvRow(
-              g.optString("title"),
+              names.privatize(g.optString("title")),
               g.optInt("messages"),
               g.optInt("authors"),
               g.optInt("media"),

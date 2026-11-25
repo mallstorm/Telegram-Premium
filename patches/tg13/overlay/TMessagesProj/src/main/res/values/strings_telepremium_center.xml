@@ -234,4 +234,5 @@
   <string name="TP_AIC_chapterQuery">Create video chapters by changes of topic. For every chapter include the exact transcript quotation and its real timestamp. Correlate spoken words with indexed scene OCR. Identify gaps.</string>
   <string name="TP_AIC_expand">Expand this finding</string>
   <string name="TP_AIC_discussed">Most discussed messages</string>
+  <string name="TP_AIC_unavailableAccounts">Some requested accounts are unavailable; their data is omitted.</string>
 </resources>

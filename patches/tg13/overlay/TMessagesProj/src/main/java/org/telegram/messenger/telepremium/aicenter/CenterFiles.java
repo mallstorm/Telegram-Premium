@@ -38,7 +38,7 @@ public final class CenterFiles {
     CenterAssets.save(report, "report", options);
     File file = file(format);
     CenterExport.Labels labels = CenterText::get;
-    CenterExport.Names names = new CenterExport.Names(options, labels);
+    CenterExport.Names names = new CenterExport.Names(options, labels, report);
     CenterExport.Images images =
         new CenterExport.Images() {
           public byte[] read(CenterReports.Evidence e) throws Exception {

@@ -52,6 +52,26 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   private int savedScroll;
   private final java.util.concurrent.atomic.AtomicBoolean aiCancelled =
       new java.util.concurrent.atomic.AtomicBoolean();
+  private long observedPrivacyEpoch = CenterIndex.generation();
+  private final Runnable privacyWatcher =
+      new Runnable() {
+        @Override
+        public void run() {
+          if (!foreground) return;
+          if (observedPrivacyEpoch != CenterIndex.generation()) {
+            observedPrivacyEpoch = CenterIndex.generation();
+            report = null;
+            drilldown = null;
+            if (mediaDialog != null) {
+              mediaDialog.dismiss();
+              mediaDialog = null;
+            }
+            CenterThumbnails.clear();
+            if (unlocked) reload();
+          }
+          uiHandler.postDelayed(this, 1500);
+        }
+      };
   private CenterSync sync;
   private LinearLayout root, body, navigation;
   private TextView scopeLine, status;
@@ -336,6 +356,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   public void onResume() {
     super.onResume();
     foreground = true;
+    uiHandler.removeCallbacks(privacyWatcher);
+    uiHandler.post(privacyWatcher);
     applySecure();
     if (!unlocked) unlock();
     else reload();
@@ -2839,7 +2861,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           () -> {
             List<CenterData.Message> hits = new ArrayList<>();
             for (CenterData.Message m : a.publications)
-              if (m.text.contains(topic.getKey())) hits.add(m);
+              if (m.text.toLowerCase(Locale.ROOT).contains(topic.getKey().toLowerCase(Locale.ROOT)))
+                hits.add(m);
             messageDetails(hits);
           });
     heading("weeklyActivity");
@@ -3406,6 +3429,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void clearCenterData() {
+    if (sync != null) sync.cancel();
     aiCancelled.set(true);
     CenterTaskService.stopWork();
     CenterDigests.cancelWork();

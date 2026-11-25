@@ -152,7 +152,8 @@ public final class CenterAi {
       hit.statistics = finalCached.optJSONObject("statistics");
       hit.complete = !hit.retryNeeded && hit.analyzed == hit.indexed;
       for (CenterData.Source source : sources)
-        if (scope.allows(source) && !source.covers(scope.from, scope.to)) hit.complete = false;
+        if (scope.requests(source) && (!source.available || !source.covers(scope.from, scope.to)))
+          hit.complete = false;
       return hit;
     }
     JSONArray maps = new JSONArray();
@@ -287,9 +288,18 @@ public final class CenterAi {
     report.complete = !report.retryNeeded;
     report.unclear.addAll(failures);
     for (CenterData.Source s : sources)
-      if (scope.allows(s) && !s.covers(scope.from, scope.to)) {
+      if (scope.requests(s) && (!s.available || !s.covers(scope.from, scope.to))) {
         report.complete = false;
         report.unclear.add(s.title + ": " + CenterText.get("partial"));
+      }
+    for (int account : scope.whole)
+      if (!scope.excluded.contains(account)
+          && (account < 0
+              || account >= org.telegram.messenger.UserConfig.MAX_ACCOUNT_COUNT
+              || !org.telegram.messenger.UserConfig.getInstance(account).isClientActivated())) {
+        report.complete = false;
+        report.unclear.add(CenterText.get("unavailableAccounts"));
+        break;
       }
     if (report.claims.isEmpty()) throw new IllegalStateException(CenterText.get("rawIds"));
     report.dataset.addAll(messages);

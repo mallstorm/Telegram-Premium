@@ -237,6 +237,7 @@ public final class CenterMedia {
 
   public static void preview(CenterData.Message m, Bitmap b, long time, int page) throws Exception {
     check(m);
+    m.previewBase = m.qualified();
     byte[] jpeg = jpeg(b);
     JSONObject o =
         new JSONObject()
@@ -278,7 +279,7 @@ public final class CenterMedia {
             android.graphics.pdf.PdfRenderer renderer =
                 new android.graphics.pdf.PdfRenderer(descriptor)) {
           for (int i = (int) cursor; i < m.pages; i++) {
-            if (m.pageEvidence.has("" + (i + 1))) {
+            if (m.pageEvidence.has("" + (i + 1)) && hasPreview(m, 0, i + 1)) {
               checkpoint.save(i + 1, (i + 1) * 100 / Math.max(1, m.pages));
               continue;
             }
@@ -311,8 +312,9 @@ public final class CenterMedia {
                 bitmap.recycle();
               }
             }
+            if (!m.pageEvidence.has("" + (i + 1)))
+              m.ocr += "\n" + CenterText.get("page") + " " + (i + 1) + "\n" + text;
             m.pageEvidence.put("" + (i + 1), text);
-            m.ocr += "\n" + CenterText.get("page") + " " + (i + 1) + "\n" + text;
             save(m);
             checkpoint.save(i + 1, (i + 1) * 100 / Math.max(1, m.pages));
           }
@@ -379,7 +381,7 @@ public final class CenterMedia {
           Long.parseLong(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
       if (m.duration > CenterIndex.settings().optInt("maxVideo", 40) * 60000L)
         throw new IOException(CenterText.get("maxVideo"));
-      long lastHash = 0;
+      long lastHash = cursor > 0 ? m.sceneHash : 0;
       boolean first = cursor == 0;
       for (long time = cursor; time < m.duration; time += 2000) {
         if (cancel.get()) throw new InterruptedException();
@@ -395,11 +397,13 @@ public final class CenterMedia {
             if (first || Long.bitCount(hash ^ lastHash) > 12) {
               first = false;
               lastHash = hash;
+              m.sceneHash = hash;
               preview(m, b, time, 0);
               if (!m.frameTimes.contains(time)) m.frameTimes.add(time);
               String text = ocr(b);
+              if (!m.frameEvidence.has("" + time) && !text.trim().isEmpty())
+                m.ocr += "\n" + CenterTranscript.stamp(time) + " " + text;
               m.frameEvidence.put("" + time, text);
-              if (!text.trim().isEmpty()) m.ocr += "\n" + CenterTranscript.stamp(time) + " " + text;
               save(m);
             }
           } finally {
@@ -453,33 +457,66 @@ public final class CenterMedia {
       number++;
       if (batch.size() == 5) {
         check(m);
-        result
-            .append(
-                CenterAi.vision(
-                    "Describe visible content and readable text. Do not identify people."
-                        + " Distinguish observation and interpretation. Use the supplied timestamps"
-                        + " and page numbers.",
-                    question + "\n" + labels + "\n" + m.text + "\n" + m.transcript,
-                    batch))
-            .append('\n');
+        result.append(describeBatch(m, question, labels.toString(), batch)).append('\n');
         for (byte[] b : batch) Arrays.fill(b, (byte) 0);
         batch.clear();
+        m.description = CenterReports.clean(result.toString());
+        save(m);
         labels.setLength(0);
       }
     }
     if (!batch.isEmpty()) {
       check(m);
-      result.append(
-          CenterAi.vision(
-              "Describe visible content. No face identification. Use supplied timestamps and page"
-                  + " numbers.",
-              question + "\n" + labels + "\n" + m.text + "\n" + m.transcript,
-              batch));
+      result.append(describeBatch(m, question, labels.toString(), batch));
       for (byte[] b : batch) Arrays.fill(b, (byte) 0);
     }
     if (number == 0) throw new IOException(CenterText.get("preview"));
     m.description = CenterReports.clean(result.toString());
     save(m);
+  }
+
+  private static String describeBatch(
+      CenterData.Message m, String question, String labels, List<byte[]> images) throws Exception {
+    String payload = question + "\n" + labels + "\n" + m.text + "\n" + m.transcript;
+    org.telegram.messenger.telepremium.ai.TPAiStore.Connection model =
+        CenterAi.model("visionModel");
+    java.security.MessageDigest hash = java.security.MessageDigest.getInstance("SHA-256");
+    hash.update(("vision-v1|" + model.id + model.model + payload).getBytes(StandardCharsets.UTF_8));
+    for (byte[] image : images) hash.update(image);
+    String id = Base64.encodeToString(hash.digest(), Base64.NO_WRAP);
+    JSONObject cached = CenterStore.get().get(m.account, m.owner, "vision_part", id);
+    if (cached != null) return cached.optString("text");
+    check(m);
+    String text =
+        CenterAi.vision(
+            "Describe visible content and readable text. Do not identify people or infer"
+                + " personality. Distinguish observation from interpretation. Correlate speech with"
+                + " frames and use supplied timestamps/page numbers.",
+            payload,
+            images);
+    check(m);
+    CenterStore.get()
+        .put(
+            m.account,
+            m.owner,
+            "vision_part",
+            id,
+            new JSONObject()
+                .put("id", id)
+                .put("accounts", CenterAi.accounts(Collections.singletonList(m)))
+                .put("cloud", !m.cloudNode.isEmpty())
+                .put("text", text));
+    return text;
+  }
+
+  private static boolean hasPreview(CenterData.Message m, long time, int page) throws Exception {
+    return CenterStore.get()
+            .get(
+                m.account,
+                m.owner,
+                "preview",
+                (m.previewBase.isEmpty() ? m.qualified() : m.previewBase) + ":" + time + ":" + page)
+        != null;
   }
 
   public static String contentHash(File file, AtomicBoolean cancel) throws Exception {
@@ -543,6 +580,7 @@ public final class CenterMedia {
     m.transcriptKey = prior.transcriptKey;
     m.description = prior.description;
     m.hash = prior.hash;
+    m.sceneHash = prior.sceneHash;
     m.pages = prior.pages;
     m.duration = prior.duration;
     m.frameTimes.clear();
@@ -551,6 +589,11 @@ public final class CenterMedia {
     m.pageEvidence = prior.pageEvidence;
     m.previewBase = prior.previewBase.isEmpty() ? prior.qualified() : prior.previewBase;
     save(m);
+    if (op.equals("download") || op.equals("frames") || op.equals("document") || op.equals("ocr")) {
+      if (m.pages > 0) {
+        for (int page = 1; page <= m.pages; page++) if (!hasPreview(m, 0, page)) return false;
+      } else for (long time : m.frameTimes) if (!hasPreview(m, time, 0)) return false;
+    }
     return true;
   }
 

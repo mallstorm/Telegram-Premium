@@ -20,6 +20,7 @@ public final class CenterSync {
     void changed(String error);
   }
 
+  private final long privacyEpoch = CenterIndex.generation();
   private final CenterData.Scope scope;
   private String lastError;
   private final CenterIndex index;
@@ -49,6 +50,7 @@ public final class CenterSync {
 
   private boolean valid(int a, long owner) {
     return !cancelled.get()
+        && privacyEpoch == CenterIndex.generation()
         && UserConfig.getInstance(a).isClientActivated()
         && CenterIndex.accountAllowed(a, owner)
         && !scope.excluded.contains(a);
@@ -292,13 +294,14 @@ public final class CenterSync {
     Set<String> unique = new HashSet<>();
     ArrayList<CenterData.Source> sorted = new ArrayList<>(index.sources);
     sorted.sort(
-        Comparator.comparingInt(s -> "owner".equals(s.role) ? 0 : "admin".equals(s.role) ? 1 : 2));
+        Comparator.comparingInt(
+            s -> !s.available ? 3 : "owner".equals(s.role) ? 0 : "admin".equals(s.role) ? 1 : 2));
     Set<String> wholePeers = new HashSet<>();
     for (CenterData.Source s : sorted)
-      if (s.topic == 0 && scope.allows(s)) wholePeers.add(s.canonical);
+      if (s.topic == 0 && scope.requests(s)) wholePeers.add(s.canonical);
     for (CenterData.Source s : sorted)
       if ((s.topic == 0 || !wholePeers.contains(s.canonical))
-          && scope.allows(s)
+          && scope.requests(s)
           && unique.add(s.canonical + ":" + s.topic))
         per.computeIfAbsent(s.account, k -> new ArrayList<>()).add(s);
     active = per.size();
@@ -366,6 +369,15 @@ public final class CenterSync {
                               return;
                             }
                             s.complete = false;
+                            s.available = false;
+                            CenterStore.IO.execute(
+                                () -> {
+                                  try {
+                                    CenterStore.get()
+                                        .put(s.account, s.owner, "source", s.key(), s.json());
+                                  } catch (Exception ignored) {
+                                  }
+                                });
                             lastError = err == null ? "historyUnavailable" : err.text;
                             nextSource(list, n + 1);
                             return;
@@ -403,6 +415,7 @@ public final class CenterSync {
                                     s.offset = next;
                                     s.total = Math.max(s.total, page.count);
                                     s.complete = end;
+                                    s.available = true;
                                     s.lastId =
                                         Math.max(
                                             s.lastId,

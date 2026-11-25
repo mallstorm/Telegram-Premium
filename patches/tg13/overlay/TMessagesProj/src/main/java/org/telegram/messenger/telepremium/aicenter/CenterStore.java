@@ -160,10 +160,8 @@ public final class CenterStore extends SQLiteOpenHelper {
       if (old.moveToFirst()) previous = old.getLong(0);
     }
     long next = bytes() - previous + sealed.length;
-    if (!kind.equals("source")
-        && !kind.equals("job")
-        && next > CenterIndex.settings().optInt("indexMb", 256) * 1024L * 1024L)
-      throw new java.io.IOException(CenterText.get("storageLimit"));
+    if (next > CenterIndex.settings().optInt("indexMb", 256) * 1024L * 1024L
+        && sealed.length > previous) throw new java.io.IOException(CenterText.get("storageLimit"));
     getWritableDatabase().insertWithOnConflict("records", null, v, SQLiteDatabase.CONFLICT_REPLACE);
     cachedBytes = next;
   }
@@ -201,11 +199,25 @@ public final class CenterStore extends SQLiteOpenHelper {
     return listInternal(a, owner, kind, true);
   }
 
+  public interface Row {
+    void accept(JSONObject value) throws Exception;
+  }
+
+  public synchronized void visit(int a, long owner, String kind, Row row) throws Exception {
+    visitInternal(a, owner, kind, true, row);
+  }
+
   private List<JSONObject> listInternal(int a, long owner, String kind, boolean checkDependencies)
       throws Exception {
-    ArrayList<JSONObject> out = new ArrayList<>();
-    if (owner <= 0 || !CenterIndex.accountAllowed(a, owner)) return out;
-    try (Cursor cur =
+    List<JSONObject> out = new ArrayList<>();
+    visitInternal(a, owner, kind, checkDependencies, out::add);
+    return out;
+  }
+
+  private void visitInternal(int a, long owner, String kind, boolean checkDependencies, Row row)
+      throws Exception {
+    if (!CenterIndex.accountAllowed(a, owner)) return;
+    try (Cursor cursor =
         getReadableDatabase()
             .query(
                 "records",
@@ -215,23 +227,62 @@ public final class CenterStore extends SQLiteOpenHelper {
                 null,
                 null,
                 null)) {
-      while (cur.moveToNext()) {
-        byte[] b = cur.getBlob(1);
+      while (cursor.moveToNext()) {
+        String hash = cursor.getString(0);
         byte[] plain =
             CenterEnvelope.open(
-                cur.getInt(2) == 1 ? wrappingKey(a, owner) : key(a, owner),
-                aad(a, owner, kind, cur.getString(0)),
-                b);
+                cursor.getInt(2) == 1 ? wrappingKey(a, owner) : key(a, owner),
+                aad(a, owner, kind, hash),
+                cursor.getBlob(1));
         try {
           JSONObject value = new JSONObject(new String(plain, StandardCharsets.UTF_8));
-          if (cur.getInt(2) == 1) migrate(a, owner, kind, cur.getString(0), plain);
-          if (!checkDependencies || dependenciesAllowed(value)) out.add(value);
+          if (cursor.getInt(2) == 1) migrate(a, owner, kind, hash, plain);
+          if (!checkDependencies || dependenciesAllowed(value)) row.accept(value);
         } finally {
           Arrays.fill(plain, (byte) 0);
         }
       }
     }
-    return out;
+  }
+
+  /** Scan encrypted payloads one at a time; never materialize an entire image cache. */
+  public synchronized void removeWhere(
+      int a, long owner, String kind, java.util.function.Predicate<JSONObject> predicate)
+      throws Exception {
+    if (!CenterIndex.accountAllowed(a, owner)) return;
+    List<String> hashes = new ArrayList<>();
+    try (Cursor cursor =
+        getReadableDatabase()
+            .query(
+                "records",
+                new String[] {"id", "value", "v"},
+                "account=? AND owner=? AND kind=?",
+                new String[] {"" + a, "" + owner, kind},
+                null,
+                null,
+                null)) {
+      while (cursor.moveToNext()) {
+        String hash = cursor.getString(0);
+        byte[] plain =
+            CenterEnvelope.open(
+                cursor.getInt(2) == 1 ? wrappingKey(a, owner) : key(a, owner),
+                aad(a, owner, kind, hash),
+                cursor.getBlob(1));
+        try {
+          if (predicate.test(new JSONObject(new String(plain, StandardCharsets.UTF_8))))
+            hashes.add(hash);
+        } finally {
+          Arrays.fill(plain, (byte) 0);
+        }
+      }
+    }
+    for (String hash : hashes)
+      getWritableDatabase()
+          .delete(
+              "records",
+              "account=? AND owner=? AND kind=? AND id=?",
+              new String[] {"" + a, "" + owner, kind, hash});
+    cachedBytes = -1;
   }
 
   private static boolean dependenciesAllowed(JSONObject value) {
@@ -292,6 +343,7 @@ public final class CenterStore extends SQLiteOpenHelper {
             m.transcriptKey = prior.transcriptKey;
             m.description = prior.text.equals(m.text) ? prior.description : "";
             m.hash = prior.hash;
+            m.sceneHash = prior.sceneHash;
             m.pages = prior.pages;
             m.pageEvidence = prior.pageEvidence;
             m.frameEvidence = prior.frameEvidence;
@@ -315,6 +367,8 @@ public final class CenterStore extends SQLiteOpenHelper {
   }
 
   public synchronized void remove(int a, long owner, String kind, String id) throws Exception {
+    if (kind.equals("report"))
+      removeWhere(a, owner, "report_image", o -> id.equals(o.optString("report")));
     cachedBytes = -1;
     getWritableDatabase()
         .delete(
@@ -330,18 +384,29 @@ public final class CenterStore extends SQLiteOpenHelper {
         long owner = UserConfig.getInstance(other).getClientUserId();
         for (String kind :
             new String[] {
-              "report", "thread", "chunk", "final", "search", "report_image", "media_result", "job"
+              "report",
+              "thread",
+              "chunk",
+              "final",
+              "search",
+              "vision_part",
+              "report_image",
+              "media_result",
+              "job"
             })
           try {
-            for (JSONObject o : listInternal(other, owner, kind, false)) {
-              org.json.JSONArray deps = o.optJSONArray("accounts");
-              boolean remove = false;
-              for (int i = 0; deps != null && i < deps.length(); i++) {
-                JSONObject dep = deps.optJSONObject(i);
-                if (dep != null && dep.optInt("account") == a) remove = true;
-              }
-              if (remove) remove(other, owner, kind, o.optString("id"));
-            }
+            removeWhere(
+                other,
+                owner,
+                kind,
+                o -> {
+                  JSONArray deps = o.optJSONArray("accounts");
+                  for (int i = 0; deps != null && i < deps.length(); i++) {
+                    JSONObject dep = deps.optJSONObject(i);
+                    if (dep != null && dep.optInt("account") == a) return true;
+                  }
+                  return false;
+                });
           } catch (Exception e) {
             FileLog.e(e);
           }
@@ -382,7 +447,8 @@ public final class CenterStore extends SQLiteOpenHelper {
     getWritableDatabase()
         .delete(
             "records",
-            "kind IN ('thread','chunk','final','search') AND stamp>0 AND stamp<?",
+            "kind IN ('thread','chunk','final','search','vision_part','media_result') AND stamp>0"
+                + " AND stamp<?",
             new String[] {"" + (now - days)});
     cachedBytes = -1;
   }
