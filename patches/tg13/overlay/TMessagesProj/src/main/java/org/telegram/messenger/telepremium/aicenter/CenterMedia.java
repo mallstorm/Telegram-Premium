@@ -67,29 +67,20 @@ public final class CenterMedia {
     if (m.dialog != 0 && m.transport.isEmpty()) CenterSync.resolve(m, cancel);
     check(m);
     if (!m.localUri.isEmpty()) {
-      File result =
-          new File(
-              ApplicationLoader.applicationContext.getCacheDir(),
-              "aic_input_" + m.key().hashCode());
-      android.net.Uri uri = android.net.Uri.parse(m.localUri);
-      try (InputStream in =
-              ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri);
-          OutputStream out = new FileOutputStream(result)) {
-        byte[] buffer = new byte[65536];
-        long size = 0;
-        for (int n; in != null && (n = in.read(buffer)) >= 0; ) {
-          if (cancel.get() || size + n > 512L * 1024 * 1024)
-            throw new IOException(CenterText.get("cancel"));
-          out.write(buffer, 0, n);
-          size += n;
-        }
-      }
-      return result;
+      return CenterInputFiles.copy(
+          ApplicationLoader.applicationContext
+              .getContentResolver()
+              .openInputStream(android.net.Uri.parse(m.localUri)),
+          ApplicationLoader.applicationContext.getCacheDir(),
+          512L * 1024 * 1024,
+          cancel);
     }
     if (!m.cloudNode.isEmpty()) {
       final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
       final File[] result = {null};
       final String[] error = {null};
+      final org.telegram.messenger.telepremium.cloud.CloudDownloadManager operation =
+          new org.telegram.messenger.telepremium.cloud.CloudDownloadManager(m.account, true);
       AndroidUtilities.runOnUIThread(
           () -> {
             org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager manager =
@@ -97,28 +88,35 @@ public final class CenterMedia {
                     m.account);
             org.telegram.messenger.telepremium.cloud.CloudNode node =
                 manager.findNodeById(m.cloudNode);
-            new org.telegram.messenger.telepremium.cloud.CloudDownloadManager(m.account)
-                .download(
-                    node,
-                    (state, file, e) -> {
-                      if (e != null) {
-                        error[0] = e;
-                        latch.countDown();
-                      } else if (state
-                          == org.telegram.messenger.telepremium.cloud.CloudDownloadManager
-                              .OFFLINE_AVAILABLE) {
-                        result[0] = file;
-                        latch.countDown();
-                      }
-                    });
+            operation.download(
+                node,
+                (state, file, e) -> {
+                  if (e != null) {
+                    error[0] = e;
+                    latch.countDown();
+                  } else if (state
+                      == org.telegram.messenger.telepremium.cloud.CloudDownloadManager
+                          .OFFLINE_AVAILABLE) {
+                    result[0] = file;
+                    latch.countDown();
+                  }
+                });
           });
-      while (!latch.await(500, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+      try {
+        while (!latch.await(500, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+          check(m);
+          if (cancel.get()) throw new InterruptedException();
+        }
         check(m);
-        if (cancel.get()) throw new InterruptedException();
+        if (result[0] == null) throw new IOException(error[0]);
+        return CenterInputFiles.copy(
+            new FileInputStream(result[0]),
+            ApplicationLoader.applicationContext.getCacheDir(),
+            512L * 1024 * 1024,
+            cancel);
+      } finally {
+        AndroidUtilities.runOnUIThread(operation::cancel);
       }
-      check(m);
-      if (result[0] == null) throw new IOException(error[0]);
-      return result[0];
     }
     TLRPC.Message original = CenterSync.original(m);
     if (original == null) throw new IOException(CenterText.get("error"));
