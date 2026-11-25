@@ -13,6 +13,8 @@ SOURCES = [
     "aicenter/CenterInputFiles.java",
     "aicenter/CenterExport.java",
     "aicenter/CenterStats.java",
+    "aicenter/CenterAuthorProfile.java",
+    "aicenter/CenterMediaBundle.java",
     "aicenter/CenterTopics.java",
     "aicenter/CenterTranscript.java",
     "aicenter/CenterEnvelope.java",

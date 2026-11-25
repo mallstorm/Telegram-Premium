@@ -298,6 +298,14 @@ jobs:
           API: ${{ steps.api.outputs.configured }}
         run: |
           set -euo pipefail
+          # An older parallel build must never replace a newer feature-branch result.
+          if [ "$GITHUB_REF_TYPE" = branch ]; then
+            CURRENT_SOURCE="$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)"
+            if [ "$CURRENT_SOURCE" != "$GITHUB_SHA" ]; then
+              echo "A newer source commit exists; retaining this run's immutable artifacts without replacing build-output."
+              exit 0
+            fi
+          fi
           OUT="$RUNNER_TEMP/build-output"
           rm -rf "$OUT"; mkdir -p "$OUT"
           printf 'status=%s\nsource_ref=%s\nsource_sha=%s\nrun_id=%s\npatches=%s\njava=%s\napk=%s\nverify=%s\napi_configured=%s\n' \

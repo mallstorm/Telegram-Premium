@@ -74,6 +74,12 @@ public final class TPAiClient {
   /** OpenAI-compatible speech endpoint, invoked only by explicitly authorized center jobs. */
   public static String transcribe(
       TPAiStore.Connection connection, java.io.File audio, String language) throws Exception {
+    return transcribeDetailed(connection, audio, language, false).optString("text");
+  }
+
+  public static JSONObject transcribeDetailed(
+      TPAiStore.Connection connection, java.io.File audio, String language, boolean diarization)
+      throws Exception {
     if (connection == null
         || TPAiProvider.ANTHROPIC.equals(connection.protocol)
         || TPOmni.AUTH.equals(connection.authType))
@@ -102,7 +108,16 @@ public final class TPAiClient {
       authorize(http, connection, TPAiStore.getSecret(connection.id));
       try (OutputStream out = http.getOutputStream()) {
         multipart(out, boundary, "model", connection.model);
-        multipart(out, boundary, "response_format", "json");
+        multipart(
+            out,
+            boundary,
+            "response_format",
+            diarization
+                ? "diarized_json"
+                : connection.model.toLowerCase(java.util.Locale.ROOT).contains("whisper")
+                    ? "verbose_json"
+                    : "json");
+        if (diarization) multipart(out, boundary, "chunking_strategy", "auto");
         if (language != null && !language.equals("auto") && !language.isEmpty())
           multipart(out, boundary, "language", language.split("[-_]")[0]);
         out.write(
@@ -123,8 +138,10 @@ public final class TPAiClient {
       if (code >= 300) throw new IOException(errorText(code, body));
       JSONObject response = new JSONObject(body);
       org.telegram.messenger.telepremium.aicenter.CenterUsage.observe(response);
-      if (!response.has("text")) throw new IOException("Missing speech result");
-      return response.optString("text");
+      if (!response.has("text") && response.optJSONArray("segments") == null)
+        throw new IOException(
+            org.telegram.messenger.telepremium.aicenter.CenterText.get("speechEmpty"));
+      return response;
     } finally {
       if (watch != null) watch.cancel(false);
       http.disconnect();

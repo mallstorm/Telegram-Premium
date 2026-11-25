@@ -28,6 +28,14 @@ public final class CenterTaskService extends Service {
   }
 
   public static void enqueue(List<CenterData.Message> selected, String operation, String question) {
+    enqueue(selected, operation, question, Collections.emptyMap());
+  }
+
+  public static void enqueue(
+      List<CenterData.Message> selected,
+      String operation,
+      String question,
+      Map<String, JSONArray> discussions) {
     List<CenterData.Message> copy = new ArrayList<>(selected);
     CenterStore.IO.execute(
         () -> {
@@ -36,6 +44,8 @@ public final class CenterTaskService extends Service {
               if (m.dialog != 0 && m.transport.isEmpty())
                 CenterSync.resolve(m, new AtomicBoolean());
               CenterMedia.check(m);
+              JSONArray context = discussions.get(m.qualified());
+              if (context == null) context = new JSONArray();
               String signature =
                   question
                       + "|"
@@ -47,12 +57,20 @@ public final class CenterTaskService extends Service {
                       + "|"
                       + m.localUri
                       + "|"
+                      + context.toString()
+                      + "|"
                       + CenterIndex.settings().optString("language", "auto")
                       + "|"
                       + (operation.equals("cloudAsr")
                           ? CenterAi.model("speechModel").id
                               + CenterIndex.settings().optString("asrModel", "whisper-1")
-                          : "");
+                          : "")
+                      + "|speakers="
+                      + (CenterIndex.settings().optBoolean("asrDiarization", false)
+                          || CenterIndex.settings()
+                              .optString("asrModel", "whisper-1")
+                              .toLowerCase(java.util.Locale.ROOT)
+                              .contains("diarize"));
               boolean existing = false;
               for (JSONObject old : CenterStore.get().list(m.account, m.owner, "job"))
                 if (signature.equals(old.optString("signature"))
@@ -76,7 +94,15 @@ public final class CenterTaskService extends Service {
                       .put("op", operation)
                       .put("language", CenterIndex.settings().optString("language", "auto"))
                       .put("speechModel", CenterIndex.settings().optString("asrModel", "whisper-1"))
+                      .put(
+                          "diarization",
+                          CenterIndex.settings().optBoolean("asrDiarization", false)
+                              || CenterIndex.settings()
+                                  .optString("asrModel", "whisper-1")
+                                  .toLowerCase(java.util.Locale.ROOT)
+                                  .contains("diarize"))
                       .put("query", question)
+                      .put("discussion", context)
                       .put("account", m.account)
                       .put("owner", m.owner)
                       .put("message", m.json())
@@ -305,8 +331,13 @@ public final class CenterTaskService extends Service {
       m.contentHash = CenterMedia.contentHash(file, cancel);
       String cacheQuery =
           op.equals("transcribe") || op.equals("cloudAsr")
-              ? job.optString("language", "auto") + "|" + job.optString("speechModel", "whisper-1")
-              : job.optString("query");
+              ? job.optString("language", "auto")
+                  + "|"
+                  + job.optString("speechModel", "whisper-1")
+                  + "|speakers="
+                  + job.optBoolean("diarization")
+              : job.optString("query")
+                  + (op.equals("describe") ? "\n" + job.optJSONArray("discussion") : "");
       if (CenterMedia.cached(op, m, cacheQuery)) {
         checkpoint(job, job.optLong("cursor"), 100);
         return;
@@ -319,7 +350,8 @@ public final class CenterTaskService extends Service {
           else if (m.kind.equals("pdf"))
             CenterMedia.document(m, file, 0, cancel, (cursor, p) -> checkpoint(job, cursor, p));
         }
-        CenterMedia.describe(m, job.optString("query"));
+        CenterMedia.describe(
+            m, job.optString("query"), CenterMediaBundle.restore(job.optJSONArray("discussion")));
         CenterMedia.cache(op, m, cacheQuery);
         checkpoint(job, job.optLong("cursor"), 100);
         return;
@@ -383,13 +415,21 @@ public final class CenterTaskService extends Service {
               org.telegram.messenger.telepremium.ai.TPAiStore.Connection connection =
                   CenterAi.model("speechModel");
               connection = speechConnection(connection, job.optString("speechModel", "whisper-1"));
-              String text =
-                  org.telegram.messenger.telepremium.ai.TPAiClient.transcribe(
-                      connection, audio, job.optString("language", "auto"));
+              JSONObject speech =
+                  org.telegram.messenger.telepremium.ai.TPAiClient.transcribeDetailed(
+                      connection,
+                      audio,
+                      job.optString("language", "auto"),
+                      job.optBoolean("diarization"));
               if (cancel.get()) throw new InterruptedException();
               CenterMedia.check(m);
               m.transcript +=
-                  "[" + CenterTranscript.stamp(start) + "] " + text.replace('\n', ' ') + "\n";
+                  CenterTranscript.encode(
+                      CenterTranscript.fromProvider(
+                          speech,
+                          start,
+                          Math.min(start + segmentLength, m.duration),
+                          job.optBoolean("diarization")));
               CenterMedia.save(m);
               checkpoint(
                   job,

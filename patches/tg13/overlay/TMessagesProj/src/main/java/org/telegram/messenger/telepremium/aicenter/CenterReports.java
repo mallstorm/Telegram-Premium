@@ -14,12 +14,19 @@ public final class CenterReports {
   }
 
   public static String clean(String s) {
-    return s == null ? "" : s.replaceAll("\\[(?:msg|message|source):[^\\]]*\\]", "").trim();
+    return s == null ? "" : s.replaceAll("(?i)\\[(?:msg|message|source)\\s*:[^\\]]*\\]", "").trim();
+  }
+
+  public static String excerpt(String text, int limit) {
+    int end = Math.min(text.length(), Math.max(0, limit));
+    if (end > 0 && end < text.length() && Character.isHighSurrogate(text.charAt(end - 1))) end--;
+    return text.substring(0, end);
   }
 
   public static final class Evidence {
     public final CenterData.Message message;
     public final String quote;
+    public boolean localMetadata;
     public final long timeMs;
     public final int page;
 
@@ -37,7 +44,8 @@ public final class CenterReports {
           .put("message", message.id)
           .put("quote", quote)
           .put("timeMs", timeMs)
-          .put("page", page);
+          .put("page", page)
+          .put("metadata", localMetadata);
     }
   }
 
@@ -74,7 +82,7 @@ public final class CenterReports {
     public final List<CenterData.Message> transcriptions = new ArrayList<>();
     public final List<CenterData.Message> dataset = new ArrayList<>();
     public int indexed, analyzed;
-    public boolean complete, retryNeeded;
+    public boolean complete, retryNeeded, localReport;
     public final List<Claim> claims = new ArrayList<>();
     public final List<String> unclear = new ArrayList<>();
 
@@ -91,6 +99,7 @@ public final class CenterReports {
           .put("analyzed", analyzed)
           .put("complete", complete)
           .put("retryNeeded", retryNeeded)
+          .put("localReport", localReport)
           .put("claims", a)
           .put("unclear", new JSONArray(unclear));
     }
@@ -203,6 +212,28 @@ public final class CenterReports {
       if (message != null) message.transcript = transcript.transcript;
     }
     Report result = validate(saved, new ArrayList<>(merged.values()));
+    if (saved.optBoolean("localReport")) {
+      result.localReport = true;
+      for (int c = 0; claims != null && c < Math.min(claims.length(), result.claims.size()); c++) {
+        JSONArray evidence = claims.optJSONObject(c).optJSONArray("evidence");
+        for (int n = 0; evidence != null && n < evidence.length(); n++) {
+          JSONObject row = evidence.optJSONObject(n);
+          if (row == null || !row.optBoolean("metadata")) continue;
+          CenterData.Message m =
+              merged.get(
+                  row.optInt("account") + ":" + row.optLong("chat") + ":" + row.optInt("message"));
+          if (m != null
+              && !m.protectedMedia
+              && result.claims.get(c).evidence.stream()
+                  .noneMatch(e -> e.message.qualified().equals(m.qualified()))) {
+            Evidence local = new Evidence(m, "", 0, 0);
+            local.localMetadata = true;
+            result.claims.get(c).evidence.add(local);
+          }
+        }
+      }
+    }
+
     for (int i = 0; transcripts != null && i < transcripts.length(); i++)
       result.transcriptions.add(CenterData.Message.parse(transcripts.optJSONObject(i)));
     result.sourceKeys =
@@ -253,16 +284,14 @@ public final class CenterReports {
         String actual = m.text + "\n" + m.content + "\n" + m.ocr + "\n" + m.transcript;
         boolean visual =
             quote.isEmpty()
-                && ((e.optInt("page") > 0 && e.optInt("page") <= m.pages)
+                && ((e.optInt("page") > 0
+                        && e.optInt("page") <= m.pages
+                        && m.pageEvidence.has("" + e.optInt("page")))
                     || m.frameTimes.contains(e.optLong("timeMs")));
         if (!visual && (quote.isEmpty() || !actual.contains(quote))) continue;
         // Display a slice of the original, never the provider's fabricated formatting.
         int start = actual.indexOf(quote);
-        String excerpt =
-            visual
-                ? ""
-                : actual.substring(
-                    start, Math.min(actual.length(), start + Math.min(160, quote.length())));
+        String excerpt = visual ? "" : excerpt(quote, 160);
         long time = Math.max(0, e.optLong("timeMs"));
         int page = Math.max(0, e.optInt("page"));
         if (time > 0 && (m.duration <= 0 || time >= m.duration)

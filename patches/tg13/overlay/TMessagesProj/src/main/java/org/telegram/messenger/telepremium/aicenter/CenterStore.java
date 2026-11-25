@@ -370,7 +370,7 @@ public final class CenterStore extends SQLiteOpenHelper {
             m.ocr = prior.ocr;
             m.transcript = prior.transcript;
             m.transcriptKey = prior.transcriptKey;
-            m.description = prior.text.equals(m.text) ? prior.description : "";
+            m.description = prior.text.equals(m.text) ? prior.description : "";m.mediaAnalysis=prior.text.equals(m.text)?prior.mediaAnalysis:new JSONObject();
             m.hash = prior.hash;
             m.sceneHash = prior.sceneHash;
             m.pages = prior.pages;

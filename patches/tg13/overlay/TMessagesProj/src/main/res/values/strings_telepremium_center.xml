@@ -1,240 +1,260 @@
 <resources>
-  <string name="TP_AIC_title">AI Center</string>
-  <string name="TP_AIC_sources">Sources &amp; accounts</string>
-  <string name="TP_AIC_summaries">Summaries</string>
-  <string name="TP_AIC_activity">Activity</string>
-  <string name="TP_AIC_authors">Authors</string>
-  <string name="TP_AIC_media">Media</string>
-  <string name="TP_AIC_transcriber">Transcriber</string>
-  <string name="TP_AIC_analyst">AI analyst</string>
-  <string name="TP_AIC_reports">Reports</string>
-  <string name="TP_AIC_settings">Settings</string>
-  <string name="TP_AIC_refresh">Discover sources</string>
-  <string name="TP_AIC_load">Load history</string>
-  <string name="TP_AIC_cancel">Cancel</string>
-  <string name="TP_AIC_all">All</string>
-  <string name="TP_AIC_selected">Selected sources</string>
-  <string name="TP_AIC_excluded">Excluded — delete account index</string>
-  <string name="TP_AIC_account">Account</string>
-  <string name="TP_AIC_search">Search</string>
-  <string name="TP_AIC_type">Source type</string>
-  <string name="TP_AIC_role">Role</string>
-  <string name="TP_AIC_folder">Telegram folder / tag</string>
-  <string name="TP_AIC_status">Pinned / archive / muted</string>
-  <string name="TP_AIC_active">Active</string>
-  <string name="TP_AIC_quiet">Quiet</string>
-  <string name="TP_AIC_selectAll">Select matching sources</string>
-  <string name="TP_AIC_excludeMatching">Exclude matching sources</string>
-  <string name="TP_AIC_saveSet">Save source set</string>
-  <string name="TP_AIC_sets">My source sets</string>
-  <string name="TP_AIC_name">Name</string>
-  <string name="TP_AIC_save">Save</string>
-  <string name="TP_AIC_period">Period</string>
-  <string name="TP_AIC_customDates">Custom dates (YYYY-MM-DD)</string>
-  <string name="TP_AIC_sinceRead">Since last review</string>
-  <string name="TP_AIC_privateChats">Include private chats (explicit consent)</string>
-  <string name="TP_AIC_own">Exclude own accounts as authors</string>
-  <string name="TP_AIC_personal">Include personal topics</string>
-  <string name="TP_AIC_count">Sources / messages</string>
-  <string name="TP_AIC_loading">Working…</string>
-  <string name="TP_AIC_empty">No data for the selected scope</string>
-  <string name="TP_AIC_error">Could not finish the task</string>
-  <string name="TP_AIC_local">Local only — AI disabled</string>
-  <string name="TP_AIC_security">Center access protection</string>
-  <string name="TP_AIC_password">Password</string>
-  <string name="TP_AIC_pin">PIN</string>
-  <string name="TP_AIC_pattern">Pattern (at least 5 distinct dots)</string>
-  <string name="TP_AIC_unlock">Unlock</string>
-  <string name="TP_AIC_locked">Center is locked</string>
-  <string name="TP_AIC_wrong">Invalid secret / try later</string>
-  <string name="TP_AIC_biometric">Biometric unlock</string>
-  <string name="TP_AIC_secure">Prevent screenshots</string>
-  <string name="TP_AIC_retention">Retention (days)</string>
-  <string name="TP_AIC_size">Index limit (MB)</string>
-  <string name="TP_AIC_budget">Messages per source per pass</string>
-  <string name="TP_AIC_clear">Clear all center data</string>
-  <string name="TP_AIC_confirmClear">Delete local index, reports, history and media cache? Telegram messages remain intact.</string>
-  <string name="TP_AIC_confirm">Confirm</string>
-  <string name="TP_AIC_done">Done</string>
-  <string name="TP_AIC_copy">Copy</string>
-  <string name="TP_AIC_open">Open message</string>
-  <string name="TP_AIC_switchAccount">Switch Telegram account to open the original message?</string>
-  <string name="TP_AIC_deleted">No longer in chat — saved quotation</string>
-  <string name="TP_AIC_context">Message context</string>
-  <string name="TP_AIC_templates">My templates</string>
-  <string name="TP_AIC_query">Ask about selected data</string>
-  <string name="TP_AIC_ask">Run</string>
-  <string name="TP_AIC_consent">Only selected evidence is sent to your configured AI provider when you run a task. Phone numbers and Telegram sessions are never sent.</string>
-  <string name="TP_AIC_coverage">Coverage</string>
-  <string name="TP_AIC_evidence">Sources</string>
-  <string name="TP_AIC_unverified">Unsupported by indexed evidence</string>
-  <string name="TP_AIC_single">One message</string>
-  <string name="TP_AIC_multiple">Several messages</string>
-  <string name="TP_AIC_rumor">Unconfirmed / rumor</string>
-  <string name="TP_AIC_unknown">What is unclear</string>
-  <string name="TP_AIC_archive">Save to report archive</string>
-  <string name="TP_AIC_export">Export</string>
-  <string name="TP_AIC_short">Short</string>
-  <string name="TP_AIC_detailed">Detailed</string>
-  <string name="TP_AIC_compare">Compare with previous period</string>
-  <string name="TP_AIC_new">What is new</string>
-  <string name="TP_AIC_authorsReport">Publications by author</string>
-  <string name="TP_AIC_groupReport">Selected sources report</string>
-  <string name="TP_AIC_estimate">Data to send</string>
-  <string name="TP_AIC_continue">Continue</string>
-  <string name="TP_AIC_markReviewed">Mark scope reviewed</string>
-  <string name="TP_AIC_unsupported">Unavailable on this device</string>
-  <string name="TP_AIC_table">Table</string>
-  <string name="TP_AIC_chart">Chart</string>
-  <string name="TP_AIC_messages">Messages</string>
-  <string name="TP_AIC_growth">Growth</string>
-  <string name="TP_AIC_days">Daily dynamics</string>
-  <string name="TP_AIC_heatmap">Hour × weekday</string>
-  <string name="TP_AIC_content">Content types</string>
-  <string name="TP_AIC_concentration">Authors contributing 80%</string>
-  <string name="TP_AIC_anomalies">Anomalies</string>
-  <string name="TP_AIC_average">Average per day</string>
-  <string name="TP_AIC_replies">Replies</string>
-  <string name="TP_AIC_links">Links</string>
-  <string name="TP_AIC_length">Mean message length</string>
-  <string name="TP_AIC_compareAuthors">Compare selected authors</string>
-  <string name="TP_AIC_authorWarning">Contains data about participants’ public messages. Review privacy before sharing.</string>
-  <string name="TP_AIC_transcribe">Transcribe locally</string>
-  <string name="TP_AIC_ocr">Recognize text locally</string>
-  <string name="TP_AIC_describe">Describe with AI</string>
-  <string name="TP_AIC_download">Download selected media</string>
-  <string name="TP_AIC_queue">Task queue</string>
-  <string name="TP_AIC_pause">Pause</string>
-  <string name="TP_AIC_resume">Resume</string>
-  <string name="TP_AIC_retry">Retry</string>
-  <string name="TP_AIC_file">Choose audio / video / document</string>
-  <string name="TP_AIC_cloud">Choose open Cloud media</string>
-  <string name="TP_AIC_language">Speech language (auto or BCP-47)</string>
-  <string name="TP_AIC_translate">Translate with AI</string>
-  <string name="TP_AIC_edit">Edit transcript</string>
-  <string name="TP_AIC_wifi">Heavy tasks: Wi-Fi only</string>
-  <string name="TP_AIC_charging">Heavy tasks: charging only</string>
-  <string name="TP_AIC_maxVideo">Maximum video minutes</string>
-  <string name="TP_AIC_models">Models by task</string>
-  <string name="TP_AIC_fastModel">Chunk / classification model</string>
-  <string name="TP_AIC_reportModel">Final report model</string>
-  <string name="TP_AIC_visionModel">Vision model</string>
-  <string name="TP_AIC_aiConnections">AI connections</string>
-  <string name="TP_AIC_dailyLimit">Daily token budget</string>
-  <string name="TP_AIC_monthlyLimit">Monthly token budget</string>
-  <string name="TP_AIC_usage">Usage (actual / estimated tokens)</string>
-  <string name="TP_AIC_anonymize">Anonymize authors</string>
-  <string name="TP_AIC_noImages">Exclude images</string>
-  <string name="TP_AIC_blocks">Report blocks and order</string>
-  <string name="TP_AIC_schedule">Digest schedule</string>
-  <string name="TP_AIC_daily">Daily</string>
-  <string name="TP_AIC_weekly">Weekly</string>
-  <string name="TP_AIC_disabled">Disabled</string>
-  <string name="TP_AIC_digestReady">A new digest is available in your private report archive.</string>
-  <string name="TP_AIC_cacheClear">Clear media cache</string>
-  <string name="TP_AIC_ocrModel">Import OCR model (.traineddata)</string>
-  <string name="TP_AIC_protected">Protected media — unavailable</string>
-  <string name="TP_AIC_formats">Export format</string>
-  <string name="TP_AIC_share">Share</string>
-  <string name="TP_AIC_privacy">Export privacy</string>
-  <string name="TP_AIC_preview">Report preview</string>
-  <string name="TP_AIC_saveCloud">Save report to open Cloud folder</string>
-  <string name="TP_AIC_progress">Progress</string>
-  <string name="TP_AIC_notification">AI Center tasks</string>
-  <string name="TP_AIC_from">From</string>
-  <string name="TP_AIC_to">Until</string>
-  <string name="TP_AIC_state">Session / history state</string>
-  <string name="TP_AIC_minActivity">Minimum messages per day</string>
-  <string name="TP_AIC_topic">Forum topic</string>
-  <string name="TP_AIC_restore">Restore source set</string>
-  <string name="TP_AIC_reportMode">Text / illustrated report</string>
-  <string name="TP_AIC_rawIds">Provider returned an invalid report. Retry the task.</string>
-  <string name="TP_AIC_noModel">Choose a model in AI connections</string>
-  <string name="TP_AIC_partial">Partial result; some sources or media are incomplete</string>
-  <string name="TP_AIC_indexSize">Encrypted index size</string>
-  <string name="TP_AIC_biometricRequired">Configure a secret before enabling biometrics</string>
-  <string name="TP_AIC_link">Copy message link</string>
-  <string name="TP_AIC_sort">Sort</string>
-  <string name="TP_AIC_details">Details</string>
-  <string name="TP_AIC_delete">Delete</string>
-  <string name="TP_AIC_frame">Frame</string>
-  <string name="TP_AIC_page">Page</string>
-  <string name="TP_AIC_downloadEstimate">Download bytes / video minutes</string>
-  <string name="TP_AIC_storageLimit">Index storage budget reached</string>
-  <string name="TP_AIC_offlineSpeech">Local speech requires Android 13+ and an installed offline recognition model. Audio is not sent to a cloud recognizer.</string>
-  <string name="TP_AIC_importOcrHelp">Import Russian or English Tesseract traineddata. OCR runs on device without Google services.</string>
-  <string name="TP_AIC_next">Next</string>
-  <string name="TP_AIC_previous">Previous</string>
-  <string name="TP_AIC_copies">Repeated images (publication times)</string>
-  <string name="TP_AIC_queued">Queued</string>
-  <string name="TP_AIC_running">Processing</string>
-  <string name="TP_AIC_paused">Paused</string>
-  <string name="TP_AIC_cancelled">Cancelled</string>
-  <string name="TP_AIC_rank">Group ranking</string>
-  <string name="TP_AIC_groups">Groups</string>
-  <string name="TP_AIC_profile">Author profile</string>
-  <string name="TP_AIC_topics">Topics</string>
-  <string name="TP_AIC_weeklyActivity">Weekly activity</string>
-  <string name="TP_AIC_publications">Publications</string>
-  <string name="TP_AIC_ownAuthor">Own account</string>
-  <string name="TP_AIC_photo">Photo</string>
-  <string name="TP_AIC_image">Image</string>
-  <string name="TP_AIC_video">Video</string>
-  <string name="TP_AIC_audio">Audio</string>
-  <string name="TP_AIC_voice">Voice</string>
-  <string name="TP_AIC_round">Video message</string>
-  <string name="TP_AIC_pdf">PDF</string>
-  <string name="TP_AIC_document">Document</string>
-  <string name="TP_AIC_text">Text</string>
-  <string name="TP_AIC_poll">Poll</string>
-  <string name="TP_AIC_group">Group</string>
-  <string name="TP_AIC_supergroup">Supergroup</string>
-  <string name="TP_AIC_channel">Channel</string>
-  <string name="TP_AIC_private">Private chat</string>
-  <string name="TP_AIC_owner">Owner</string>
-  <string name="TP_AIC_admin">Administrator</string>
-  <string name="TP_AIC_member">Member</string>
-  <string name="TP_AIC_pinned">Pinned</string>
-  <string name="TP_AIC_archived">Archived</string>
-  <string name="TP_AIC_muted">Muted</string>
-  <string name="TP_AIC_device">Device</string>
-  <string name="TP_AIC_budgetExceeded">AI usage limit reached</string>
-  <string name="TP_AIC_actualUsage">Provider-reported tokens</string>
-  <string name="TP_AIC_estimatedUsage">Estimated tokens</string>
-  <string name="TP_AIC_main">Main findings</string>
-  <string name="TP_AIC_charts">Charts</string>
-  <string name="TP_AIC_transcripts">Transcripts</string>
-  <string name="TP_AIC_order">Block order — tap to move up</string>
-  <string name="TP_AIC_addSchedule">Add digest schedule</string>
-  <string name="TP_AIC_defaultModel">Use active connection</string>
-  <string name="TP_AIC_scheduleConsent">Allow this saved scope to be sent to the configured AI provider daily or weekly? Reports remain in the encrypted archive. You can pause this permission in schedules.</string>
-  <string name="TP_AIC_digestTime">Time (HH:MM)</string>
-  <string name="TP_AIC_saveTemplate">Save my template</string>
-  <string name="TP_AIC_anonymizeHint">Author profiles contain personal publication data. Before sharing, check quotations and media captions: names may occur in the original text.</string>
-  <string name="TP_AIC_removeDeleted">Remove deleted messages from the local index</string>
-  <string name="TP_AIC_clearHistorySource">Clear AI request history for a source</string>
-  <string name="TP_AIC_digestSummary">%d findings from %d sources. Open the encrypted report.</string>
-  <string name="TP_AIC_cloudAsr">Cloud transcription — this task only</string>
-  <string name="TP_AIC_cloudAsrConsent">Send the selected audio/video to the active AI provider for transcription? Local recognition remains the default.</string>
-  <string name="TP_AIC_asrModel">Cloud speech model</string>
-  <string name="TP_AIC_chapters">Video chapters</string>
-  <string name="TP_AIC_mediaType">Image category</string>
-  <string name="TP_AIC_chartImage">Charts / screenshots</string>
-  <string name="TP_AIC_receiptImage">Receipts / documents</string>
-  <string name="TP_AIC_photoImage">Photos / other</string>
-  <string name="TP_AIC_lockLost">The center protection key is unavailable. Clear center data to restore access.</string>
-  <string name="TP_AIC_coverageIndexed">Analyzed / indexed messages; history coverage is shown separately</string>
-  <string name="TP_AIC_indexedContext">Context available in the local index</string>
-  <string name="TP_AIC_forwarded">Forwarded</string>
-  <string name="TP_AIC_polls">Polls</string>
-  <string name="TP_AIC_session">Session</string>
-  <string name="TP_AIC_available">Available</string>
-  <string name="TP_AIC_semanticSearch">Search by meaning (AI)</string>
-  <string name="TP_AIC_indexedDescriptions">Indexed captions, OCR and descriptions</string>
-  <string name="TP_AIC_chapterQuery">Create video chapters by changes of topic. For every chapter include the exact transcript quotation and its real timestamp. Correlate spoken words with indexed scene OCR. Identify gaps.</string>
-  <string name="TP_AIC_expand">Expand this finding</string>
-  <string name="TP_AIC_discussed">Most discussed messages</string>
-  <string name="TP_AIC_unavailableAccounts">Some requested accounts are unavailable; their data is omitted.</string>
-  <string name="TP_AIC_unclear">What is unclear</string>
-  <string name="TP_AIC_report">Report</string>
+  <string name="TP_AIC_title" formatted="false">AI Center</string>
+  <string name="TP_AIC_sources" formatted="false">Sources &amp; accounts</string>
+  <string name="TP_AIC_summaries" formatted="false">Summaries</string>
+  <string name="TP_AIC_activity" formatted="false">Activity</string>
+  <string name="TP_AIC_authors" formatted="false">Authors</string>
+  <string name="TP_AIC_media" formatted="false">Media</string>
+  <string name="TP_AIC_transcriber" formatted="false">Transcriber</string>
+  <string name="TP_AIC_analyst" formatted="false">AI analyst</string>
+  <string name="TP_AIC_reports" formatted="false">Reports</string>
+  <string name="TP_AIC_settings" formatted="false">Settings</string>
+  <string name="TP_AIC_refresh" formatted="false">Discover sources</string>
+  <string name="TP_AIC_load" formatted="false">Load history</string>
+  <string name="TP_AIC_cancel" formatted="false">Cancel</string>
+  <string name="TP_AIC_all" formatted="false">All</string>
+  <string name="TP_AIC_selected" formatted="false">Selected sources</string>
+  <string name="TP_AIC_excluded" formatted="false">Excluded — delete account index</string>
+  <string name="TP_AIC_account" formatted="false">Account</string>
+  <string name="TP_AIC_search" formatted="false">Search</string>
+  <string name="TP_AIC_type" formatted="false">Source type</string>
+  <string name="TP_AIC_role" formatted="false">Role</string>
+  <string name="TP_AIC_folder" formatted="false">Telegram folder / tag</string>
+  <string name="TP_AIC_status" formatted="false">Pinned / archive / muted</string>
+  <string name="TP_AIC_active" formatted="false">Active</string>
+  <string name="TP_AIC_quiet" formatted="false">Quiet</string>
+  <string name="TP_AIC_selectAll" formatted="false">Select matching sources</string>
+  <string name="TP_AIC_excludeMatching" formatted="false">Exclude matching sources</string>
+  <string name="TP_AIC_saveSet" formatted="false">Save source set</string>
+  <string name="TP_AIC_sets" formatted="false">My source sets</string>
+  <string name="TP_AIC_name" formatted="false">Name</string>
+  <string name="TP_AIC_save" formatted="false">Save</string>
+  <string name="TP_AIC_period" formatted="false">Period</string>
+  <string name="TP_AIC_customDates" formatted="false">Custom dates (YYYY-MM-DD)</string>
+  <string name="TP_AIC_sinceRead" formatted="false">Since last review</string>
+  <string name="TP_AIC_privateChats" formatted="false">Include private chats (explicit consent)</string>
+  <string name="TP_AIC_own" formatted="false">Exclude own accounts as authors</string>
+  <string name="TP_AIC_personal" formatted="false">Include personal topics</string>
+  <string name="TP_AIC_count" formatted="false">Sources / messages</string>
+  <string name="TP_AIC_loading" formatted="false">Working…</string>
+  <string name="TP_AIC_empty" formatted="false">No data for the selected scope</string>
+  <string name="TP_AIC_error" formatted="false">Could not finish the task</string>
+  <string name="TP_AIC_local" formatted="false">Local only — AI disabled</string>
+  <string name="TP_AIC_security" formatted="false">Center access protection</string>
+  <string name="TP_AIC_password" formatted="false">Password</string>
+  <string name="TP_AIC_pin" formatted="false">PIN</string>
+  <string name="TP_AIC_pattern" formatted="false">Pattern (at least 5 distinct dots)</string>
+  <string name="TP_AIC_unlock" formatted="false">Unlock</string>
+  <string name="TP_AIC_locked" formatted="false">Center is locked</string>
+  <string name="TP_AIC_wrong" formatted="false">Invalid secret / try later</string>
+  <string name="TP_AIC_biometric" formatted="false">Biometric unlock</string>
+  <string name="TP_AIC_secure" formatted="false">Prevent screenshots</string>
+  <string name="TP_AIC_retention" formatted="false">Retention (days)</string>
+  <string name="TP_AIC_size" formatted="false">Index limit (MB)</string>
+  <string name="TP_AIC_budget" formatted="false">Messages per source per pass</string>
+  <string name="TP_AIC_clear" formatted="false">Clear all center data</string>
+  <string name="TP_AIC_confirmClear" formatted="false">Delete local index, reports, history and media cache? Telegram messages remain intact.</string>
+  <string name="TP_AIC_confirm" formatted="false">Confirm</string>
+  <string name="TP_AIC_done" formatted="false">Done</string>
+  <string name="TP_AIC_copy" formatted="false">Copy</string>
+  <string name="TP_AIC_open" formatted="false">Open message</string>
+  <string name="TP_AIC_switchAccount" formatted="false">Switch Telegram account to open the original message?</string>
+  <string name="TP_AIC_deleted" formatted="false">No longer in chat — saved quotation</string>
+  <string name="TP_AIC_context" formatted="false">Message context</string>
+  <string name="TP_AIC_templates" formatted="false">My templates</string>
+  <string name="TP_AIC_query" formatted="false">Ask about selected data</string>
+  <string name="TP_AIC_ask" formatted="false">Run</string>
+  <string name="TP_AIC_consent" formatted="false">Only selected evidence is sent to your configured AI provider when you run a task. Phone numbers and Telegram sessions are never sent.</string>
+  <string name="TP_AIC_coverage" formatted="false">Coverage</string>
+  <string name="TP_AIC_evidence" formatted="false">Sources</string>
+  <string name="TP_AIC_unverified" formatted="false">Unsupported by indexed evidence</string>
+  <string name="TP_AIC_single" formatted="false">One message</string>
+  <string name="TP_AIC_multiple" formatted="false">Several messages</string>
+  <string name="TP_AIC_rumor" formatted="false">Unconfirmed / rumor</string>
+  <string name="TP_AIC_unknown" formatted="false">What is unclear</string>
+  <string name="TP_AIC_archive" formatted="false">Save to report archive</string>
+  <string name="TP_AIC_export" formatted="false">Export</string>
+  <string name="TP_AIC_short" formatted="false">Short</string>
+  <string name="TP_AIC_detailed" formatted="false">Detailed</string>
+  <string name="TP_AIC_compare" formatted="false">Compare with previous period</string>
+  <string name="TP_AIC_new" formatted="false">What is new</string>
+  <string name="TP_AIC_authorsReport" formatted="false">Publications by author</string>
+  <string name="TP_AIC_groupReport" formatted="false">Selected sources report</string>
+  <string name="TP_AIC_estimate" formatted="false">Data to send</string>
+  <string name="TP_AIC_continue" formatted="false">Continue</string>
+  <string name="TP_AIC_markReviewed" formatted="false">Mark scope reviewed</string>
+  <string name="TP_AIC_unsupported" formatted="false">Unavailable on this device</string>
+  <string name="TP_AIC_table" formatted="false">Table</string>
+  <string name="TP_AIC_chart" formatted="false">Chart</string>
+  <string name="TP_AIC_messages" formatted="false">Messages</string>
+  <string name="TP_AIC_growth" formatted="false">Growth</string>
+  <string name="TP_AIC_days" formatted="false">Daily dynamics</string>
+  <string name="TP_AIC_heatmap" formatted="false">Hour × weekday</string>
+  <string name="TP_AIC_content" formatted="false">Content types</string>
+  <string name="TP_AIC_concentration" formatted="false">Authors contributing 80%</string>
+  <string name="TP_AIC_anomalies" formatted="false">Anomalies</string>
+  <string name="TP_AIC_average" formatted="false">Average per day</string>
+  <string name="TP_AIC_replies" formatted="false">Replies</string>
+  <string name="TP_AIC_links" formatted="false">Links</string>
+  <string name="TP_AIC_length" formatted="false">Mean message length</string>
+  <string name="TP_AIC_compareAuthors" formatted="false">Compare selected authors</string>
+  <string name="TP_AIC_authorWarning" formatted="false">Contains data about participants’ public messages. Review privacy before sharing.</string>
+  <string name="TP_AIC_transcribe" formatted="false">Transcribe locally</string>
+  <string name="TP_AIC_ocr" formatted="false">Recognize text locally</string>
+  <string name="TP_AIC_describe" formatted="false">Describe with AI</string>
+  <string name="TP_AIC_download" formatted="false">Download selected media</string>
+  <string name="TP_AIC_queue" formatted="false">Task queue</string>
+  <string name="TP_AIC_pause" formatted="false">Pause</string>
+  <string name="TP_AIC_resume" formatted="false">Resume</string>
+  <string name="TP_AIC_retry" formatted="false">Retry</string>
+  <string name="TP_AIC_file" formatted="false">Choose audio / video / document</string>
+  <string name="TP_AIC_cloud" formatted="false">Choose open Cloud media</string>
+  <string name="TP_AIC_language" formatted="false">Speech language (auto or BCP-47)</string>
+  <string name="TP_AIC_translate" formatted="false">Translate with AI</string>
+  <string name="TP_AIC_edit" formatted="false">Edit transcript</string>
+  <string name="TP_AIC_wifi" formatted="false">Heavy tasks: Wi-Fi only</string>
+  <string name="TP_AIC_charging" formatted="false">Heavy tasks: charging only</string>
+  <string name="TP_AIC_maxVideo" formatted="false">Maximum video minutes</string>
+  <string name="TP_AIC_models" formatted="false">Models by task</string>
+  <string name="TP_AIC_fastModel" formatted="false">Chunk / classification model</string>
+  <string name="TP_AIC_reportModel" formatted="false">Final report model</string>
+  <string name="TP_AIC_visionModel" formatted="false">Vision model</string>
+  <string name="TP_AIC_aiConnections" formatted="false">AI connections</string>
+  <string name="TP_AIC_dailyLimit" formatted="false">Daily token budget</string>
+  <string name="TP_AIC_monthlyLimit" formatted="false">Monthly token budget</string>
+  <string name="TP_AIC_usage" formatted="false">Usage (actual / estimated tokens)</string>
+  <string name="TP_AIC_anonymize" formatted="false">Anonymize authors</string>
+  <string name="TP_AIC_noImages" formatted="false">Exclude images</string>
+  <string name="TP_AIC_blocks" formatted="false">Report blocks and order</string>
+  <string name="TP_AIC_schedule" formatted="false">Digest schedule</string>
+  <string name="TP_AIC_daily" formatted="false">Daily</string>
+  <string name="TP_AIC_weekly" formatted="false">Weekly</string>
+  <string name="TP_AIC_disabled" formatted="false">Disabled</string>
+  <string name="TP_AIC_digestReady" formatted="false">A new digest is available in your private report archive.</string>
+  <string name="TP_AIC_cacheClear" formatted="false">Clear media cache</string>
+  <string name="TP_AIC_ocrModel" formatted="false">Import OCR model (.traineddata)</string>
+  <string name="TP_AIC_protected" formatted="false">Protected media — unavailable</string>
+  <string name="TP_AIC_formats" formatted="false">Export format</string>
+  <string name="TP_AIC_share" formatted="false">Share</string>
+  <string name="TP_AIC_privacy" formatted="false">Export privacy</string>
+  <string name="TP_AIC_preview" formatted="false">Report preview</string>
+  <string name="TP_AIC_saveCloud" formatted="false">Save report to open Cloud folder</string>
+  <string name="TP_AIC_progress" formatted="false">Progress</string>
+  <string name="TP_AIC_notification" formatted="false">AI Center tasks</string>
+  <string name="TP_AIC_from" formatted="false">From</string>
+  <string name="TP_AIC_to" formatted="false">Until</string>
+  <string name="TP_AIC_state" formatted="false">Session / history state</string>
+  <string name="TP_AIC_minActivity" formatted="false">Minimum messages per day</string>
+  <string name="TP_AIC_topic" formatted="false">Forum topic</string>
+  <string name="TP_AIC_restore" formatted="false">Restore source set</string>
+  <string name="TP_AIC_reportMode" formatted="false">Text / illustrated report</string>
+  <string name="TP_AIC_rawIds" formatted="false">Provider returned an invalid report. Retry the task.</string>
+  <string name="TP_AIC_noModel" formatted="false">Choose a model in AI connections</string>
+  <string name="TP_AIC_partial" formatted="false">Partial result; some sources or media are incomplete</string>
+  <string name="TP_AIC_indexSize" formatted="false">Encrypted index size</string>
+  <string name="TP_AIC_biometricRequired" formatted="false">Configure a secret before enabling biometrics</string>
+  <string name="TP_AIC_link" formatted="false">Copy message link</string>
+  <string name="TP_AIC_sort" formatted="false">Sort</string>
+  <string name="TP_AIC_details" formatted="false">Details</string>
+  <string name="TP_AIC_delete" formatted="false">Delete</string>
+  <string name="TP_AIC_frame" formatted="false">Frame</string>
+  <string name="TP_AIC_page" formatted="false">Page</string>
+  <string name="TP_AIC_downloadEstimate" formatted="false">Download bytes / video minutes</string>
+  <string name="TP_AIC_storageLimit" formatted="false">Index storage budget reached</string>
+  <string name="TP_AIC_offlineSpeech" formatted="false">Local speech requires Android 13+ and an installed offline recognition model. Audio is not sent to a cloud recognizer.</string>
+  <string name="TP_AIC_importOcrHelp" formatted="false">Import Russian or English Tesseract traineddata. OCR runs on device without Google services.</string>
+  <string name="TP_AIC_next" formatted="false">Next</string>
+  <string name="TP_AIC_previous" formatted="false">Previous</string>
+  <string name="TP_AIC_copies" formatted="false">Repeated images (publication times)</string>
+  <string name="TP_AIC_queued" formatted="false">Queued</string>
+  <string name="TP_AIC_running" formatted="false">Processing</string>
+  <string name="TP_AIC_paused" formatted="false">Paused</string>
+  <string name="TP_AIC_cancelled" formatted="false">Cancelled</string>
+  <string name="TP_AIC_rank" formatted="false">Group ranking</string>
+  <string name="TP_AIC_groups" formatted="false">Groups</string>
+  <string name="TP_AIC_profile" formatted="false">Author profile</string>
+  <string name="TP_AIC_topics" formatted="false">Topics</string>
+  <string name="TP_AIC_weeklyActivity" formatted="false">Weekly activity</string>
+  <string name="TP_AIC_publications" formatted="false">Publications</string>
+  <string name="TP_AIC_ownAuthor" formatted="false">Own account</string>
+  <string name="TP_AIC_photo" formatted="false">Photo</string>
+  <string name="TP_AIC_image" formatted="false">Image</string>
+  <string name="TP_AIC_video" formatted="false">Video</string>
+  <string name="TP_AIC_audio" formatted="false">Audio</string>
+  <string name="TP_AIC_voice" formatted="false">Voice</string>
+  <string name="TP_AIC_round" formatted="false">Video message</string>
+  <string name="TP_AIC_pdf" formatted="false">PDF</string>
+  <string name="TP_AIC_document" formatted="false">Document</string>
+  <string name="TP_AIC_text" formatted="false">Text</string>
+  <string name="TP_AIC_poll" formatted="false">Poll</string>
+  <string name="TP_AIC_group" formatted="false">Group</string>
+  <string name="TP_AIC_supergroup" formatted="false">Supergroup</string>
+  <string name="TP_AIC_channel" formatted="false">Channel</string>
+  <string name="TP_AIC_private" formatted="false">Private chat</string>
+  <string name="TP_AIC_owner" formatted="false">Owner</string>
+  <string name="TP_AIC_admin" formatted="false">Administrator</string>
+  <string name="TP_AIC_member" formatted="false">Member</string>
+  <string name="TP_AIC_pinned" formatted="false">Pinned</string>
+  <string name="TP_AIC_archived" formatted="false">Archived</string>
+  <string name="TP_AIC_muted" formatted="false">Muted</string>
+  <string name="TP_AIC_device" formatted="false">Device</string>
+  <string name="TP_AIC_budgetExceeded" formatted="false">AI usage limit reached</string>
+  <string name="TP_AIC_actualUsage" formatted="false">Provider-reported tokens</string>
+  <string name="TP_AIC_estimatedUsage" formatted="false">Estimated tokens</string>
+  <string name="TP_AIC_main" formatted="false">Main findings</string>
+  <string name="TP_AIC_charts" formatted="false">Charts</string>
+  <string name="TP_AIC_transcripts" formatted="false">Transcripts</string>
+  <string name="TP_AIC_order" formatted="false">Block order — tap to move up</string>
+  <string name="TP_AIC_addSchedule" formatted="false">Add digest schedule</string>
+  <string name="TP_AIC_defaultModel" formatted="false">Use active connection</string>
+  <string name="TP_AIC_scheduleConsent" formatted="false">Allow this saved scope to be sent to the configured AI provider daily or weekly? Reports remain in the encrypted archive. You can pause this permission in schedules.</string>
+  <string name="TP_AIC_digestTime" formatted="false">Time (HH:MM)</string>
+  <string name="TP_AIC_saveTemplate" formatted="false">Save my template</string>
+  <string name="TP_AIC_anonymizeHint" formatted="false">Author profiles contain personal publication data. Before sharing, check quotations and media captions: names may occur in the original text.</string>
+  <string name="TP_AIC_removeDeleted" formatted="false">Remove deleted messages from the local index</string>
+  <string name="TP_AIC_clearHistorySource" formatted="false">Clear AI request history for a source</string>
+  <string name="TP_AIC_digestSummary" formatted="false">%d findings from %d sources. Open the encrypted report.</string>
+  <string name="TP_AIC_cloudAsr" formatted="false">Cloud transcription — this task only</string>
+  <string name="TP_AIC_cloudAsrConsent" formatted="false">Send the selected audio/video to the active AI provider for transcription? Local recognition remains the default.</string>
+  <string name="TP_AIC_asrModel" formatted="false">Cloud speech model</string>
+  <string name="TP_AIC_chapters" formatted="false">Video chapters</string>
+  <string name="TP_AIC_mediaType" formatted="false">Image category</string>
+  <string name="TP_AIC_chartImage" formatted="false">Charts / screenshots</string>
+  <string name="TP_AIC_receiptImage" formatted="false">Receipts / documents</string>
+  <string name="TP_AIC_photoImage" formatted="false">Photos / other</string>
+  <string name="TP_AIC_lockLost" formatted="false">The center protection key is unavailable. Clear center data to restore access.</string>
+  <string name="TP_AIC_coverageIndexed" formatted="false">Analyzed / indexed messages; history coverage is shown separately</string>
+  <string name="TP_AIC_indexedContext" formatted="false">Context available in the local index</string>
+  <string name="TP_AIC_forwarded" formatted="false">Forwarded</string>
+  <string name="TP_AIC_polls" formatted="false">Polls</string>
+  <string name="TP_AIC_session" formatted="false">Session</string>
+  <string name="TP_AIC_available" formatted="false">Available</string>
+  <string name="TP_AIC_semanticSearch" formatted="false">Search by meaning (AI)</string>
+  <string name="TP_AIC_indexedDescriptions" formatted="false">Indexed captions, OCR and descriptions</string>
+  <string name="TP_AIC_chapterQuery" formatted="false">Create video chapters by changes of topic. For every chapter include the exact transcript quotation and its real timestamp. Correlate spoken words with indexed scene OCR. Identify gaps.</string>
+  <string name="TP_AIC_expand" formatted="false">Expand this finding</string>
+  <string name="TP_AIC_discussed" formatted="false">Most discussed messages</string>
+  <string name="TP_AIC_unavailableAccounts" formatted="false">Some requested accounts are unavailable; their data is omitted.</string>
+  <string name="TP_AIC_unclear" formatted="false">What is unclear</string>
+  <string name="TP_AIC_report" formatted="false">Report</string>
+  <string name="TP_AIC_authorOverview" formatted="false">Publication profile</string>
+  <string name="TP_AIC_authorOverviewText" formatted="false">%1$s published %2$d messages, including %3$d media and %4$d links, across %5$d sources. Average message length: %6$d characters. Leading indexed topics: %7$s.</string>
+  <string name="TP_AIC_emptyTopics" formatted="false">No repeated text topics</string>
+  <string name="TP_AIC_authorChangeText" formatted="false">Current period: %1$d messages; previous period: %2$d; change: %3$+d.</string>
+  <string name="TP_AIC_authorPeerText" formatted="false">Author: %1$d of %2$d messages (%3$.1f%%). Other participants average %4$.1f messages each; media share in their publications: %5$.1f%%.</string>
+  <string name="TP_AIC_baselineMissing" formatted="false">Previous-period coverage is incomplete; topic novelty and changes are not confirmed.</string>
+  <string name="TP_AIC_previousPeriod" formatted="false">Previous period</string>
+  <string name="TP_AIC_newTopic" formatted="false">New indexed topic</string>
+  <string name="TP_AIC_hourlyActivity" formatted="false">Publication schedule by hour</string>
+  <string name="TP_AIC_discussionBlock" formatted="false">Image, caption and surrounding discussion</string>
+  <string name="TP_AIC_discussionEstimate" formatted="false">Also sent: the caption and excerpts from up to 5 indexed messages before and after, within the selected scope.</string>
+  <string name="TP_AIC_speaker" formatted="false">Speaker</string>
+  <string name="TP_AIC_speakerLabels" formatted="false">Speaker labels from a supporting cloud model</string>
+  <string name="TP_AIC_speakerScopeHint" formatted="false">Local Android recognition has no speaker labels. Cloud labels require a diarization-capable model. S1@time identifies a voice within that audio fragment only; voices are not matched across fragments.</string>
+  <string name="TP_AIC_speechEmpty" formatted="false">The speech provider returned no transcript</string>
+  <string name="TP_AIC_responseMode" formatted="false">Response mode</string>
+  <string name="TP_AIC_shortText" formatted="false">Short text</string>
+  <string name="TP_AIC_detailedText" formatted="false">Detailed text</string>
+  <string name="TP_AIC_shortIllustrated" formatted="false">Short illustrated report</string>
+  <string name="TP_AIC_detailedIllustrated" formatted="false">Detailed illustrated report</string>
 </resources>

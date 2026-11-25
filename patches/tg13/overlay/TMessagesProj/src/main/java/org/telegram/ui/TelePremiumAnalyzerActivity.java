@@ -48,7 +48,9 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   private List<CenterData.Message> drilldown;
   private boolean authorReport;
   private String authorSearch = "";
-  private int authorSort, authorPage;
+  private int authorSort, authorPage, authorListPage;
+  private long pendingAuthor = Long.MIN_VALUE;
+  private CenterReports.Report authorSnapshot;
   private long profileAuthor = Long.MIN_VALUE;
   private String authorKind = "";
   private AlertDialog mediaDialog;
@@ -998,7 +1000,20 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     composer.setMaxLines(4);
     composer.setText(query);
     body.addView(composer);
-    toggle("detailed", detailed, b -> detailed = b);
+    button(
+        "responseMode",
+        () ->
+            choices(
+                "responseMode",
+                new String[] {
+                  t("shortText"), t("detailedText"), t("shortIllustrated"), t("detailedIllustrated")
+                },
+                mode -> {
+                  detailed = mode % 2 == 1;
+                  CenterExport.Options options = exportOptions();
+                  options.images = mode >= 2;
+                  saveExportOptions(options);
+                }));
     toggle(
         "personal",
         index.scope.includePersonal,
@@ -1841,6 +1856,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     button("cloud", this::pickCloud);
     if (speech) {
       info(t("offlineSpeech"));
+      info(t("speakerScopeHint"));
       button(
           "language",
           () ->
@@ -1934,7 +1950,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             CenterTranscript.parse(m.transcript, m.duration)
                 .subList(
                     0, Math.min(12, CenterTranscript.parse(m.transcript, m.duration).size()))) {
-          TextView v = label(CenterTranscript.stamp(segment.start) + " · " + segment.text, 14);
+          TextView v = label(transcriptLine(segment), 14);
           v.setOnClickListener(w -> playAt(m, segment.start));
           card.addView(v);
         }
@@ -1971,6 +1987,42 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           });
   }
 
+  private void enqueueDescriptions(List<CenterData.Message> selected, String question) {
+    List<CenterData.Message> corpus = index.readable();
+    List<CenterData.Source> sources = new ArrayList<>(index.sources);
+    CenterData.Scope scope;
+    try {
+      scope = CenterData.Scope.parse(index.scope.json());
+    } catch (Exception error) {
+      error(error.getMessage());
+      return;
+    }
+    long epoch = CenterIndex.generation();
+    CenterStore.IO.execute(
+        () -> {
+          try {
+            Map<String, JSONArray> context = new HashMap<>();
+            for (CenterData.Message message : selected)
+              context.put(
+                  message.qualified(),
+                  CenterMediaBundle.snapshot(
+                      CenterMediaBundle.discussion(corpus, sources, scope, message)));
+            if (epoch == CenterIndex.generation())
+              CenterTaskService.enqueue(selected, "describe", question, context);
+          } catch (Exception error) {
+            AndroidUtilities.runOnUIThread(() -> error(error.getMessage()));
+          }
+        });
+  }
+
+  private String transcriptLine(CenterTranscript.Segment segment) {
+    String speaker = CenterTranscript.speakerLabel(segment.speaker);
+    return CenterTranscript.precise(segment.start)
+        + (speaker.isEmpty() ? "" : " · " + t("speaker") + " " + speaker)
+        + " · "
+        + segment.text;
+  }
+
   private void queueMedia(List<CenterData.Message> list, String op) {
     List<CenterData.Message> selected = new ArrayList<>();
     long bytes = 0, duration = 0;
@@ -1998,10 +2050,16 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                         + ": "
                         + totalBytes
                         + " / "
-                        + (totalDuration / 60000))
+                        + (totalDuration / 60000)
+                        + (op.equals("describe") ? "\n" + t("discussionEstimate") : ""))
                 .setPositiveButton(
                     t("continue"),
                     (d, w) -> {
+                      if (op.equals("describe")) {
+                        enqueueDescriptions(selected, "");
+                        toast(t("queue"));
+                        return;
+                      }
                       for (CenterData.Message m : selected) {
                         String action = op;
                         if (op.equals("ocr") && (m.kind.equals("video") || m.kind.equals("round")))
@@ -2146,12 +2204,38 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             14);
     metadata.setTextIsSelectable(true);
     content.addView(metadata);
+    List<CenterData.Message> discussion =
+        CenterMediaBundle.discussion(index.readable(), index.sources, index.scope, m);
+    if (!discussion.isEmpty()) {
+      content.addView(label(t("discussionBlock"), 17));
+      for (CenterData.Message message : discussion) {
+        TextView line =
+            label(
+                message.authorName + " · " + new Date(message.date * 1000L) + "\n" + message.text,
+                14);
+        line.setOnClickListener(v -> openEvidence(message));
+        content.addView(line);
+      }
+    }
+    if (m.mediaAnalysis.optJSONArray("claims") != null) {
+      CenterReports.Report analysis = CenterReports.restore(m.mediaAnalysis, index.readable());
+      TextView proofs = label(t("evidence"), 15);
+      content.addView(proofs);
+      proofs.setOnClickListener(
+          v -> {
+            report = analysis;
+            screen = 7;
+            archiveDetail = true;
+            show(7);
+            if (mediaDialog != null) mediaDialog.dismiss();
+          });
+    }
     List<CenterTranscript.Segment> segments = CenterTranscript.parse(m.transcript, m.duration);
     for (int n = transcriptPage * 40;
         n < Math.min(segments.size(), (transcriptPage + 1) * 40);
         n++) {
       CenterTranscript.Segment segment = segments.get(n);
-      TextView line = label(CenterTranscript.stamp(segment.start) + " · " + segment.text, 14);
+      TextView line = label(transcriptLine(segment), 14);
       content.addView(line);
       line.setOnClickListener(v -> playAt(m, segment.start));
     }
@@ -2176,12 +2260,14 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                                               + " · "
                                               + t("media")
                                               + ": "
-                                              + Math.max(1, m.frameTimes.size()))
+                                              + Math.max(1, m.frameTimes.size())
+                                              + "\n"
+                                              + t("discussionEstimate"))
                                       .setPositiveButton(
                                           t("continue"),
                                           (dialogInterface, which) -> {
-                                            CenterTaskService.enqueue(
-                                                Collections.singletonList(m), "describe", question);
+                                            enqueueDescriptions(
+                                                Collections.singletonList(m), question);
                                             toast(t("queue"));
                                           })
                                       .setNegativeButton(t("cancel"), null)
@@ -2852,6 +2938,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 authorSearch,
                 v -> {
                   authorSearch = v;
+                  authorListPage = 0;
                   show(3);
                 }));
     button(
@@ -2862,6 +2949,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 new String[] {t("messages"), t("media"), t("groups"), t("growth")},
                 i -> {
                   authorSort = i;
+                  authorListPage = 0;
                   show(3);
                 }));
     button(
@@ -2873,6 +2961,15 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           for (CenterStats.Author a : stats.authors)
             if (comparedAuthors.contains(a.id)) authorNumbers(a, stats);
         });
+    if (pendingAuthor != Long.MIN_VALUE) {
+      long selected = pendingAuthor;
+      pendingAuthor = Long.MIN_VALUE;
+      for (CenterStats.Author author : stats.authors)
+        if (author.id == selected) {
+          authorProfile(author, stats);
+          return;
+        }
+    }
     List<CenterStats.Author> authors = new ArrayList<>(stats.authors);
     Comparator<CenterStats.Author> comparator =
         authorSort == 1
@@ -2886,7 +2983,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     int rendered = 0;
     for (CenterStats.Author a : authors)
       if (a.name.toLowerCase(Locale.ROOT).contains(authorSearch.toLowerCase(Locale.ROOT))
-          && rendered++ < 150) {
+          && rendered++ >= authorListPage * 40
+          && rendered <= (authorListPage + 1) * 40) {
         CheckBox compare = new CheckBox(getParentActivity());
         compare.setText(
             a.name
@@ -2905,6 +3003,26 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         body.addView(compare);
         row(t("profile") + " · " + a.name, () -> authorProfile(a, stats));
       }
+    long matching =
+        authors.stream()
+            .filter(
+                a ->
+                    a.name.toLowerCase(Locale.ROOT).contains(authorSearch.toLowerCase(Locale.ROOT)))
+            .count();
+    if (authorListPage > 0)
+      button(
+          "previous",
+          () -> {
+            authorListPage--;
+            show(3);
+          });
+    if ((authorListPage + 1) * 40 < matching)
+      button(
+          "next",
+          () -> {
+            authorListPage++;
+            show(3);
+          });
   }
 
   private void authorNumbers(CenterStats.Author a, CenterStats stats) {
@@ -2932,15 +3050,15 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             + (a.count == 0 ? 0 : a.characters / a.count));
     for (CenterStats.Group g : stats.groups)
       if (a.groups.contains(g.id)) {
-        long n = a.publications.stream().filter(m -> m.source.equals(g.id)).count();
+        long n = g.peerAuthorCounts.getOrDefault(a.id, 0);
         info(
             g.title
                 + ": "
                 + n
                 + " / "
-                + g.messages
+                + g.allMessages
                 + " · "
-                + (g.messages == 0 ? 0 : 100 * n / g.messages)
+                + (g.allMessages == 0 ? 0 : 100 * n / g.allMessages)
                 + "%");
       }
   }
@@ -2964,55 +3082,104 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           authorReport = true;
           show(6);
         });
+    authorSnapshot = null;
+    LinearLayout overview = new LinearLayout(getParentActivity());
+    overview.setOrientation(1);
+    body.addView(overview);
+    TextView loading = label(t("loading"), 14);
+    overview.addView(loading);
+    int profileVersion = uiVersion;
+    TPAiClient.async(
+        () -> CenterAuthorProfile.build(a, stats, TelePremiumAnalyzerActivity::t),
+        (profile, failure) -> {
+          if (!unlocked || !foreground || profileVersion != uiVersion) return;
+          overview.removeAllViews();
+          if (failure != null) {
+            overview.addView(label(t("error") + ": " + failure, 14));
+            return;
+          }
+          authorSnapshot = profile;
+          CenterReports.Claim paragraph = profile.claims.get(0);
+          overview.addView(label(paragraph.text, 15));
+          for (CenterReports.Claim claim :
+              profile.claims.subList(1, Math.min(profile.claims.size(), 2 + stats.groups.size()))) {
+            if (claim.title.startsWith(t("topic")) || claim.title.startsWith(t("newTopic"))) break;
+            overview.addView(label(claim.title + "\n" + claim.text, 14));
+          }
+          TextView sources = label(t("evidence") + " (" + paragraph.evidence.size() + ")", 14);
+          overview.addView(sources);
+          LinearLayout evidence = new LinearLayout(getParentActivity());
+          evidence.setOrientation(1);
+          overview.addView(evidence);
+          sources.setOnClickListener(
+              v -> {
+                if (evidence.getChildCount() > 0) evidence.removeAllViews();
+                else
+                  for (CenterReports.Evidence proof : paragraph.evidence) {
+                    TextView line =
+                        label(
+                            proof.message.sourceTitle
+                                + " · "
+                                + proof.message.accountName
+                                + "\n"
+                                + proof.quote,
+                            14);
+                    line.setOnClickListener(w -> openEvidence(proof.message));
+                    evidence.addView(line);
+                  }
+              });
+        });
     button(
         "archive",
         () -> {
-          CenterReports.Report r = new CenterReports.Report();
-          r.question = a.name;
-          r.from = stats.from;
-          r.to = stats.to;
-          r.indexed = r.analyzed = a.count;
-          r.complete = true;
-          for (CenterData.Message m : a.publications) {
-            CenterReports.Claim c = new CenterReports.Claim();
-            c.title = m.sourceTitle;
-            c.text = m.text;
-            try {
-              JSONObject candidate =
-                  new JSONObject()
-                      .put(
-                          "claims",
-                          new JSONArray()
-                              .put(
-                                  new JSONObject()
-                                      .put("title", c.title)
-                                      .put("text", c.text)
-                                      .put(
-                                          "evidence",
-                                          new JSONArray()
-                                              .put(
-                                                  new JSONObject()
-                                                      .put("account", m.account)
-                                                      .put("chat", m.dialog)
-                                                      .put("message", m.id)
-                                                      .put(
-                                                          "quote",
-                                                          m.text.substring(
-                                                              0,
-                                                              Math.min(160, m.text.length())))))));
-              r.claims.addAll(CenterReports.validate(candidate, index.readable()).claims);
-            } catch (Exception e) {
-              FileLog.e(e);
-            }
+          if (authorSnapshot == null) {
+            toast(t("loading"));
+            return;
           }
-          persistReport(r, "report");
+          persistReport(authorSnapshot, "report");
         });
+    button(
+        "export",
+        () -> {
+          if (authorSnapshot == null) {
+            toast(t("loading"));
+            return;
+          }
+          report = authorSnapshot;
+          exportReport(false, false);
+        });
+    button(
+        "compare",
+        () -> {
+          pendingAuthor = a.id;
+          loadPreviousPeriod();
+        });
+    heading("hourlyActivity");
+    StringBuilder hours = new StringBuilder();
+    for (int hour = 0; hour < 24; hour++)
+      hours.append(
+          String.format(
+              Locale.getDefault(),
+              "%02d:00 · %d%s",
+              hour,
+              a.hours[hour],
+              hour % 4 == 3 ? "\n" : "   "));
+    info(hours.toString());
     heading("topics");
     List<Map.Entry<String, Integer>> topics = new ArrayList<>(a.topics.entrySet());
     topics.sort(Map.Entry.<String, Integer>comparingByValue().reversed());
     for (Map.Entry<String, Integer> topic : topics)
       row(
-          topic.getKey() + " · " + topic.getValue(),
+          (CenterAuthorProfile.newTopic(a, stats, topic.getKey()) ? t("newTopic") + ": " : "")
+              + topic.getKey()
+              + " · "
+              + topic.getValue()
+              + " · "
+              + t("previousPeriod")
+              + ": "
+              + (CenterAuthorProfile.baselineComplete(a, stats)
+                  ? a.previousTopics.getOrDefault(topic.getKey(), 0)
+                  : t("partial")),
           () -> {
             List<CenterData.Message> hits = new ArrayList<>();
             for (CenterData.Message m : a.publications)
@@ -3020,6 +3187,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 hits.add(m);
             messageDetails(hits);
           });
+    if (!CenterAuthorProfile.baselineComplete(a, stats)) info(t("baselineMissing"));
     heading("weeklyActivity");
     Map<String, Integer> weeks = new TreeMap<>();
     java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("YYYY-'W'ww", Locale.ROOT);
@@ -3636,6 +3804,11 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 CenterIndex.settings().optString("asrModel", "whisper-1"),
                 name -> CenterIndex.setting("asrModel", name)));
     button("cloudAsr", () -> chooseRole("speechModel", "cloudAsr"));
+    toggle(
+        "speakerLabels",
+        o.optBoolean("asrDiarization", false),
+        enabled -> CenterIndex.setting("asrDiarization", enabled));
+    info(t("speakerScopeHint"));
     button("fastModel", () -> chooseRole("fastModel", "fastModel"));
     button("reportModel", () -> chooseRole("reportModel", "reportModel"));
     button("visionModel", () -> chooseRole("visionModel", "visionModel"));

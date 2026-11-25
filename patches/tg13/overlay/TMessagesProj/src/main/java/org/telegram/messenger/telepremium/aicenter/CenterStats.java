@@ -7,7 +7,8 @@ import java.util.*;
 public final class CenterStats {
   public static final class Group {
     public String id, title;
-    public int messages, previous, media, links, concentration;
+    public int messages, previous, media, links, concentration, allMessages;
+    public final Map<Long, Integer> peerAuthorCounts = new HashMap<>();
     public long last;
     public boolean currentComplete, previousComplete;
     public final Set<Long> authors = new HashSet<>();
@@ -34,7 +35,11 @@ public final class CenterStats {
     public int count, previous, media, links, replies, characters;
     public final Set<String> groups = new HashSet<>();
     public final Set<Integer> accounts = new HashSet<>();
-    public final List<CenterData.Message> publications = new ArrayList<>();
+    public final List<CenterData.Message> publications = new ArrayList<>(),
+        previousPublications = new ArrayList<>();
+    public final Map<String, Integer> previousTopics = new HashMap<>(),
+        previousDaily = new TreeMap<>();
+    public final int[] hours = new int[24];
     public final Map<String, Integer> daily = new TreeMap<>(), topics = new HashMap<>();
   }
 
@@ -44,11 +49,15 @@ public final class CenterStats {
   public final Map<String, List<CenterData.Message>> domains = new TreeMap<>(),
       forwards = new TreeMap<>();
   public final List<CenterData.Message> messages;
+  public final List<CenterData.Message> peerMessages = new ArrayList<>(),
+      previousMessages = new ArrayList<>();
   public final long from, to;
   public final int days;
+  public final boolean includePersonal;
 
   private CenterStats(List<CenterData.Message> m, CenterData.Scope scope) {
     messages = m;
+    includePersonal = scope.includePersonal;
     from = scope.from;
     to = scope.to;
     days = (int) Math.max(1, (to - from + 86399) / 86400);
@@ -68,6 +77,10 @@ public final class CenterStats {
     before.to = scope.from - 1;
     before.sinceRead = false;
     List<CenterData.Message> previous = CenterData.select(index, sources, before);
+    result.previousMessages.addAll(previous);
+    CenterData.Scope peerScope = CenterData.Scope.parse(scope.json());
+    peerScope.authors.clear();
+    result.peerMessages.addAll(CenterData.select(index, sources, peerScope));
     Map<String, Group> gm = new LinkedHashMap<>();
     Map<Long, Author> am = new HashMap<>();
     SimpleDateFormat day = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
@@ -86,6 +99,41 @@ public final class CenterStats {
         g.currentComplete |= s.covers(scope.from, scope.to);
         g.previousComplete |= s.covers(before.from, before.to);
       }
+    Map<String, Map<Integer, boolean[]>> coverage = new HashMap<>();
+    for (CenterData.Source source : sources)
+      if (scope.requests(source)) {
+        Map<Integer, boolean[]> topics =
+            coverage.computeIfAbsent(source.canonical, key -> new HashMap<>());
+        boolean[] flags = topics.computeIfAbsent(source.topic, key -> new boolean[2]);
+        flags[0] |= source.available && source.covers(scope.from, scope.to);
+        flags[1] |= source.available && source.covers(before.from, before.to);
+        if (!gm.containsKey(source.canonical)) {
+          Group group = new Group();
+          group.id = source.canonical;
+          group.title = source.title;
+          gm.put(group.id, group);
+        }
+      }
+    for (Group group : gm.values()) {
+      Map<Integer, boolean[]> topics = coverage.get(group.id);
+      group.currentComplete = group.previousComplete = topics != null && !topics.isEmpty();
+      if (topics != null) {
+        Collection<boolean[]> ranges =
+            topics.containsKey(0) ? Collections.singletonList(topics.get(0)) : topics.values();
+        for (boolean[] range : ranges) {
+          group.currentComplete &= range[0];
+          group.previousComplete &= range[1];
+        }
+      }
+    }
+    for (CenterData.Message peer : result.peerMessages) {
+      Group group = gm.get(peer.source);
+      if (group != null) {
+        group.allMessages++;
+        group.peerAuthorCounts.put(
+            peer.author, group.peerAuthorCounts.getOrDefault(peer.author, 0) + 1);
+      }
+    }
     for (CenterData.Message m : current) {
       Group g = gm.get(m.source);
       if (g == null) continue;
@@ -132,11 +180,12 @@ public final class CenterStats {
       a.links += linked ? 1 : 0;
       a.replies += m.replyTo > 0 ? 1 : 0;
       a.characters += m.text.length();
+      a.hours[clock.get(Calendar.HOUR_OF_DAY)]++;
       a.groups.add(m.source);
       a.accounts.add(m.account);
       a.publications.add(m);
       a.daily.put(date, a.daily.getOrDefault(date, 0) + 1);
-      for (String topic : CenterTopics.words(m.text))
+      for (String topic : CenterTopics.words(!m.personal || scope.includePersonal ? m.text : ""))
         a.topics.put(topic, a.topics.getOrDefault(topic, 0) + 1);
     }
     for (CenterData.Message m : previous) {
@@ -148,7 +197,23 @@ public final class CenterStats {
         g.last = Math.max(g.last, m.date);
       }
       Author a = am.get(m.author);
-      if (a != null) a.previous++;
+      if (a == null && m.author != 0 && !m.source.startsWith("p:")) {
+        a = new Author();
+        a.id = m.author;
+        a.name = m.authorName;
+        a.own = m.own;
+        am.put(m.author, a);
+      }
+      if (a != null) {
+        a.previous++;
+        a.previousPublications.add(m);
+        a.groups.add(m.source);
+        a.accounts.add(m.account);
+        String date = day.format(new Date(m.date * 1000L));
+        a.previousDaily.put(date, a.previousDaily.getOrDefault(date, 0) + 1);
+        for (String topic : CenterTopics.words(!m.personal || scope.includePersonal ? m.text : ""))
+          a.previousTopics.put(topic, a.previousTopics.getOrDefault(topic, 0) + 1);
+      }
     }
     for (Group g : gm.values()) {
       if (!g.daily.isEmpty() || g.currentComplete) {

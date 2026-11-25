@@ -102,7 +102,9 @@ public final class CenterData {
         contentHash = "",
         previewBase = "";
     public long sceneHash;
-    public JSONObject pageEvidence = new JSONObject(), frameEvidence = new JSONObject();
+    public JSONObject pageEvidence = new JSONObject(),
+        frameEvidence = new JSONObject(),
+        mediaAnalysis = new JSONObject();
     public final java.util.List<Long> frameTimes = new java.util.ArrayList<>();
     public boolean own, deleted, protectedMedia, personal;
 
@@ -144,6 +146,7 @@ public final class CenterData {
           .put("transcript", transcript)
           .put("description", description)
           .put("forwardSource", forwardSource)
+          .put("mediaAnalysis", mediaAnalysis)
           .put("pageEvidence", pageEvidence)
           .put("frameEvidence", frameEvidence)
           .put("frameTimes", new JSONArray(frameTimes))
@@ -190,6 +193,10 @@ public final class CenterData {
       m.transcript = o.optString("transcript");
       m.description = o.optString("description");
       m.forwardSource = o.optString("forwardSource");
+      m.mediaAnalysis =
+          o.optJSONObject("mediaAnalysis") == null
+              ? new JSONObject()
+              : o.optJSONObject("mediaAnalysis");
       m.pageEvidence =
           o.optJSONObject("pageEvidence") == null
               ? new JSONObject()
