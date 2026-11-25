@@ -42,6 +42,11 @@ public final class CenterTranscript {
     return out;
   }
 
+  public static List<Segment> parse(String text,long duration) {
+    List<Segment> segments=parse(text);if(duration<=0)return segments;
+    segments.removeIf(segment->segment.start>=duration);for(Segment segment:segments)segment.end=Math.min(segment.end,duration);return segments;
+  }
+
   public static String subtitles(List<Segment> segments, boolean vtt) {
     StringBuilder b = new StringBuilder(vtt ? "WEBVTT\n\n" : "");
     int i = 0;

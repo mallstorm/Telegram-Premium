@@ -1833,8 +1833,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       details.setOnClickListener(w -> mediaDetails(m, 0));
       if (!m.transcript.isEmpty())
         for (CenterTranscript.Segment segment :
-            CenterTranscript.parse(m.transcript)
-                .subList(0, Math.min(12, CenterTranscript.parse(m.transcript).size()))) {
+            CenterTranscript.parse(m.transcript,m.duration)
+                .subList(0, Math.min(12, CenterTranscript.parse(m.transcript,m.duration).size()))) {
           TextView v = label(CenterTranscript.stamp(segment.start) + " · " + segment.text, 14);
           v.setOnClickListener(w -> playAt(m, segment.start));
           card.addView(v);
@@ -2047,7 +2047,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             14);
     metadata.setTextIsSelectable(true);
     content.addView(metadata);
-    List<CenterTranscript.Segment> segments = CenterTranscript.parse(m.transcript);
+    List<CenterTranscript.Segment> segments = CenterTranscript.parse(m.transcript,m.duration);
     for (int n = transcriptPage * 40;
         n < Math.min(segments.size(), (transcriptPage + 1) * 40);
         n++) {
@@ -2161,7 +2161,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                       i == 0
                           ? m.transcript
                           : CenterTranscript.subtitles(
-                              CenterTranscript.parse(m.transcript), i == 2);
+                              CenterTranscript.parse(m.transcript,m.duration), i == 2);
                   TPAiClient.async(
                       () -> CenterFiles.transcript(m, i == 0 ? "txt" : i == 1 ? "srt" : "vtt"),
                       (file, failure) -> {

@@ -26,7 +26,7 @@ public final class CenterFiles {
         format.equals("txt")
             ? m.transcript
             : CenterTranscript.subtitles(
-                CenterTranscript.parse(m.transcript), format.equals("vtt"));
+                CenterTranscript.parse(m.transcript,m.duration), format.equals("vtt"));
     try (Writer w = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
       w.write(text);
     }

@@ -238,4 +238,6 @@ case "chapterQuery":return TPStrings.get("TP_AIC_chapterQuery",R.string.TP_AIC_c
 case "expand":return TPStrings.get("TP_AIC_expand",R.string.TP_AIC_expand);
 case "discussed":return TPStrings.get("TP_AIC_discussed",R.string.TP_AIC_discussed);
 case "unavailableAccounts":return TPStrings.get("TP_AIC_unavailableAccounts",R.string.TP_AIC_unavailableAccounts);
+case "unclear":return TPStrings.get("TP_AIC_unclear",R.string.TP_AIC_unclear);
+case "report":return TPStrings.get("TP_AIC_report",R.string.TP_AIC_report);
 default: return key;}}}

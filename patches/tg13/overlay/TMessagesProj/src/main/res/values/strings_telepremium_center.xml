@@ -235,4 +235,6 @@
   <string name="TP_AIC_expand">Expand this finding</string>
   <string name="TP_AIC_discussed">Most discussed messages</string>
   <string name="TP_AIC_unavailableAccounts">Some requested accounts are unavailable; their data is omitted.</string>
+  <string name="TP_AIC_unclear">What is unclear</string>
+  <string name="TP_AIC_report">Report</string>
 </resources>
