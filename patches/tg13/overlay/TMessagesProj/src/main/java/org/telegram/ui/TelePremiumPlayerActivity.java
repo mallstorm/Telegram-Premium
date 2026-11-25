@@ -63,6 +63,8 @@ import java.util.Locale;
  * jump -/+10 seconds; transport controls live only in the bottom bar.
  */
 public class TelePremiumPlayerActivity extends Activity implements TelePremiumPlaybackController.Listener, TelePremiumQueueManager.Listener {
+    public static final String EXTRA_START_POSITION = "telepremium_start_position_ms";
+    private long pendingStartPosition=-1;
     public static final String EXTRA_PATH = "telepremium_player_path";
     public static final String EXTRA_NAME = "telepremium_player_name";
     public static final String EXTRA_MIME = "telepremium_player_mime";
@@ -204,6 +206,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         mediaTheme = TelePremiumMediaTheme.from(this);
         mediaTheme.applySystemBars(this);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        pendingStartPosition=getIntent().getLongExtra(EXTRA_START_POSITION,-1);
         launchItem = readLaunchItem(getIntent());
         displayItem = launchItem != null ? launchItem : controller.getCurrent();
         controller.addListener(this);
@@ -223,6 +226,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        pendingStartPosition=intent.getLongExtra(EXTRA_START_POSITION,-1);
         TelePremiumMediaItem item = readLaunchItem(intent);
         if (item != null) { displayItem = item; controller.play(item); } else bindCurrent(controller.getCurrent());
     }
@@ -875,6 +879,7 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     @Override public void onMediaChanged(TelePremiumMediaItem item) { displayItem = item; bindCurrent(item); }
 
     @Override public void onStateChanged(int state) {
+        if(pendingStartPosition>=0&&(state==TelePremiumPlaybackController.STATE_READY||state==TelePremiumPlaybackController.STATE_PLAYING)){long seek=pendingStartPosition;pendingStartPosition=-1;controller.seekTo(seek);}
         updatePlayButton();
         if (stateView == null) return;
         TelePremiumMediaItem item = controller.getCurrent();

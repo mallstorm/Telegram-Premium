@@ -163,4 +163,11 @@
   <string name="TP_AIC_storageLimit">Index storage budget reached</string>
   <string name="TP_AIC_offlineSpeech">Local speech requires Android 13+ and an installed offline recognition model. Audio is not sent to a cloud recognizer.</string>
   <string name="TP_AIC_importOcrHelp">Import Russian or English Tesseract traineddata. OCR runs on device without Google services.</string>
+  <string name="TP_AIC_next">Next</string>
+  <string name="TP_AIC_previous">Previous</string>
+  <string name="TP_AIC_copies">Repeated images (publication times)</string>
+  <string name="TP_AIC_queued">Queued</string>
+  <string name="TP_AIC_running">Processing</string>
+  <string name="TP_AIC_paused">Paused</string>
+  <string name="TP_AIC_cancelled">Cancelled</string>
 </resources>

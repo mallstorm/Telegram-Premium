@@ -23,9 +23,11 @@ def sha256(path: Path) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2,3):
         print(__doc__)
         return 2
+    global TARGET
+    if len(sys.argv)==3: TARGET=Path(sys.argv[2]).resolve()
     pass_dir = (ROOT / sys.argv[1]).resolve()
     overlay = pass_dir / "overlay"
     manifest = json.loads((pass_dir / "manifest.json").read_text(encoding="utf-8"))

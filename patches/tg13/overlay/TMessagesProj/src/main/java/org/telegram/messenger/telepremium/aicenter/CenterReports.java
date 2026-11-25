@@ -33,10 +33,12 @@ public final class CenterReports {
                 JSONObject e=evidence.optJSONObject(j);if(e==null)continue;CenterData.Message m=lookup.get(e.optInt("account")+":"+e.optLong("chat")+":"+e.optInt("message"));
                 if(m==null||m.protectedMedia||!seen.add(m.qualified()))continue;
                 String quote=e.optString("quote").trim();String actual=m.text+"\n"+m.ocr+"\n"+m.transcript;
-                if(quote.isEmpty()||!actual.contains(quote))continue;
+                boolean visual=quote.isEmpty()&&((e.optInt("page")>0&&e.optInt("page")<=m.pages)||m.frameTimes.contains(e.optLong("timeMs")));if(!visual&&(quote.isEmpty()||!actual.contains(quote)))continue;
                 // Display a slice of the original, never the provider's fabricated formatting.
-                int start=actual.indexOf(quote);String excerpt=actual.substring(start,Math.min(actual.length(),start+Math.min(160,quote.length())));
+                int start=actual.indexOf(quote);String excerpt=visual?"":actual.substring(start,Math.min(actual.length(),start+Math.min(160,quote.length())));
                 long time=Math.max(0,e.optLong("timeMs"));int page=Math.max(0,e.optInt("page"));if(time>0&&(m.duration<=0||time>=m.duration)||page>0&&(m.pages<=0||page>m.pages))continue;
+                if(!quote.isEmpty()&&page>0&&!m.pageEvidence.optString(""+page).contains(quote))continue;
+                if(!quote.isEmpty()&&time>0){boolean timed=m.frameEvidence.optString(""+time).contains(quote);for(CenterTranscript.Segment segment:CenterTranscript.parse(m.transcript))if(time>=segment.start&&time<segment.end&&segment.text.contains(quote))timed=true;if(!timed)continue;}
                 claim.evidence.add(new Evidence(m,excerpt,time,page));
             }
             if(claim.evidence.size()>1&&!"rumor".equals(claim.certainty))claim.certainty="multiple";

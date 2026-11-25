@@ -1241,6 +1241,7 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_STATISTICS = 28;
     public final static int OPTION_TRANSLATE = 29;
     public final static int OPTION_TRANSCRIBE = 30;
+    public final static int OPTION_AICENTER_TRANSCRIBE = 7258;
     public final static int OPTION_HIDE_SPONSORED_MESSAGE = 31;
     public final static int OPTION_VIEW_IN_TOPIC = 32;
     public final static int OPTION_ABOUT_REVENUE_SHARING_ADS = 33;
@@ -33609,6 +33610,10 @@ public class ChatActivity extends BaseFragment implements
         }
         boolean preserveDim = false;
         switch (option) {
+            case OPTION_AICENTER_TRANSCRIBE: {
+                if(currentEncryptedChat==null&&selectedObject.messageOwner!=null&&!selectedObject.messageOwner.noforwards&&(currentChat==null||!currentChat.noforwards)&&!selectedObject.isVoiceOnce()&&!selectedObject.isRoundOnce())presentFragment(TelePremiumAnalyzerActivity.forMessage(selectedObject));
+                break;
+            }
             case OPTION_RETRY: {
                 final MessageObject object = selectedObject;
                 final MessageObject.GroupedMessages group = selectedObjectGroup;
@@ -46183,6 +46188,10 @@ public class ChatActivity extends BaseFragment implements
                 options.add(OPTION_REMOVE_ADS);
                 icons.add(R.drawable.msg_cancel);
             }
+        }
+
+        if(currentEncryptedChat==null&&!noforwardsOrPaidMedia&&!isEphemeral&&selectedObject.messageOwner!=null&&selectedObject.getId()>0&&(selectedObject.isVideo()||selectedObject.isVoice()||selectedObject.isRoundVideo()||selectedObject.isMusic())&&!selectedObject.isVoiceOnce()&&!selectedObject.isRoundOnce()){
+            items.add(org.telegram.messenger.telepremium.aicenter.CenterText.get("transcribe"));options.add(OPTION_AICENTER_TRANSCRIBE);icons.add(R.drawable.msg_translate);
         }
 
         final @DrawableRes int deleteIconRes;

@@ -19,6 +19,8 @@ public class CenterEvidenceTest {
   a.deleted=true;check(validate(ms,new JSONArray().put(evidence(0,-100,"verified"))).evidence.get(0).message.deleted);a.deleted=false;
   a.protectedMedia=true;check(!validate(ms,new JSONArray().put(evidence(0,-100,"verified"))).verified());a.protectedMedia=false;
   a.text=String.join("",Collections.nCopies(5000,"abcdef"));List<JSONArray> chunks=CenterReports.chunks(Arrays.asList(a),false,2000);StringBuilder restored=new StringBuilder();for(JSONArray chunk:chunks)for(int i=0;i<chunk.length();i++)restored.append(chunk.getJSONObject(i).optString("text"));check(a.searchable().equals(restored.toString()));
+  a.frameTimes.add(0L);check(validate(ms,new JSONArray().put(evidence(0,-100,""))).verified());a.frameTimes.clear();
+  a.text="Original verified quotation";a.pages=2;a.pageEvidence.put("1","verified");check(!validate(ms,new JSONArray().put(evidence(0,-100,"verified").put("page",2))).verified());check(validate(ms,new JSONArray().put(evidence(0,-100,"verified").put("page",1))).verified());
   a.personal=true;check(CenterReports.chunks(Arrays.asList(a),false,2000).isEmpty());
   System.out.println("CenterEvidenceTest OK: exact account/chat routing, real quotations, invalid coordinates, deleted evidence and complete chunk coverage");
  }

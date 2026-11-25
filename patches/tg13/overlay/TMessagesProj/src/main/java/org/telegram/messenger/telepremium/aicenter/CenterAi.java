@@ -33,7 +33,7 @@ public final class CenterAi {
         TPAiStore.Connection fast=model("fastModel"),strong=model("reportModel");
         for(int i=0;i<batches.size();i++){
             if(cancelled.get())throw new InterruptedException();JSONArray batch=batches.get(i);String payload=question+"\n"+batch;String cacheId=hash(fast.id+fast.model+SCHEMA+payload);JSONObject result=cached(a,owner,cacheId);
-            try{if(result==null){result=CenterReports.parse(complete(fast,SCHEMA+" Analyze this part, preserve all relevant evidence for the final report.",payload));if(cancelled.get())throw new InterruptedException();CenterStore.get().put(a,owner,"chunk",cacheId,new JSONObject().put("id",cacheId).put("accounts",accounts(messages)).put("result",result));}
+            try{if(result==null){result=CenterReports.parse(complete(fast,SCHEMA+" Analyze this part, preserve all relevant evidence for the final report.",payload));if(cancelled.get())throw new InterruptedException();CenterStore.get().put(a,owner,"chunk",cacheId,new JSONObject().put("id",cacheId).put("accounts",accounts(messages)).put("cloud",messages.stream().anyMatch(m->!m.cloudNode.isEmpty())).put("result",result));}
                 CenterReports.Report validated=CenterReports.validate(result,messages);maps.put(validated.json());for(int n=0;n<batch.length();n++){JSONObject q=batch.optJSONObject(n);String k=q.optInt("account")+":"+q.optLong("chat")+":"+q.optInt("message");covered.put(k,covered.getOrDefault(k,0)+1);}
             }catch(Exception e){failures.add(CenterText.get("partial")+" "+(i+1));}
             progress.update(i+1,batches.size());

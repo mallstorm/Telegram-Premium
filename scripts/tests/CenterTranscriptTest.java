@@ -1,0 +1,5 @@
+import org.telegram.messenger.telepremium.aicenter.CenterTranscript;
+import java.util.*;
+public class CenterTranscriptTest {
+ public static void main(String[] args){List<CenterTranscript.Segment> segments=CenterTranscript.parse("[00:00:00] First\n[00:00:35] Next\n");if(segments.size()!=2||segments.get(0).end!=35000)throw new AssertionError();String srt=CenterTranscript.subtitles(segments,false),vtt=CenterTranscript.subtitles(segments,true);if(!srt.contains("00:00:00,000 --> 00:00:35,000")||!vtt.startsWith("WEBVTT\n\n")||!vtt.contains("00:00:35.000"))throw new AssertionError();if(!CenterTranscript.parse("[02:10] legacy").get(0).text.equals("legacy"))throw new AssertionError();System.out.println("CenterTranscriptTest OK: segment timing, legacy timestamps, SRT/VTT");}
+}

@@ -73,3 +73,6 @@
 # gomobile/JNI entrypoints; shrink the rest of the app normally.
 -keep class go.** { *; }
 -keep class libXray.** { *; }
+
+# Tesseract JNI entry points used by the local AI Center OCR.
+-keep class com.googlecode.tesseract.android.** { *; }

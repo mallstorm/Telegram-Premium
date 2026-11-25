@@ -47,6 +47,8 @@ configurations.all {
 }
 
 dependencies {
+    implementation 'cz.adaptech.tesseract4android:tesseract4android:4.9.0'
+    implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
     implementation files("libs/libXray-26.10.31-arm64.aar")
     implementation 'androidx.core:core:1.16.0'
     implementation 'androidx.palette:palette:1.0.0'

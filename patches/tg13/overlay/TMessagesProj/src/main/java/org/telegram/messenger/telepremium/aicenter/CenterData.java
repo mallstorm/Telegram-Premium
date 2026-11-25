@@ -11,7 +11,7 @@ public final class CenterData {
         public long owner, dialog, readAt, rangeFrom, rangeTo, loadedAt;
         public String canonical="", title="", accountName="", type="group", role="member", folder="";
         public boolean pinned, archived, muted, available=true, complete;
-        public String key(){return account+":"+dialog+":"+topic;}
+        public String key(){return dialog==0?account+":local:"+canonical:account+":"+dialog+":"+topic;}
         public JSONObject json() throws JSONException {
             return new JSONObject().put("account",account).put("owner",owner).put("dialog",dialog).put("topic",topic)
                 .put("canonical",canonical).put("title",title).put("accountName",accountName).put("type",type)
@@ -29,7 +29,9 @@ public final class CenterData {
     public static final class Message {
         public int account,id,date,topic,replies,forwards,reactions,pages;
         public long owner,dialog,author,bytes,duration;
-        public String source="",sourceTitle="",accountName="",authorName="",text="",kind="text",ocr="",transcript="",description="",forwardSource="",hash="";
+        public String source="",sourceTitle="",accountName="",authorName="",text="",kind="text",ocr="",transcript="",description="",forwardSource="",hash="",mime="",localUri="",cloudNode="";
+        public JSONObject pageEvidence=new JSONObject(),frameEvidence=new JSONObject();
+        public final java.util.List<Long> frameTimes=new java.util.ArrayList<>();
         public boolean own,deleted,protectedMedia,personal;
         /** Original TL message, encrypted at rest; not included in provider payloads. */
         public String transport="";
@@ -40,13 +42,13 @@ public final class CenterData {
             return new JSONObject().put("account",account).put("owner",owner).put("dialog",dialog).put("id",id).put("date",date).put("topic",topic)
              .put("source",source).put("sourceTitle",sourceTitle).put("accountName",accountName).put("author",author).put("authorName",authorName)
              .put("text",text).put("kind",kind).put("ocr",ocr).put("transcript",transcript).put("description",description).put("forwardSource",forwardSource)
-             .put("hash",hash).put("bytes",bytes).put("duration",duration).put("own",own).put("deleted",deleted).put("protectedMedia",protectedMedia)
+             .put("pageEvidence",pageEvidence).put("frameEvidence",frameEvidence).put("frameTimes",new JSONArray(frameTimes)).put("mime",mime).put("localUri",localUri).put("cloudNode",cloudNode).put("hash",hash).put("bytes",bytes).put("duration",duration).put("own",own).put("deleted",deleted).put("protectedMedia",protectedMedia)
              .put("personal",personal).put("transport",transport).put("replies",replies).put("forwards",forwards).put("reactions",reactions).put("pages",pages);
         }
         public static Message parse(JSONObject o){
             Message m=new Message();m.account=o.optInt("account");m.owner=o.optLong("owner");m.dialog=o.optLong("dialog");m.id=o.optInt("id");m.date=o.optInt("date");
             m.topic=o.optInt("topic");m.source=o.optString("source");m.sourceTitle=o.optString("sourceTitle");m.accountName=o.optString("accountName");m.author=o.optLong("author");m.authorName=o.optString("authorName");
-            m.text=o.optString("text");m.kind=o.optString("kind","text");m.ocr=o.optString("ocr");m.transcript=o.optString("transcript");m.description=o.optString("description");m.forwardSource=o.optString("forwardSource");m.hash=o.optString("hash");
+            m.text=o.optString("text");m.kind=o.optString("kind","text");m.ocr=o.optString("ocr");m.transcript=o.optString("transcript");m.description=o.optString("description");m.forwardSource=o.optString("forwardSource");m.pageEvidence=o.optJSONObject("pageEvidence")==null?new JSONObject():o.optJSONObject("pageEvidence");m.frameEvidence=o.optJSONObject("frameEvidence")==null?new JSONObject():o.optJSONObject("frameEvidence");JSONArray frameTimes=o.optJSONArray("frameTimes");for(int i=0;frameTimes!=null&&i<frameTimes.length();i++)m.frameTimes.add(frameTimes.optLong(i));m.mime=o.optString("mime");m.localUri=o.optString("localUri");m.cloudNode=o.optString("cloudNode");m.hash=o.optString("hash");
             m.bytes=o.optLong("bytes");m.duration=o.optLong("duration");m.own=o.optBoolean("own");m.deleted=o.optBoolean("deleted");m.protectedMedia=o.optBoolean("protectedMedia");m.personal=o.optBoolean("personal");m.transport=o.optString("transport");
             m.replies=o.optInt("replies");m.forwards=o.optInt("forwards");m.reactions=o.optInt("reactions");m.pages=o.optInt("pages");return m;
         }
@@ -66,7 +68,7 @@ public final class CenterData {
     public static List<Message> select(Collection<Message> input,Collection<Source> sources,Scope scope){
         Map<String,Source> allowed=new HashMap<>();for(Source s:sources)if(scope.allows(s))allowed.put(s.key(),s);
         Map<String,Message> unique=new LinkedHashMap<>();
-        for(Message m:input){Source s=allowed.get(m.account+":"+m.dialog+":"+m.topic);if(s==null)s=allowed.get(m.account+":"+m.dialog+":0");if(s==null||!scope.matches(m)||(scope.sinceRead&&m.date<=s.readAt/1000))continue;
+        for(Message m:input){Source s=allowed.get(m.dialog==0?m.account+":local:"+m.source:m.account+":"+m.dialog+":"+m.topic);if(s==null)s=allowed.get(m.account+":"+m.dialog+":0");if(s==null||!scope.matches(m)||(scope.sinceRead&&m.date<=s.readAt/1000))continue;
             Message old=unique.get(m.key());if(old==null||m.searchable().length()>old.searchable().length())unique.put(m.key(),m);}
         ArrayList<Message> out=new ArrayList<>(unique.values());out.sort(Comparator.comparingInt((Message m)->m.date).thenComparing(m->m.key()));return out;
     }

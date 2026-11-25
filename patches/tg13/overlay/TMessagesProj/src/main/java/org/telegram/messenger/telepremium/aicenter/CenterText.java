@@ -166,4 +166,11 @@ case "downloadEstimate":return TPStrings.get("TP_AIC_downloadEstimate",R.string.
 case "storageLimit":return TPStrings.get("TP_AIC_storageLimit",R.string.TP_AIC_storageLimit);
 case "offlineSpeech":return TPStrings.get("TP_AIC_offlineSpeech",R.string.TP_AIC_offlineSpeech);
 case "importOcrHelp":return TPStrings.get("TP_AIC_importOcrHelp",R.string.TP_AIC_importOcrHelp);
+case "next":return TPStrings.get("TP_AIC_next",R.string.TP_AIC_next);
+case "previous":return TPStrings.get("TP_AIC_previous",R.string.TP_AIC_previous);
+case "copies":return TPStrings.get("TP_AIC_copies",R.string.TP_AIC_copies);
+case "queued":return TPStrings.get("TP_AIC_queued",R.string.TP_AIC_queued);
+case "running":return TPStrings.get("TP_AIC_running",R.string.TP_AIC_running);
+case "paused":return TPStrings.get("TP_AIC_paused",R.string.TP_AIC_paused);
+case "cancelled":return TPStrings.get("TP_AIC_cancelled",R.string.TP_AIC_cancelled);
 default: return key;}}}

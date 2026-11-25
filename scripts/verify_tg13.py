@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TG = ROOT / "upstream" / "Telegram"
+TG = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT / "upstream" / "Telegram"
 JAVA = TG / "TMessagesProj/src/main/java/org/telegram"
 errors = []
 

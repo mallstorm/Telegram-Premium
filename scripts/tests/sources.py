@@ -4,11 +4,13 @@
 Includes the test-only org.json subset from scripts/tests/stubs (the JDK has no org.json).
 """
 from pathlib import Path
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-BASE = ROOT / "upstream/Telegram/TMessagesProj/src/main/java/org/telegram/messenger/telepremium"
+BASE = (Path(sys.argv[1]) if len(sys.argv)>1 else ROOT / "upstream/Telegram") / "TMessagesProj/src/main/java/org/telegram/messenger/telepremium"
 SOURCES = [
     "aicenter/CenterData.java",
+    "aicenter/CenterTranscript.java",
     "aicenter/CenterEnvelope.java",
     "aicenter/CenterReports.java",
     "cloud/vault/TelePremiumVaultCrypto.java",

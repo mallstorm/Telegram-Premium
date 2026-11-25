@@ -870,5 +870,12 @@
   "TP_AIC_downloadEstimate": "Байт загрузки / минут видео",
   "TP_AIC_storageLimit": "Достигнут лимит индекса",
   "TP_AIC_offlineSpeech": "Локальная речь требует Android 13+ и установленную офлайн-модель распознавания. Аудио не отправляется облачному распознавателю.",
-  "TP_AIC_importOcrHelp": "Импортируйте русскую или английскую traineddata Tesseract. OCR работает на устройстве без сервисов Google."
+  "TP_AIC_importOcrHelp": "Импортируйте русскую или английскую traineddata Tesseract. OCR работает на устройстве без сервисов Google.",
+  "TP_AIC_next": "Далее",
+  "TP_AIC_previous": "Назад",
+  "TP_AIC_copies": "Повторы изображения (время публикации)",
+  "TP_AIC_queued": "В очереди",
+  "TP_AIC_running": "Выполняется",
+  "TP_AIC_paused": "Приостановлено",
+  "TP_AIC_cancelled": "Отменено"
 }

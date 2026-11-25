@@ -191,6 +191,9 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/diagnostics"
           ccache -z >/dev/null
 
+      - name: Bundle pinned offline Russian and English OCR models
+        run: python3 scripts/fetch_center_ocr_models.py
+
       - name: Compile resources and Java before native build
         id: java
         working-directory: upstream/Telegram

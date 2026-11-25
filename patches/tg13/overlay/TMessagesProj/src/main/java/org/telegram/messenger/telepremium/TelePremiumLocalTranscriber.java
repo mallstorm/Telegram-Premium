@@ -139,6 +139,25 @@ public final class TelePremiumLocalTranscriber {
         });
     }
 
+    /** One bounded offline segment, used by the persistent AI Center task queue. */
+    public static void transcribeSegment(File source,int account,int message,long start,long end,String language,
+                                         AtomicBoolean cancellation,Callback callback) {
+        if(Build.VERSION.SDK_INT<33||!SpeechRecognizer.isOnDeviceRecognitionAvailable(ApplicationLoader.applicationContext)){
+            postError(callback,org.telegram.messenger.telepremium.aicenter.CenterText.get("offlineSpeech"));return;
+        }
+        Utilities.globalQueue.postRunnable(()->{
+            try{
+                DecodedAudio audio=decodeRange(source,account,message,cancellation,start*1000,end*1000);
+                AndroidUtilities.runOnUIThread(()->{
+                    if(cancellation.get()){audio.file.delete();return;}
+                    RecognitionSession session=new RecognitionSession(audio,callback,true);
+                    session.language=language;session.cancellation=cancellation;
+                    try{session.start();}catch(Exception e){audio.file.delete();postError(callback,e.getClass().getSimpleName());}
+                });
+            }catch(Exception e){postError(callback,e.getClass().getSimpleName());}
+        });
+    }
+
     private static int sampleBytes(int encoding) {
         if (encoding == AudioFormat.ENCODING_PCM_8BIT) return 1;
         if (encoding == AudioFormat.ENCODING_PCM_16BIT) return 2;
@@ -237,6 +256,10 @@ public final class TelePremiumLocalTranscriber {
 
     private static DecodedAudio decodeToPcm(File source, int account, int messageId,
                                              AtomicBoolean cancellation) throws Exception {
+        return decodeRange(source,account,messageId,cancellation,0,Long.MAX_VALUE);
+    }
+
+    private static DecodedAudio decodeRange(File source,int account,int messageId,AtomicBoolean cancellation,long startUs,long endUs)throws Exception {
         MediaExtractor extractor = new MediaExtractor();
         MediaCodec decoder = null;
         FileOutputStream output = null;
@@ -280,6 +303,7 @@ public final class TelePremiumLocalTranscriber {
             }
 
             extractor.selectTrack(trackIndex);
+            if(startUs>0)extractor.seekTo(startUs,MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
             decoder = MediaCodec.createDecoderByType(mime);
             decoder.configure(inputFormat, null, null, 0);
             decoder.start();
@@ -300,7 +324,7 @@ public final class TelePremiumLocalTranscriber {
                         }
                         inputBuffer.clear();
                         int sampleSize = extractor.readSampleData(inputBuffer, 0);
-                        if (sampleSize < 0) {
+                        if (sampleSize < 0 || extractor.getSampleTime() >= endUs) {
                             decoder.queueInputBuffer(
                                     inputIndex,
                                     0,
@@ -325,12 +349,13 @@ public final class TelePremiumLocalTranscriber {
                 int outputIndex = decoder.dequeueOutputBuffer(info, CODEC_TIMEOUT_US);
                 if (outputIndex >= 0) {
                     ByteBuffer outputBuffer = decoder.getOutputBuffer(outputIndex);
-                    if (outputBuffer != null && info.size > 0) {
+                    if (outputBuffer != null && info.size > 0 && info.presentationTimeUs >= startUs && info.presentationTimeUs < endUs) {
                         ByteBuffer copy = outputBuffer.duplicate();
                         copy.position(info.offset);
                         copy.limit(info.offset + info.size);
                         byte[] chunk = new byte[info.size];
                         copy.get(chunk);
+                        if(pcm.length()+chunk.length>MAX_PCM_BYTES)throw new java.io.IOException("PCM budget");
                         output.write(chunk);
                     }
                     decoder.releaseOutputBuffer(outputIndex, false);
@@ -405,6 +430,9 @@ public final class TelePremiumLocalTranscriber {
         private SpeechRecognizer recognizer;
         private ParcelFileDescriptor descriptor;
         private final boolean onDevice;
+        private String language;
+        private AtomicBoolean cancellation;
+        private final android.os.Handler watchdog=new android.os.Handler(android.os.Looper.getMainLooper());
 
         RecognitionSession(DecodedAudio audio, Callback callback) {
             this(audio, callback, false);
@@ -424,7 +452,8 @@ public final class TelePremiumLocalTranscriber {
 
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag());
+            if(language==null||!language.equals("auto"))intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language==null?Locale.getDefault().toLanguageTag():language);
+            else if(Build.VERSION.SDK_INT>=34)intent.putExtra("android.speech.extra.ENABLE_LANGUAGE_DETECTION",true);
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
             intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
             intent.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, descriptor);
@@ -434,6 +463,8 @@ public final class TelePremiumLocalTranscriber {
             intent.putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE);
 
             recognizer.startListening(intent);
+            watchdog.postDelayed(()->{if(!finished.get())error(SpeechRecognizer.ERROR_SPEECH_TIMEOUT);},90000);
+            if(cancellation!=null)watchdog.postDelayed(new Runnable(){public void run(){if(finished.get())return;if(cancellation.get())error(SpeechRecognizer.ERROR_CLIENT);else watchdog.postDelayed(this,250);}},250);
         }
 
         private String best(Bundle bundle) {
@@ -482,6 +513,7 @@ public final class TelePremiumLocalTranscriber {
         }
 
         private void cleanup() {
+            watchdog.removeCallbacksAndMessages(null);
             if (recognizer != null) {
                 try {
                     recognizer.destroy();

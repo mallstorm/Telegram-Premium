@@ -23,6 +23,7 @@ public final class TelePremiumCloudSecuritySession {
     }
 
     public static void lockNow() {
+        org.telegram.messenger.telepremium.aicenter.CenterIndex.cloudLocked();
         unlockedUntilElapsed = 0L;
         // Locking the cloud closes every protected folder as well.
         org.telegram.messenger.telepremium.cloud.vault.VaultFolderSession.shared().lockAll();
