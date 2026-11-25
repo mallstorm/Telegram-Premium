@@ -19,6 +19,7 @@ public final class CenterMediaBundle {
     boolean requested = false;
     for (CenterData.Source source : sources)
       if (source.account == anchor.account
+          && source.owner == anchor.owner
           && source.dialog == anchor.dialog
           && (source.topic == 0 || source.topic == anchor.topic)
           && scope.requests(source)) requested = true;
@@ -35,6 +36,7 @@ public final class CenterMediaBundle {
           && !message.protectedMedia
           && (scope.includePersonal || !message.personal)
           && (!scope.excludeOwn || !message.own)
+          && (scope.authors.isEmpty() || scope.authors.contains(message.author))
           && (!message.source.startsWith("p:") || scope.includePrivate)) same.add(message);
     if (same.stream().noneMatch(message -> message.id == anchor.id)) same.add(anchor);
     same.sort(Comparator.comparingInt(message -> message.id));
@@ -91,6 +93,39 @@ public final class CenterMediaBundle {
               .put("message", message.id)
               .put("text", message.text)
               .put("author", message.authorName));
+    JSONArray points = new JSONArray(frames),
+        speech = new JSONArray(),
+        visualText = new JSONArray();
+    Set<String> included = new HashSet<>();
+    List<CenterTranscript.Segment> segments =
+        CenterTranscript.parse(anchor.transcript, anchor.duration);
+    for (int i = 0; i < points.length(); i++) {
+      JSONObject point = points.optJSONObject(i);
+      if (point == null) continue;
+      long time = point.optLong("timeMs");
+      int page = point.optInt("page");
+      visualText.put(
+          new JSONObject()
+              .put("timeMs", time)
+              .put("page", page)
+              .put(
+                  "text",
+                  page > 0
+                      ? anchor.pageEvidence.optString("" + page)
+                      : anchor.frameEvidence.optString("" + time)));
+      if (page == 0)
+        for (CenterTranscript.Segment segment : segments)
+          if (segment.start <= time + 35000
+              && segment.end >= Math.max(0, time - 35000)
+              && included.add(
+                  segment.start + ":" + segment.end + ":" + segment.speaker + ":" + segment.text))
+            speech.put(
+                new JSONObject()
+                    .put("start", segment.start)
+                    .put("end", segment.end)
+                    .put("speaker", segment.speaker)
+                    .put("text", segment.text));
+    }
     return new JSONObject()
         .put(
             "anchor",
@@ -98,11 +133,11 @@ public final class CenterMediaBundle {
                 .put("account", anchor.account)
                 .put("chat", anchor.dialog)
                 .put("message", anchor.id)
-                .put("caption", anchor.text)
-                .put("ocr", anchor.ocr)
-                .put("transcript", anchor.transcript))
+                .put("caption", anchor.text))
+        .put("selectedVisualText", visualText)
+        .put("speechNearSelectedFrames", speech)
         .put("discussion", context)
-        .put("visualCoordinates", frames)
+        .put("visualCoordinates", points)
         .toString();
   }
 

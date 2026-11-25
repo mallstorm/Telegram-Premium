@@ -132,6 +132,9 @@ public final class CenterAi {
       boolean persist)
       throws Exception {
     requireAllowed();
+    for (CenterData.Message message : messages)
+      if (message.source.startsWith("p:") && !scope.includePrivate)
+        throw new SecurityException(CenterText.get("privateChats"));
     for (CenterData.Message m : messages)
       if (!CenterIndex.accountAllowed(m.account, m.owner))
         throw new SecurityException(CenterText.get("excluded"));

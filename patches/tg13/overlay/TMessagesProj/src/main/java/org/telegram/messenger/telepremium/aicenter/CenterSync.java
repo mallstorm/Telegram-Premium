@@ -580,7 +580,24 @@ public final class CenterSync {
               : sender != null
                   ? ContactsController.formatName(sender.first_name, sender.last_name)
                   : CenterText.get("forwarded");
-      d.content += "\n" + CenterText.get("forwarded") + ": " + d.forwardSource;
+      if (m.fwd_from.channel_post > 0)
+        d.forwardKey =
+            (m.fwd_from.from_id.channel_id != 0 ? "c:" : "g:")
+                + (-peer)
+                + ":"
+                + m.fwd_from.channel_post;
+      if (m.fwd_from.saved_from_peer != null) {
+        long via = DialogObject.getPeerDialogId(m.fwd_from.saved_from_peer);
+        TLRPC.Chat intermediate =
+            via < 0 ? MessagesController.getInstance(s.account).getChat(-via) : null;
+        if (intermediate != null) d.forwardVia = intermediate.title;
+      }
+      d.content +=
+          "\n"
+              + CenterText.get("forwarded")
+              + ": "
+              + d.forwardSource
+              + (d.forwardVia.isEmpty() ? "" : " · " + d.forwardVia);
     }
     d.replyTo = m.reply_to == null ? 0 : m.reply_to.reply_to_msg_id;
     d.replies = m.replies == null ? 0 : m.replies.replies;

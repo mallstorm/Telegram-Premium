@@ -209,7 +209,12 @@ public final class CenterReports {
     for (int i = 0; transcripts != null && i < transcripts.length(); i++) {
       CenterData.Message transcript = CenterData.Message.parse(transcripts.optJSONObject(i));
       CenterData.Message message = merged.get(transcript.qualified());
-      if (message != null) message.transcript = transcript.transcript;
+      if (message != null) {
+        message.transcript = transcript.transcript;
+        message.translation = transcript.translation;
+        message.translationLanguage = transcript.translationLanguage;
+        message.translationComplete = transcript.translationComplete;
+      }
     }
     Report result = validate(saved, new ArrayList<>(merged.values()));
     if (saved.optBoolean("localReport")) {

@@ -101,6 +101,9 @@ public final class CenterData {
         cloudNode = "",
         contentHash = "",
         previewBase = "";
+    public String translation = "", translationLanguage = "";
+    public boolean translationComplete;
+    public String forwardKey = "", forwardVia = "";
     public long sceneHash;
     public JSONObject pageEvidence = new JSONObject(),
         frameEvidence = new JSONObject(),
@@ -144,8 +147,13 @@ public final class CenterData {
           .put("kind", kind)
           .put("ocr", ocr)
           .put("transcript", transcript)
+          .put("translation", translation)
+          .put("translationLanguage", translationLanguage)
+          .put("translationComplete", translationComplete)
           .put("description", description)
           .put("forwardSource", forwardSource)
+          .put("forwardKey", forwardKey)
+          .put("forwardVia", forwardVia)
           .put("mediaAnalysis", mediaAnalysis)
           .put("pageEvidence", pageEvidence)
           .put("frameEvidence", frameEvidence)
@@ -191,8 +199,13 @@ public final class CenterData {
       m.kind = o.optString("kind", "text");
       m.ocr = o.optString("ocr");
       m.transcript = o.optString("transcript");
+      m.translation = o.optString("translation");
+      m.translationLanguage = o.optString("translationLanguage");
+      m.translationComplete = o.optBoolean("translationComplete");
       m.description = o.optString("description");
       m.forwardSource = o.optString("forwardSource");
+      m.forwardKey = o.optString("forwardKey");
+      m.forwardVia = o.optString("forwardVia");
       m.mediaAnalysis =
           o.optJSONObject("mediaAnalysis") == null
               ? new JSONObject()
@@ -312,8 +325,10 @@ public final class CenterData {
                   ? m.account + ":local:" + m.source
                   : m.account + ":" + m.dialog + ":" + m.topic);
       if (s == null) s = allowed.get(m.account + ":" + m.dialog + ":0");
-      if (s == null || !scope.matches(m) || (scope.sinceRead && m.date <= s.readAt / 1000))
-        continue;
+      if (s == null
+          || s.owner != m.owner
+          || !scope.matches(m)
+          || (scope.sinceRead && m.date <= s.readAt / 1000)) continue;
       Message old = unique.get(m.key());
       if (old == null || m.searchable().length() > old.searchable().length())
         unique.put(m.key(), m);

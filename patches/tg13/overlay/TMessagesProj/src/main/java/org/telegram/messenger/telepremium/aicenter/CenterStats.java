@@ -43,6 +43,7 @@ public final class CenterStats {
     public final Map<String, Integer> daily = new TreeMap<>(), topics = new HashMap<>();
   }
 
+  public final Map<String, CenterLinks.Link> urls = new TreeMap<>();
   public final List<Group> groups = new ArrayList<>();
   public final List<Author> authors = new ArrayList<>();
   public final Map<String, List<CenterData.Message>> anomalies = new LinkedHashMap<>();
@@ -165,7 +166,11 @@ public final class CenterStats {
       }
       if (linked) g.links++;
       if (!m.forwardSource.isEmpty())
-        result.forwards.computeIfAbsent(m.forwardSource, k -> new ArrayList<>()).add(m);
+        result
+            .forwards
+            .computeIfAbsent(
+                m.forwardKey.isEmpty() ? m.forwardSource : m.forwardKey, k -> new ArrayList<>())
+            .add(m);
       if (m.author == 0 || m.source.startsWith("p:")) continue;
       Author a = am.get(m.author);
       if (a == null) {
@@ -259,6 +264,7 @@ public final class CenterStats {
           }
       }
     }
+    result.urls.putAll(CenterLinks.collect(current));
     result.groups.addAll(gm.values());
     result.groups.sort(Comparator.comparingInt((Group g) -> g.messages).reversed());
     result.authors.addAll(am.values());

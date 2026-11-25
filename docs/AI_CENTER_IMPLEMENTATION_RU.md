@@ -1,12 +1,16 @@
 # TelePremium AI Center
 
 Репозиторий: `mallstorm/Telegram-Premium`. Рабочая ветка: `feat/folder-locks-dual`.
-Финальный код: `16009664e7527a616ea0074f29dbaf49b5a4fa48`.
+Текущая доработка: версия `726209`. Подробная [сверка каждого требования и границы проверки](AI_CENTER_REQUIREMENTS_RU.md).
+
+Предыдущая контрольная сборка пяти этапов: `16009664e7527a616ea0074f29dbaf49b5a4fa48`; её артефакты ниже сохранены как история.
 
 База: Telegram Android 13.1.1, upstream `3de37c8cfb039452be7398909461da6288babf15`.
 Общий код центра подключён к классической 11.x и современной 13.x оболочкам.
 Пакет Android: `com.telepremium.messenger`, архитектура APK: `arm64-v8a`.
-Итоговая версия: `APP_VERSION_CODE=72600`, Android versionCode `726009`.
+Текущая версия: `APP_VERSION_CODE=72620`, Android versionCode `726209`.
+
+После исходных пяти этапов добавлены автоматический профиль публикаций с подтверждённым сравнением и новыми темами, связь изображения с обсуждением, метки говорящих поддерживаемого провайдера, перевод всей транскрипции с сохранением таймкодов, отчёт из выбранной диаграммы и точные экспортные таблицы, галерея, метаданные ссылок/пересылок и RTF. Исправлено падение Android SQLite в `onConfigure`: возвращающий результат PRAGMA выполняется через `rawQuery`, база не пересоздаётся.
 
 Основание: [полный текст приложенного ТЗ](AI_CENTER_SPEC_RU.txt). SHA-256 исходного PDF:
 `4b5524c96877fb284e74c45f313405e1df08e1e6446adc26b18ffb82959e9483`.
@@ -52,7 +56,8 @@
 
 Автоматически выполнены:
 
-- JDK: `CenterIndexTest`, `CenterEnvelopeTest`, `CenterEvidenceTest`, `CenterTranscriptTest`, `CenterStatsTest`, `CenterExportTest`, `CenterInputFilesTest`, а также пять существующих наборов Cloud/Player/Vault.
+- 18 JDK-наборов, включая `CenterAuthorProfileTest`, `CenterMediaBundleTest`, `CenterDiarizationTest`, `CenterLinksAndChartTest`, `CenterTranslationTest`, `CenterDocumentsTest`, а также `CenterIndexTest`, `CenterEnvelopeTest`, `CenterEvidenceTest`, `CenterTranscriptTest`, `CenterStatsTest`, `CenterExportTest`, `CenterInputFilesTest`, а также пять существующих наборов Cloud/Player/Vault.
+- `test_ai_center_database_runtime.py` воспроизводит сбой `execSQL(PRAGMA)`, выполняет production onConfigure через ленивый Cursor и реальную SQLite, проверяет закрытие курсора и сохранность существующей записи.
 - `test_ai_center_usage.py` выполняет production-код счётчика с JDK: фактический/оценочный расход, восстановление резерва после сбоя, дневной/месячный лимит и конкурирующие запросы.
 - 40 000 записей в тесте индекса, разделение аккаунтов, дедупликация, периоды и фильтры.
 - Поддельные цитаты, совпадающие номера сообщений разных чатов/аккаунтов, страницы/таймкоды, длинные сообщения без отсечения.
@@ -63,7 +68,7 @@
 - GitHub Source Check дополнительно выполняет существующие runtime-регрессии Vault/Media/Cloud/Xray и проверку native routing.
 
 CI Android проверяет типы/API, сборку release arm64 APK, R8, пакет, versionCode, архитектуру и подпись.
-Все пять контрольных APK собраны успешно. Данные финального артефакта дополнительно сверены после скачивания: [машиночитаемая запись](AI_CENTER_APK_726009.json).
+Все пять исходных контрольных APK собраны успешно. Данные артефакта 726009 дополнительно сверены после скачивания: [машиночитаемая запись](AI_CENTER_APK_726009.json).
 
 | Этап | Commit / checkpoint | APK CI |
 |---|---|---|
@@ -73,7 +78,7 @@ CI Android проверяет типы/API, сборку release arm64 APK, R8, 
 | 4. Активность | `c14fdf6` | [45544781366 — success](https://github.com/mallstorm/Telegram-Premium/actions/runs/45544781366), attempt 2 |
 | 5. Итог | `1600966` | [45550666931 — success](https://github.com/mallstorm/Telegram-Premium/actions/runs/45550666931) |
 
-Итоговый [APK и SHA-256](https://github.com/mallstorm/Telegram-Premium/actions/runs/45550666931/artifacts/14994755336): 65 345 301 байт, versionCode `726009`, только `arm64-v8a`.
+Исторический [APK 726009 и SHA-256](https://github.com/mallstorm/Telegram-Premium/actions/runs/45550666931/artifacts/14994755336): 65 345 301 байт, versionCode `726009`, только `arm64-v8a`.
 
 SHA-256 APK: `eb2b665853eada8882e38b835f3d49ce4f82a775bae4cd1fb748267bc706339b`.
 

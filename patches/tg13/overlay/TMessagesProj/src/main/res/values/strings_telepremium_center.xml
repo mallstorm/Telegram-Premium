@@ -257,4 +257,19 @@
   <string name="TP_AIC_detailedText" formatted="false">Detailed text</string>
   <string name="TP_AIC_shortIllustrated" formatted="false">Short illustrated report</string>
   <string name="TP_AIC_detailedIllustrated" formatted="false">Detailed illustrated report</string>
+  <string name="TP_AIC_chatImage" formatted="false">Chat screenshots</string>
+  <string name="TP_AIC_memeImage" formatted="false">Memes</string>
+  <string name="TP_AIC_productImage" formatted="false">Products</string>
+  <string name="TP_AIC_peopleImage" formatted="false">People without identification</string>
+  <string name="TP_AIC_firstInScope" formatted="false">First in the selected scope</string>
+  <string name="TP_AIC_repostChronology" formatted="false">Indexed copies of the same original; order does not prove direct forwarding between groups.</string>
+  <string name="TP_AIC_chartReport" formatted="false">Build a report from this chart</string>
+  <string name="TP_AIC_onlyAuthor" formatted="false">Continue with an author from this report</string>
+  <string name="TP_AIC_translation" formatted="false">Translation</string>
+  <string name="TP_AIC_exportTranslation" formatted="false">Export translated transcript</string>
+  <string name="TP_AIC_missingTimes" formatted="false">This text has no valid timestamps; export TXT or restore timestamps before exporting subtitles.</string>
+  <string name="TP_AIC_processingEstimate" formatted="false">Approximate processing time, minutes (device/provider dependent)</string>
+  <string name="TP_AIC_mediaCoverageHint" formatted="false">This image task uses selected visual frames and indexed discussion excerpts; it does not claim full chat-history coverage.</string>
+  <string name="TP_AIC_day" formatted="false">Day of week (Monday = 1)</string>
+  <string name="TP_AIC_hour" formatted="false">Hour</string>
 </resources>

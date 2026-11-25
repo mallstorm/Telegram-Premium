@@ -9,7 +9,8 @@ public class JSONArray {
 
     public JSONArray() {}
     public JSONArray(java.util.Collection<?> c){values.addAll(c);}
-    public int optInt(int i){Object x=opt(i);return x instanceof Number?((Number)x).intValue():0;}
+    public int optInt(int i){return optInt(i,0);}
+    public int optInt(int i,int fallback){Object value=opt(i);try{return value instanceof Number?((Number)value).intValue():value==null?fallback:Integer.parseInt(value.toString());}catch(NumberFormatException invalid){return fallback;}}
     public long optLong(int i){Object x=opt(i);return x instanceof Number?((Number)x).longValue():0;}
     public String optString(int i){Object x=opt(i);return x==null?"":String.valueOf(x);}
     public JSONArray(String raw) throws JSONException {JSONArray parsed=new JSONObject("{\"array\":"+raw+"}").getJSONArray("array");values.addAll(parsed.values);}
@@ -23,6 +24,8 @@ public class JSONArray {
     }
     public int length() { return values.size(); }
     public Object opt(int index) { return index >= 0 && index < values.size() ? values.get(index) : null; }
+
+    public JSONArray optJSONArray(int index) { Object value=opt(index); return value instanceof JSONArray ? (JSONArray)value : null; }
 
     public JSONObject optJSONObject(int index) {
         Object v = opt(index);

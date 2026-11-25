@@ -14,7 +14,9 @@ public final class CenterAssets {
     if (data.isEmpty())
       for (CenterReports.Claim claim : report.claims)
         for (CenterReports.Evidence e : claim.evidence) data.add(e.message);
-    if (data.isEmpty()) throw new IllegalStateException(CenterText.get("empty"));
+    if (data.isEmpty()
+        && (!report.localReport || report.statistics == null || report.storageAccount < 0))
+      throw new IllegalStateException(CenterText.get("empty"));
     if (report.statistics == null) {
       CenterData.Scope scope = new CenterData.Scope();
       scope.from = report.from;
@@ -36,8 +38,8 @@ public final class CenterAssets {
           CenterStats.compute(data, new ArrayList<>(sources.values()), scope, TimeZone.getDefault())
               .json();
     }
-    int account = data.get(0).account;
-    long owner = data.get(0).owner;
+    int account = data.isEmpty() ? report.storageAccount : data.get(0).account;
+    long owner = data.isEmpty() ? report.storageOwner : data.get(0).owner;
     report.storageAccount = account;
     report.storageOwner = owner;
     report.transcriptions.clear();

@@ -90,7 +90,8 @@ public final class CenterExport {
     }
 
     private void remember(String original, String alias) {
-      if (anonymous && original != null && !original.isEmpty()) replacements.putIfAbsent(original, alias);
+      if (anonymous && original != null && !original.isEmpty())
+        replacements.putIfAbsent(original, alias);
     }
 
     public String privatize(String text) {
@@ -344,7 +345,7 @@ public final class CenterExport {
       }
       if (block.equals("charts") && stats != null) {
         if (o.images && images != null)
-          for (int mode = 0; mode < 5; mode++) {
+          for (int mode : chartModes(stats)) {
             byte[] chart = images.chart(mode);
             if (chart != null) {
               out.write(
@@ -379,6 +380,15 @@ public final class CenterExport {
                   + "</td></tr>");
         }
         out.write("</table>");
+        for (int mode : chartModes(stats)) {
+          out.write("<table>");
+          for (List<Object> row : chartRows(stats, mode, o, l)) {
+            out.write("<tr>");
+            for (Object cell : row) out.write("<td>" + escape(String.valueOf(cell)) + "</td>");
+            out.write("</tr>");
+          }
+          out.write("</table>");
+        }
       }
       if (block.equals("authors") && stats != null) {
         out.write(
@@ -496,7 +506,7 @@ public final class CenterExport {
       if (block.equals("charts") && stats != null) {
         out.write("## " + markdown(labels.get("activity")) + "\n\n");
         if (options.images && images != null)
-          for (int mode = 0; mode < 5; mode++) {
+          for (int mode : chartModes(stats)) {
             byte[] image = images.chart(mode);
             if (image != null) {
               out.write(
@@ -523,6 +533,21 @@ public final class CenterExport {
                   + "|"
                   + g.optInt("messages")
                   + "|\n");
+        }
+        for (int mode : chartModes(stats)) {
+          List<List<Object>> rows = chartRows(stats, mode, options, labels);
+          for (int row = 0; row < rows.size(); row++) {
+            out.write("|");
+            for (Object cell : rows.get(row))
+              out.write(markdown(String.valueOf(cell)).replace("|", "\\|") + "|");
+            out.write("\n");
+            if (row == 0) {
+              out.write("|");
+              for (Object cell : rows.get(row)) out.write("---|");
+              out.write("\n");
+            }
+          }
+          out.write("\n");
         }
       }
       if (block.equals("authors") && stats != null) {
@@ -552,6 +577,79 @@ public final class CenterExport {
         for (String line : r.unclear) out.write("- " + markdown(line) + "\n");
       }
     }
+  }
+
+  public static int[] chartModes(JSONObject stats) {
+    JSONArray modes = stats == null ? null : stats.optJSONArray("chartModes");
+    if (modes == null) return new int[] {0, 1, 2, 3, 4};
+    List<Integer> result = new ArrayList<>();
+    for (int n = 0; n < modes.length(); n++) {
+      int mode = modes.optInt(n, -1);
+      if (mode >= 0 && mode < 5 && !result.contains(mode)) result.add(mode);
+    }
+    int[] values = new int[result.size()];
+    for (int n = 0; n < values.length; n++) values[n] = result.get(n);
+    return values;
+  }
+
+  /** Exact numbers underlying every selected chart, also used when images are omitted. */
+  public static List<List<Object>> chartRows(
+      JSONObject stats, int mode, Options options, Labels l) {
+    List<List<Object>> rows = new ArrayList<>();
+    Names names = new Names(options, l);
+    names.seedStats(stats);
+    String[] keys =
+        mode == 1
+            ? new String[] {"groups", "date", "messages"}
+            : mode == 2
+                ? new String[] {"groups", "day", "hour", "messages"}
+                : mode == 3
+                    ? new String[] {"groups", "type", "messages"}
+                    : mode == 4
+                        ? new String[] {"groups", "concentration", "messages"}
+                        : new String[] {
+                          "groups", "messages", "previousPeriod", "authors", "media", "links"
+                        };
+    List<Object> header = new ArrayList<>();
+    for (String key : keys) header.add(l.get(key));
+    rows.add(header);
+    JSONArray groups = stats == null ? null : stats.optJSONArray("groups");
+    for (int i = 0; groups != null && i < groups.length(); i++) {
+      JSONObject g = groups.optJSONObject(i);
+      if (g == null) continue;
+      String group = names.privatize(g.optString("title"));
+      if (mode == 1 || mode == 3) {
+        JSONObject values = g.optJSONObject(mode == 1 ? "daily" : "types");
+        List<String> sorted = new ArrayList<>();
+        if (values != null) {
+          Iterator<String> iterator = values.keys();
+          while (iterator.hasNext()) sorted.add(iterator.next());
+        }
+        Collections.sort(sorted);
+        for (String key : sorted)
+          rows.add(Arrays.asList(group, mode == 1 ? key : l.get(key), values.optInt(key)));
+      } else if (mode == 2) {
+        JSONArray heat = g.optJSONArray("heat");
+        for (int day = 0; heat != null && day < heat.length(); day++) {
+          JSONArray hours = heat.optJSONArray(day);
+          for (int hour = 0; hours != null && hour < hours.length(); hour++)
+            rows.add(Arrays.asList(group, day + 1, hour, hours.optInt(hour)));
+        }
+      } else if (mode == 4)
+        rows.add(Arrays.asList(group, g.optInt("concentration"), g.optInt("messages")));
+      else
+        rows.add(
+            Arrays.asList(
+                group,
+                g.optInt("messages"),
+                g.optBoolean("previousComplete")
+                    ? (Object) g.optInt("previous")
+                    : l.get("baselineMissing"),
+                g.optInt("authors"),
+                g.optInt("media"),
+                g.optInt("links")));
+    }
+    return rows;
   }
 
   public static String csv(JSONObject stats, Options o, Labels l) {
@@ -590,6 +688,14 @@ public final class CenterExport {
               a.optInt("media"),
               a.optInt("links"),
               a.optInt("replies")));
+    }
+    for (int mode : chartModes(stats)) {
+      out.append('\n')
+          .append(
+              csvRow(
+                  l.get(
+                      new String[] {"rank", "days", "heatmap", "content", "concentration"}[mode])));
+      for (List<Object> row : chartRows(stats, mode, o, l)) out.append(csvRow(row.toArray()));
     }
     return out.toString();
   }

@@ -964,5 +964,20 @@
   "TP_AIC_shortText": "Короткий текст",
   "TP_AIC_detailedText": "Подробный текст",
   "TP_AIC_shortIllustrated": "Краткий отчёт с картинками",
-  "TP_AIC_detailedIllustrated": "Подробный отчёт с картинками"
+  "TP_AIC_detailedIllustrated": "Подробный отчёт с картинками",
+  "TP_AIC_chatImage": "Переписка",
+  "TP_AIC_memeImage": "Мемы",
+  "TP_AIC_productImage": "Товары",
+  "TP_AIC_peopleImage": "Люди без идентификации",
+  "TP_AIC_firstInScope": "Первое в выбранном охвате",
+  "TP_AIC_repostChronology": "Копии одного оригинала в индексе; порядок сам по себе не доказывает прямую пересылку между группами.",
+  "TP_AIC_chartReport": "Собрать отчёт из этой диаграммы",
+  "TP_AIC_onlyAuthor": "Продолжить по автору из отчёта",
+  "TP_AIC_translation": "Перевод",
+  "TP_AIC_exportTranslation": "Экспортировать перевод транскрипции",
+  "TP_AIC_missingTimes": "В тексте нет корректных таймкодов: экспортируйте TXT или восстановите таймкоды перед экспортом субтитров.",
+  "TP_AIC_processingEstimate": "Оценка обработки, минут (зависит от устройства и провайдера)",
+  "TP_AIC_mediaCoverageHint": "В этом разборе использованы выбранные кадры и выдержки из обсуждения; полный охват истории чата не заявляется.",
+  "TP_AIC_day": "День недели (понедельник = 1)",
+  "TP_AIC_hour": "Час"
 }

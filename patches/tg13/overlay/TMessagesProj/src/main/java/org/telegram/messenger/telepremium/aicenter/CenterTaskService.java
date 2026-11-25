@@ -41,9 +41,12 @@ public final class CenterTaskService extends Service {
         () -> {
           try {
             for (CenterData.Message m : copy) {
-              if (m.dialog != 0 && m.transport.isEmpty())
-                CenterSync.resolve(m, new AtomicBoolean());
-              CenterMedia.check(m);
+              if (operation.equals("translate")) CenterMedia.checkIndexed(m);
+              else {
+                if (m.dialog != 0 && m.transport.isEmpty())
+                  CenterSync.resolve(m, new AtomicBoolean());
+                CenterMedia.check(m);
+              }
               JSONArray context = discussions.get(m.qualified());
               if (context == null) context = new JSONArray();
               String signature =
@@ -238,7 +241,13 @@ public final class CenterTaskService extends Service {
                         && UserConfig.getInstance(a).isClientActivated()
                         && UserConfig.getInstance(a).getClientUserId() == owner) {
                       int tries = job.optInt("attempts") + 1;
-                      job.put("state", cancel.get() ? "paused" : "error")
+                      job.put(
+                              "state",
+                              cancel.get()
+                                  ? "paused"
+                                  : e instanceof UnsupportedOperationException
+                                      ? "unsupported"
+                                      : "error")
                           .put(
                               "error",
                               e.getMessage() == null
@@ -323,10 +332,23 @@ public final class CenterTaskService extends Service {
     JSONObject stored =
         CenterStore.get().get(initial.account, initial.owner, "message", initial.qualified());
     CenterData.Message m = stored == null ? initial : CenterData.Message.parse(stored);
-    CenterMedia.check(m);
+    if (job.optString("op").equals("translate")) CenterMedia.checkIndexed(m);
+    else CenterMedia.check(m);
     File file = null;
     try {
       String op = job.optString("op");
+      if (op.equals("translate")) {
+        CenterMedia.translate(
+            m,
+            job.optString("query"),
+            cancel,
+            (cursor, percent) -> checkpoint(job, cursor, percent));
+        return;
+      }
+      if ((op.equals("document") || op.equals("describe"))
+          && (m.kind.equals("document") || m.kind.equals("pdf"))
+          && !CenterDocuments.supported(m.mime))
+        throw new UnsupportedOperationException(CenterText.get("unsupported"));
       file = CenterMedia.file(m, cancel);
       m.contentHash = CenterMedia.contentHash(file, cancel);
       String cacheQuery =
@@ -343,13 +365,8 @@ public final class CenterTaskService extends Service {
         return;
       }
       if (op.equals("describe")) {
-        if (m.frameTimes.isEmpty() && m.pages == 0) {
-          if (m.kind.equals("photo") || m.kind.equals("image")) CenterMedia.image(m, file, false);
-          else if (m.kind.equals("video") || m.kind.equals("round"))
-            CenterMedia.frames(m, file, 0, cancel, (cursor, p) -> checkpoint(job, cursor, p));
-          else if (m.kind.equals("pdf"))
-            CenterMedia.document(m, file, 0, cancel, (cursor, p) -> checkpoint(job, cursor, p));
-        }
+        CenterMedia.ensureVisuals(
+            m, file, cancel, (cursor, percent) -> checkpoint(job, cursor, percent / 2));
         CenterMedia.describe(
             m, job.optString("query"), CenterMediaBundle.restore(job.optJSONArray("discussion")));
         CenterMedia.cache(op, m, cacheQuery);
@@ -571,7 +588,11 @@ public final class CenterTaskService extends Service {
       result.dataset.clear();
       return result;
     } catch (Exception e) {
-      job.put("state", cancel.get() ? "paused" : "error")
+      job.put(
+              "state",
+              cancel.get()
+                  ? "paused"
+                  : e instanceof UnsupportedOperationException ? "unsupported" : "error")
           .put("retryAt", System.currentTimeMillis() + 60000)
           .put("error", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
       if (!ephemeral

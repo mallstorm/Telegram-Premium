@@ -128,15 +128,21 @@ public final class CenterPdf implements AutoCloseable {
             }
           }
         if (block.equals("charts") && stats != null) {
-          for (int mode = 0; mode < 5; mode++) {
+          for (int mode : CenterExport.chartModes(stats)) {
             pdf.text(
                 labels.get(
                     new String[] {"rank", "days", "heatmap", "content", "concentration"}[mode]),
                 15,
                 true);
-            byte[] chart = CenterRaster.chart(stats, mode, names, labels);
+            byte[] chart = options.images ? CenterRaster.chart(stats, mode, names, labels) : null;
             pdf.image(chart, 330);
             if (chart != null) Arrays.fill(chart, (byte) 0);
+            for (java.util.List<Object> row :
+                CenterExport.chartRows(stats, mode, options, labels)) {
+              java.util.List<String> cells = new java.util.ArrayList<>();
+              for (Object cell : row) cells.add(String.valueOf(cell));
+              pdf.text(String.join(" · ", cells), 9, false);
+            }
           }
           JSONArray groups = stats.optJSONArray("groups");
           for (int i = 0; groups != null && i < groups.length(); i++) {

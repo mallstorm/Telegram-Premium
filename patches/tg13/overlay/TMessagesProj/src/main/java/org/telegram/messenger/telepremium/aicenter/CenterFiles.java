@@ -21,12 +21,22 @@ public final class CenterFiles {
   }
 
   public static File transcript(CenterData.Message m, String format) throws Exception {
+    return transcript(m, format, false);
+  }
+
+  public static File transcript(CenterData.Message original, String format, boolean translation)
+      throws Exception {
+    CenterData.Message m = CenterData.Message.parse(original.json());
+    if (translation) m.transcript = original.translation;
+    if (!format.equals("txt") && CenterTranscript.parse(m.transcript).isEmpty())
+      throw new IOException(CenterText.get("missingTimes"));
+
     File file = file(format);
     String text =
         format.equals("txt")
             ? m.transcript
             : CenterTranscript.subtitles(
-                CenterTranscript.parse(m.transcript,m.duration), format.equals("vtt"));
+                CenterTranscript.parse(m.transcript, m.duration), format.equals("vtt"));
     try (Writer w = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
       w.write(text);
     }

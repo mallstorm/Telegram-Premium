@@ -31,8 +31,13 @@ public final class CenterTopics {
         (message.ocr + " " + message.text + " " + message.description).toLowerCase(Locale.ROOT);
     if (text.matches("(?s).*(чек|итого|касса|оплат|receipt|invoice|total|payment).*"))
       return "receiptImage";
-    if (text.matches(
-        "(?s).*(график|свеч|котиров|переписк|скриншот|chart|trading|screenshot|chat message).*"))
+    if (text.matches("(?s).*(переписк|сообщени[яе] в чат|chat message|conversation|messenger).*"))
+      return "chatImage";
+    if (text.matches("(?s).*(мем|шутк|meme|joke).*")) return "memeImage";
+    if (text.matches("(?s).*(товар|каталог|артикул|product|catalog|item for sale).*"))
+      return "productImage";
+    if (text.matches("(?s).*(люди|человек|прохож|people|person|portrait).*")) return "peopleImage";
+    if (text.matches("(?s).*(график|свеч|котиров|скриншот|chart|trading|screenshot).*"))
       return "chartImage";
     return "photoImage";
   }

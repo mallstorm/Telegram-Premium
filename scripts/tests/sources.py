@@ -10,13 +10,17 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE = (Path(sys.argv[1]) if len(sys.argv)>1 else ROOT / "upstream/Telegram") / "TMessagesProj/src/main/java/org/telegram/messenger/telepremium"
 SOURCES = [
     "aicenter/CenterData.java",
+    "aicenter/CenterDocuments.java",
     "aicenter/CenterInputFiles.java",
     "aicenter/CenterExport.java",
     "aicenter/CenterStats.java",
+    "aicenter/CenterLinks.java",
+    "aicenter/CenterChartReport.java",
     "aicenter/CenterAuthorProfile.java",
     "aicenter/CenterMediaBundle.java",
     "aicenter/CenterTopics.java",
     "aicenter/CenterTranscript.java",
+    "aicenter/CenterTranslation.java",
     "aicenter/CenterEnvelope.java",
     "aicenter/CenterReports.java",
     "cloud/vault/TelePremiumVaultCrypto.java",

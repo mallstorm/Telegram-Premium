@@ -576,6 +576,45 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         });
   }
 
+  private String scopeSummary() {
+    Set<Integer> accounts = new HashSet<>(index.scope.whole);
+    accounts.removeAll(index.scope.excluded);
+    List<String> titles = new ArrayList<>();
+    for (CenterData.Source source : index.sources)
+      if (index.scope.requests(source)) {
+        accounts.add(source.account);
+        if (titles.size() < 3) titles.add(source.title);
+      }
+    java.text.DateFormat date = java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT);
+    return t("account")
+        + ": "
+        + accounts.size()
+        + " · "
+        + t("sources")
+        + ": "
+        + index.sources.stream().filter(index.scope::requests).count()
+        + " · "
+        + t("messages")
+        + ": "
+        + (drilldown == null
+            ? index.selected().size()
+            : CenterData.select(drilldown, index.sources, index.scope).size())
+        + "\n"
+        + date.format(new Date(index.scope.from * 1000))
+        + " — "
+        + date.format(new Date(index.scope.to * 1000))
+        + " · "
+        + t("authors")
+        + ": "
+        + (index.scope.authors.isEmpty() ? t("all") : index.scope.authors.size())
+        + " · "
+        + t("type")
+        + ": "
+        + (index.scope.kinds.isEmpty() ? t("all") : index.scope.kinds.size())
+        + "\n"
+        + String.join(" · ", titles);
+  }
+
   private void show(int tab) {
     if (!unlocked) return;
     int oldScreen = screen;
@@ -583,14 +622,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     if (tab == 7 && oldScreen != 7) archiveDetail = false;
     uiVersion++;
     body.removeAllViews();
-    scopeLine.setText(
-        t("sources")
-            + " · "
-            + index.sources.stream().filter(index.scope::allows).count()
-            + " / "
-            + index.scope.whole.size()
-            + " · "
-            + index.selected().size());
+    scopeLine.setText(scopeSummary());
     heading(SCREENS[tab]);
     switch (tab) {
       case 0:
@@ -973,7 +1005,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             if (on) index.scope.sources.add(s.key());
             else index.scope.sources.remove(s.key());
             index.saveScope();
-            scopeLine.setText(t("count") + ": " + index.selected().size());
+            scopeLine.setText(scopeSummary());
           });
       body.addView(v);
     }
@@ -1078,6 +1110,34 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     }
                   }));
       button("archive", () -> persistReport(report, "report"));
+      button(
+          "onlyAuthor",
+          () -> {
+            Map<Long, String> names = new LinkedHashMap<>();
+            for (CenterReports.Claim claim : report.claims)
+              for (CenterReports.Evidence proof : claim.evidence)
+                if (proof.message.author != 0)
+                  names.put(proof.message.author, proof.message.authorName);
+            List<Long> ids = new ArrayList<>(names.keySet());
+            choices(
+                "authors",
+                names.values().toArray(new String[0]),
+                which -> {
+                  index.scope.authors.clear();
+                  index.scope.authors.add(ids.get(which));
+                  index.saveScope();
+                  drilldown = null;
+                  authorReport = true;
+                  show(6);
+                });
+          });
+      button(
+          "compare",
+          () -> {
+            reportKind = 3;
+            drilldown = null;
+            runReport(report.question);
+          });
     }
     if (chat) button("reports", this::history);
     button(
@@ -1162,7 +1222,9 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             return;
           }
           List<CenterData.Message> selected =
-              drilldown == null ? index.selected() : new ArrayList<>(drilldown);
+              drilldown == null
+                  ? index.selected()
+                  : CenterData.select(drilldown, index.sources, index.scope);
           if (selected.isEmpty()) {
             toast(t("empty"));
             return;
@@ -1311,7 +1373,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       } else if (block.equals("charts") && r.statistics != null) {
         heading("activity");
         int version = uiVersion;
-        for (int mode = 0; mode < 5; mode++) {
+        for (int mode : CenterExport.chartModes(r.statistics)) {
           final int kind = mode;
           TextView title =
               row(
@@ -1779,10 +1841,29 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           () ->
               choices(
                   "mediaType",
-                  new String[] {t("all"), t("chartImage"), t("receiptImage"), t("photoImage")},
+                  new String[] {
+                    t("all"),
+                    t("chartImage"),
+                    t("receiptImage"),
+                    t("chatImage"),
+                    t("memeImage"),
+                    t("productImage"),
+                    t("peopleImage"),
+                    t("photoImage")
+                  },
                   i -> {
                     mediaCategory =
-                        new String[] {"", "chartImage", "receiptImage", "photoImage"}[i];
+                        new String[] {
+                              "",
+                              "chartImage",
+                              "receiptImage",
+                              "chatImage",
+                              "memeImage",
+                              "productImage",
+                              "peopleImage",
+                              "photoImage"
+                            }
+                            [i];
                     mediaPage = 0;
                     show(screen);
                   }));
@@ -1903,11 +1984,25 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     button("refresh", this::reload);
     info(t("media") + ": " + list.size() + " · " + pickedMedia.size());
     int version = uiVersion;
+    LinearLayout galleryRow = null;
+    int gridCells = 0;
     for (int i = mediaPage * 40; i < Math.min(list.size(), (mediaPage + 1) * 40); i++) {
       CenterData.Message m = list.get(i);
       LinearLayout card = new LinearLayout(getParentActivity());
       card.setOrientation(LinearLayout.VERTICAL);
-      body.addView(card);
+      if (!speech && Arrays.asList("photo", "image", "video", "round").contains(m.kind)) {
+        if (galleryRow == null || gridCells == 2) {
+          galleryRow = new LinearLayout(getParentActivity());
+          body.addView(galleryRow);
+          gridCells = 0;
+        }
+        galleryRow.addView(card, new LinearLayout.LayoutParams(0, -2, 1));
+        gridCells++;
+      } else {
+        galleryRow = null;
+        gridCells = 0;
+        body.addView(card);
+      }
       if (!m.frameTimes.isEmpty() || m.pages > 0) {
         android.widget.ImageView preview = new android.widget.ImageView(getParentActivity());
         preview.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
@@ -1954,22 +2049,37 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           v.setOnClickListener(w -> playAt(m, segment.start));
           card.addView(v);
         }
-      if (!m.hash.isEmpty()) {
-        List<String> copies = new ArrayList<>();
+      if (!m.hash.isEmpty())
         try {
           long hash = Long.parseUnsignedLong(m.hash, 16);
-          for (CenterData.Message q : list)
-            if (q != m
-                && !q.hash.isEmpty()
-                && Long.bitCount(hash ^ Long.parseUnsignedLong(q.hash, 16)) <= 6)
-              copies.add(q.sourceTitle + " · " + q.authorName + " · " + new Date(q.date * 1000L));
-        } catch (Exception ignored) {
+          List<CenterData.Message> copies = new ArrayList<>();
+          for (CenterData.Message message : index.selected())
+            if (!message.hash.isEmpty()
+                && Long.bitCount(hash ^ Long.parseUnsignedLong(message.hash, 16)) <= 6)
+              copies.add(message);
+          copies.sort(
+              Comparator.comparingInt((CenterData.Message message) -> message.date)
+                  .thenComparingInt(message -> message.id));
+          if (copies.size() > 1) {
+            CenterData.Message first = copies.get(0);
+            TextView earliest =
+                label(
+                    t("firstInScope")
+                        + " · "
+                        + first.authorName
+                        + " · "
+                        + first.sourceTitle
+                        + " · "
+                        + new Date(first.date * 1000L),
+                    13);
+            earliest.setOnClickListener(v -> openEvidence(first));
+            card.addView(earliest);
+            TextView duplicates = label(t("copies") + " (" + copies.size() + ")", 13);
+            duplicates.setOnClickListener(v -> messageDetails(copies));
+            card.addView(duplicates);
+          }
+        } catch (NumberFormatException invalid) {
         }
-        if (!copies.isEmpty()) {
-          TextView v = label(t("copies") + "\n" + android.text.TextUtils.join("\n", copies), 13);
-          card.addView(v);
-        }
-      }
     }
     if (mediaPage > 0)
       button(
@@ -2051,6 +2161,10 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                         + totalBytes
                         + " / "
                         + (totalDuration / 60000)
+                        + "\n"
+                        + t("processingEstimate")
+                        + ": "
+                        + Math.max(1, totalDuration / 60000 + selected.size())
                         + (op.equals("describe") ? "\n" + t("discussionEstimate") : ""))
                 .setPositiveButton(
                     t("continue"),
@@ -2204,6 +2318,34 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             14);
     metadata.setTextIsSelectable(true);
     content.addView(metadata);
+    if (!m.translation.isEmpty()) {
+      content.addView(
+          label(
+              t("translation")
+                  + " · "
+                  + m.translationLanguage
+                  + (m.translationComplete ? "" : " · " + t("partial"))
+                  + "\n"
+                  + m.translation,
+              14));
+      TextView translatedExport = label(t("exportTranslation"), 14);
+      translatedExport.setOnClickListener(
+          view ->
+              choices(
+                  "formats",
+                  new String[] {"TXT", "SRT", "VTT"},
+                  format -> {
+                    String suffix = new String[] {"txt", "srt", "vtt"}[format];
+                    TPAiClient.async(
+                        () -> CenterFiles.transcript(m, suffix, true),
+                        (file, failure) -> {
+                          if (failure != null) error(failure);
+                          else deliver(file, suffix, false, false);
+                        });
+                  }));
+      content.addView(translatedExport);
+    }
+
     List<CenterData.Message> discussion =
         CenterMediaBundle.discussion(index.readable(), index.sources, index.scope, m);
     if (!discussion.isEmpty()) {
@@ -2366,27 +2508,9 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     toast(t("consent"));
                     return;
                   }
-                  TPAiClient.async(
-                      () ->
-                          CenterAi.complete(
-                              CenterAi.model("reportModel"),
-                              "Translate the supplied transcript to the requested language."
-                                  + " Preserve every timestamp and distinguish inaudible speech.",
-                              language + "\n" + m.transcript),
-                      (text, e) -> {
-                        if (e != null) error(e);
-                        else {
-                          m.description = text;
-                          CenterStore.IO.execute(
-                              () -> {
-                                try {
-                                  CenterMedia.save(m);
-                                } catch (Exception failure) {
-                                  FileLog.e(failure);
-                                }
-                              });
-                        }
-                      });
+                  CenterTaskService.enqueue(Collections.singletonList(m), "translate", language);
+                  toast(t("queue"));
+                  dialog.dismiss();
                 }));
     content.addView(translate);
     image.swipe =
@@ -2770,6 +2894,26 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       ActivityChart chart = new ActivityChart(getParentActivity(), stats, chosen, activityMode);
       body.addView(chart, new LinearLayout.LayoutParams(-1, dp(activityMode == 2 ? 280 : 320)));
       button("export", () -> shareChart(chart));
+      button(
+          "chartReport",
+          () -> {
+            int mode = activityMode, version = uiVersion;
+            List<CenterData.Source> selectedSources = new ArrayList<>(index.sources);
+            TPAiClient.async(
+                () ->
+                    CenterChartReport.build(
+                        stats, chosen, mode, selectedSources, TelePremiumAnalyzerActivity::t),
+                (snapshot, failure) -> {
+                  if (!unlocked || !foreground || version != uiVersion) return;
+                  if (failure != null) error(failure);
+                  else {
+                    report = snapshot;
+                    screen = 7;
+                    archiveDetail = true;
+                    show(7);
+                  }
+                });
+          });
     }
     heading("table");
     for (CenterStats.Group g : ranked) {
@@ -2851,11 +2995,36 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       row(
           domain.getKey() + " · " + domain.getValue().size(),
           () -> messageDetails(domain.getValue()));
-    heading("forwarded");
-    for (Map.Entry<String, List<CenterData.Message>> forward : stats.forwards.entrySet())
+    for (CenterLinks.Link link : stats.urls.values()) {
       row(
-          forward.getKey() + " · " + forward.getValue().size(),
-          () -> messageDetails(forward.getValue()));
+          (link.title.isEmpty() ? link.url : link.title)
+              + " · "
+              + link.domain
+              + " · "
+              + link.evidence.size()
+              + "\n"
+              + t("firstInScope")
+              + ": "
+              + link.first.authorName
+              + " · "
+              + link.first.sourceTitle
+              + " · "
+              + new Date(link.first.date * 1000L),
+          () -> messageDetails(link.evidence));
+    }
+    heading("forwarded");
+    for (List<CenterData.Message> copies : stats.forwards.values()) {
+      copies.sort(Comparator.comparingInt(message -> message.date));
+      CenterData.Message first = copies.get(0);
+      row(
+          first.forwardSource
+              + (first.forwardVia.isEmpty() ? "" : " · " + first.forwardVia)
+              + " · "
+              + copies.size()
+              + "\n"
+              + t("repostChronology"),
+          () -> messageDetails(copies));
+    }
     heading("discussed");
     List<CenterData.Message> discussed = new ArrayList<>(stats.messages);
     discussed.sort(
