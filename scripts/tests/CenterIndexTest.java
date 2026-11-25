@@ -23,6 +23,7 @@ public class CenterIndexTest {
   a.type="private";check(CenterData.select(ms,Arrays.asList(a),scope).isEmpty());scope.includePrivate=true;check(CenterData.select(ms,Arrays.asList(a),scope).size()==1);
   ArrayList<CenterData.Message> large=new ArrayList<>();for(int i=0;i<40000;i++)large.add(m(0,"c:100",i+1));
   check(CenterData.select(large,Arrays.asList(a),scope).size()==40000);
-  System.out.println("CenterIndexTest OK: account isolation, chat identity, deduplication, filters, dates and persistence");
+  CenterData.Scope reviewScope=new CenterData.Scope();reviewScope.whole.add(0);CenterData.Source reviewed=new CenterData.Source();reviewed.account=0;reviewed.dialog=-101;reviewed.readAt=20000;CenterData.Source outside=new CenterData.Source();outside.account=1;outside.dialog=-102;outside.readAt=1000;check(CenterData.reviewFrom(Arrays.asList(reviewed,outside),reviewScope,10,50)==20);reviewed.readAt=0;check(CenterData.reviewFrom(Arrays.asList(reviewed),reviewScope,10,50)==10);
+        System.out.println("CenterIndexTest OK: account isolation, chat identity, deduplication, filters, dates and persistence");
  }
 }

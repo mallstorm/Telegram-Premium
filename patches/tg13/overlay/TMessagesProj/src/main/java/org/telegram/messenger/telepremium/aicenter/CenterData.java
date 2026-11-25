@@ -316,6 +316,22 @@ public final class CenterData {
     return out;
   }
 
+  public static long reviewFrom(
+      Collection<Source> sources, Scope scope, long retentionCutoff, long until) {
+    long earliest = until;
+    boolean found = false;
+    for (Source source : sources)
+      if (scope.requests(source)) {
+        earliest =
+            Math.min(
+                earliest,
+                Math.max(
+                    retentionCutoff, source.readAt > 0 ? source.readAt / 1000 : retentionCutoff));
+        found = true;
+      }
+    return found ? earliest : retentionCutoff;
+  }
+
   /** Separate filters combine by AND; selection itself is independent of a temporary search. */
   public static final class SourceFilter {
     public String text = "", type = "", role = "", folder = "", status = "", activity = "";

@@ -23,6 +23,23 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   private boolean pendingTranscription;
   private boolean reportRunning;
   private int reportPage;
+  private final Set<String> expandedEvidence = new HashSet<>();
+  private static final Set<TelePremiumAnalyzerActivity> LIVE =
+      Collections.newSetFromMap(new WeakHashMap<>());
+
+  public static void onApplicationBackground() {
+    for (TelePremiumAnalyzerActivity center : new ArrayList<>(LIVE)) center.lockForBackground();
+  }
+
+  private void lockForBackground() {
+    if (!TPAiStore.getPrivate("center_lock").isEmpty() || lockPresent()) {
+      savedScroll = scroll == null ? savedScroll : scroll.getScrollY();
+      unlocked = false;
+      if (body != null) body.removeAllViews();
+      for (AlertDialog dialog : new ArrayList<>(centerDialogs)) dialog.dismiss();
+    }
+  }
+
   private boolean archiveDetail;
   private CenterStats statistics;
   private int activitySort, activityMode;
@@ -342,6 +359,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
 
   @Override
   public View createView(Context context) {
+    LIVE.add(this);
     actionBar.setBackButtonImage(R.drawable.ic_ab_back);
     actionBar.setTitle(t("title"));
     actionBar.setActionBarMenuOnItemClick(
@@ -406,7 +424,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       mediaDialog.dismiss();
       mediaDialog = null;
     }
-    if (!TPAiStore.getPrivate("center_lock").isEmpty() || lockPresent()) {
+    if (ApplicationLoader.mainInterfacePaused
+        && (!TPAiStore.getPrivate("center_lock").isEmpty() || lockPresent())) {
       unlocked = false;
       if (body != null) body.removeAllViews();
     }
@@ -416,6 +435,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
 
   @Override
   public void onFragmentDestroy() {
+    LIVE.remove(this);
     uiHandler.removeCallbacksAndMessages(null);
     if (sync != null) sync.cancel();
     aiCancelled.set(true);
@@ -675,6 +695,8 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                           }
                         });
                   else {
+                    index.scope.to = System.currentTimeMillis() / 1000;
+                    index.scope.from = reviewFrom(index.scope);
                     index.saveScope();
                     show(0);
                   }
@@ -1064,6 +1086,13 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         });
   }
 
+  private long reviewFrom(CenterData.Scope scope) {
+    long cutoff =
+        System.currentTimeMillis() / 1000
+            - CenterIndex.settings().optInt("retentionDays", 90) * 86400L;
+    return CenterData.reviewFrom(index.sources, scope, cutoff, scope.to);
+  }
+
   private void runReport(String question) {
     runReport(question, false);
   }
@@ -1073,20 +1102,40 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       toast(t("queue"));
       return;
     }
+    CenterData.Scope requested;
+    try {
+      requested = CenterData.Scope.parse(index.scope.json());
+    } catch (Exception error) {
+      error(error.getMessage());
+      return;
+    }
+    if (reportKind == 2) {
+      requested.sinceRead = true;
+      requested.from = reviewFrom(requested);
+    } else if (reportKind == 3) {
+      requested.from -= Math.max(1, requested.to - requested.from + 1);
+    }
     if (!prepared
         && drilldown == null
         && index.sources.stream()
             .anyMatch(
                 source ->
-                    index.scope.allows(source)
-                        && !source.covers(index.scope.from, index.scope.to))) {
+                    requested.requests(source) && !source.covers(requested.from, requested.to))) {
+      CenterIndex loading = new CenterIndex();
+      loading.sources.addAll(index.sources);
+      loading.messages.addAll(index.messages);
+      loading.scope = requested;
       status.setText(t("loading"));
       sync =
           new CenterSync(
-              index,
-              e -> {
-                error(e);
-                runReport(question, true);
+              loading,
+              failure -> {
+                error(failure);
+                index.load(
+                    loaded -> {
+                      error(loaded);
+                      runReport(question, true);
+                    });
               });
       sync.load();
       return;
@@ -1119,9 +1168,10 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     + " publications; no personality inference.";
           else if (reportKind == 2) {
             scope.sinceRead = true;
-            selected = CenterData.select(index.messages, sources, scope);
+            scope.from = reviewFrom(scope);
+            selected = CenterData.select(index.readable(), sources, scope);
           } else if (reportKind == 3) {
-            long span = scope.to - scope.from;
+            long span = Math.max(1, scope.to - scope.from + 1);
             scope.from -= span;
             selected = CenterData.select(index.messages, sources, scope);
             request +=
@@ -1363,9 +1413,11 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       info(t(claim.verified() ? claim.certainty : "unverified"));
       final LinearLayout evidence = new LinearLayout(getParentActivity());
       evidence.setOrientation(LinearLayout.VERTICAL);
-      row(
-          t("evidence") + " (" + claim.evidence.size() + ")",
+      String evidenceKey = r.id + ":" + r.claims.indexOf(claim);
+      Runnable toggleEvidence =
           () -> {
+            boolean opening = evidence.getChildCount() == 0;
+
             if (evidence.getChildCount() > 0) evidence.removeAllViews();
             else
               for (CenterReports.Evidence ev : claim.evidence) {
@@ -1407,8 +1459,13 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 }
                 if (exportOptions().images) reportImage(r, ev, evidence);
               }
-          });
+
+            if (opening) expandedEvidence.add(evidenceKey);
+            else expandedEvidence.remove(evidenceKey);
+          };
+      row(t("evidence") + " (" + claim.evidence.size() + ")", toggleEvidence);
       body.addView(evidence);
+      if (expandedEvidence.contains(evidenceKey)) toggleEvidence.run();
       row(
           t("expand") + " · " + claim.title,
           () -> {
