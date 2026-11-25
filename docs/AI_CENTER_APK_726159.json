@@ -1,0 +1,21 @@
+{
+  "source_sha": "07dbf29e72a03d236dd042f0aaac26c28dd059a7",
+  "bytes": 65361185,
+  "sha256": "736355a94c3710ca79836d41e849c124be2ea383914afb1c2d0275e6a44046dd",
+  "certificate_sha256": "a08d7dc323ddf71ef3201944397e0d3cce7d40847263e11f328b68bbe19229ab",
+  "package": "com.telepremium.messenger",
+  "version_code": 726159,
+  "abis": [
+    "arm64-v8a"
+  ],
+  "ocr_models": {
+    "eng": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    "rus": "e16e5e036cce1d9ec2b00063cf8b54472625b9e14d893a169e2b0dedeb4df225"
+  },
+  "apk_file": "TelePremium_13.1.1_arm64-v8a.apk",
+  "run_id": 45566196330,
+  "artifact_id": 15000109969,
+  "ci_url": "https://github.com/mallstorm/Telegram-Premium/actions/runs/45566196330",
+  "artifact_url": "https://github.com/mallstorm/Telegram-Premium/actions/runs/45566196330/artifacts/15000109969",
+  "regression": "Android SQLite PRAGMA configuration via lazy rawQuery; existing database preserved"
+}

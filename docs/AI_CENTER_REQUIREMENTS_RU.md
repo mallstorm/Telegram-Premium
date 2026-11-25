@@ -62,8 +62,10 @@
 | §14. PIN/пароль/ключ/биометрия, блокировка в фоне, запрет скриншотов | Center lock, Vault-derived secret crypto, lifecycle hook, secure flag | Vault JDK/runtime tests; биометрия/lifecycle — устройство |
 | §15. Модели по ролям, схема, кэш, расход/лимиты, retry и частичный результат | `CenterAi`, `CenterUsage`, `CenterTaskService`, content/model-aware caches | `CenterEvidenceTest`, `test_ai_center_usage.py`, Android CI |
 | §16. Фоновое чтение/расчёты, миниатюры/пакеты, RU/EN, обе оболочки/темы | Центр общий для обеих оболочек; ресурсы RU/EN; фоновые очереди | 40 classic-shell guards, source/privacy, Java syntax, Android CI; визуальная/нагрузочная приёмка — устройство |
-| §17. Пять этапов с APK на фичевой ветке | История контрольных сборок сохранена в [implementation](AI_CENTER_IMPLEMENTATION_RU.md) | Все пять исходных APK green; текущий итог проверяется отдельным run |
+| §17. Пять этапов с APK на фичевой ветке | История контрольных сборок сохранена в [implementation](AI_CENTER_IMPLEMENTATION_RU.md) | Все пять исходных APK green; итог 6026b7c: APK CI 45567451989 и Source Check 45567451962 — success |
 | Сбой со скриншота: SQLiteException в onConfigure | PRAGMA через rawQuery с выполнением ленивого cursor, проверкой значения и закрытием; без удаления базы | `test_ai_center_database_runtime.py`: реальная SQLite, воспроизведение старого сбоя, сохранность существующей записи |
+
+Итоговый проверенный артефакт: [APK 726209 и данные проверки](AI_CENTER_APK_726209.json). Выпуск включает SQLite-исправление со скриншота; кэш OCR не перезаписывает исправленную транскрипцию или перевод.
 
 ## Условия окончательной проверки на устройстве
 

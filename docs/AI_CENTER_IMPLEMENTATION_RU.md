@@ -3,6 +3,14 @@
 Репозиторий: `mallstorm/Telegram-Premium`. Рабочая ветка: `feat/folder-locks-dual`.
 Текущая доработка: версия `726209`. Подробная [сверка каждого требования и границы проверки](AI_CENTER_REQUIREMENTS_RU.md).
 
+Проверенный текущий код: `6026b7c86f55f15857fa203a4a901c91fa23c988`.
+
+- [Android APK CI 45567451989 — success](https://github.com/mallstorm/Telegram-Premium/actions/runs/45567451989).
+- [Source Check 45567451962 — success](https://github.com/mallstorm/Telegram-Premium/actions/runs/45567451962): 18 JDK-наборов, production SQLite/usage и существующие регрессии Vault/Cloud/Media/Xray.
+- [Скачать APK 726209 и SHA-256](https://github.com/mallstorm/Telegram-Premium/actions/runs/45567451989/artifacts/15000653564). Размер APK: 65 372 158 байт. SHA-256: `cde669209e04d03082a30e33f6c2e76019b2fdc36054b361e38af33f1485425d`.
+- [Машиночитаемая проверка артефакта](AI_CENTER_APK_726209.json): коммит, версия, пакет, прежний сертификат, ARM64, ZIP CRC, хэши обеих OCR-моделей и лицензия. `build-output-folderlocks/STATUS.txt` также указывает на этот код и успешный run.
+- Аварийная [сборка 726159](AI_CENTER_APK_726159.json) исправляет присланный сбой SQLite; финальная 726209 включает то же исправление и последующие доработки. Обновление сохраняет базу приложения.
+
 Предыдущая контрольная сборка пяти этапов: `16009664e7527a616ea0074f29dbaf49b5a4fa48`; её артефакты ниже сохранены как история.
 
 База: Telegram Android 13.1.1, upstream `3de37c8cfb039452be7398909461da6288babf15`.
