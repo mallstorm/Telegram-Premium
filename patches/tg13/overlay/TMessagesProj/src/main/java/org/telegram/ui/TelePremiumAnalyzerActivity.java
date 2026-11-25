@@ -1452,8 +1452,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     }
     Runnable open =
         () -> {
-          if (!UserConfig.getInstance(m.account).isClientActivated()
-              || UserConfig.getInstance(m.account).getClientUserId() != m.owner) {
+          if (!CenterIndex.accountAllowed(m.account, m.owner)) {
             toast(t("excluded"));
             return;
           }

@@ -17,7 +17,9 @@ public final class CenterMaintenance extends JobService {
         scheduler.cancel(JOB);
         return;
       }
-      if (scheduler.getPendingJob(JOB) == null)
+      boolean pending = false;
+      for (JobInfo job : scheduler.getAllPendingJobs()) if (job.getId() == JOB) pending = true;
+      if (!pending)
         scheduler.schedule(
             new JobInfo.Builder(
                     JOB,

@@ -32,6 +32,7 @@ public final class CenterThumbnails {
   private static void load(
       CenterData.Message m, long time, int page, int sample, Consumer<Bitmap> done) {
     String id = (m.previewBase.isEmpty() ? m.qualified() : m.previewBase) + ":" + time + ":" + page;
+    long epoch = CenterIndex.generation();
     IO.execute(
         () -> {
           Bitmap b = null;
@@ -52,7 +53,12 @@ public final class CenterThumbnails {
           } catch (Exception ignore) {
           }
           Bitmap result = b;
-          AndroidUtilities.runOnUIThread(() -> done.accept(result));
+          AndroidUtilities.runOnUIThread(
+              () ->
+                  done.accept(
+                      epoch == CenterIndex.generation() && CenterMedia.readableDerivative(m)
+                          ? result
+                          : null));
         });
   }
 }
