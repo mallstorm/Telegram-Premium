@@ -2,7 +2,7 @@ name: Build TelePremium APK
 
 on:
   push:
-    branches: [ port/tg-13.1.1, feature/classic-telegram-11x, feature/telegram-ai-analyzer, claude/dual-shell-stabilize, feat/folder-locks-dual, feat/ai-center-visual ]
+    branches: [ port/tg-13.1.1, feature/classic-telegram-11x, feature/telegram-ai-analyzer, claude/dual-shell-stabilize, feat/folder-locks-dual, feat/ai-center-visual, main ]
     tags: [ 'v*' ]
     paths-ignore:
       - "**.md"
