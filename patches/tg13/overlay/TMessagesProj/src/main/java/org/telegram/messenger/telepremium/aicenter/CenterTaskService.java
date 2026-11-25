@@ -33,6 +33,8 @@ public final class CenterTaskService extends Service {
         () -> {
           try {
             for (CenterData.Message m : copy) {
+              if (m.dialog != 0 && m.transport.isEmpty())
+                CenterSync.resolve(m, new AtomicBoolean());
               CenterMedia.check(m);
               String signature =
                   question

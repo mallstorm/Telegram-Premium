@@ -33,6 +33,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   private String authorSearch = "";
   private int authorSort, authorPage;
   private long profileAuthor = Long.MIN_VALUE;
+  private String authorKind = "";
   private AlertDialog mediaDialog;
   private final Set<String> pickedMedia = new HashSet<>();
   private String mediaSearch = "";
@@ -1400,17 +1401,24 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           if (which == 0) {
             LinearLayout lines = new LinearLayout(getParentActivity());
             lines.setOrientation(1);
-            for (CenterData.Message q : CenterReports.context(index.messages, m)) {
-              TextView v =
-                  label(q.authorName + " · " + new Date(q.date * 1000L) + "\n" + q.text, 14);
-              v.setOnClickListener(w -> openEvidence(q));
-              lines.addView(v);
-            }
+            renderContext(lines, CenterReports.context(index.messages, m));
+            int version = uiVersion;
+            long epoch = CenterIndex.generation();
+            if (m.dialog != 0 && !m.deleted)
+              TPAiClient.async(
+                  () -> CenterSync.context(m, new java.util.concurrent.atomic.AtomicBoolean()),
+                  (rows, error) -> {
+                    if (error == null
+                        && unlocked
+                        && foreground
+                        && version == uiVersion
+                        && epoch == CenterIndex.generation()) renderContext(lines, rows);
+                  });
             ScrollView sv = new ScrollView(getParentActivity());
             sv.addView(lines);
             showDialog(
                 new org.telegram.ui.ActionBar.BottomSheet.Builder(getParentActivity())
-                    .setTitle(t("indexedContext"))
+                    .setTitle(t("context"))
                     .setCustomView(sv)
                     .create());
           } else if (which == 1) {
@@ -1434,6 +1442,23 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 .show();
           }
         });
+  }
+
+  private void renderContext(LinearLayout lines, List<CenterData.Message> rows) {
+    lines.removeAllViews();
+    for (CenterData.Message message : rows) {
+      TextView text =
+          label(
+              message.authorName
+                  + " · "
+                  + new Date(message.date * 1000L)
+                  + "\n"
+                  + message.text
+                  + (message.deleted ? "\n" + t("deleted") : ""),
+              14);
+      text.setOnClickListener(v -> openEvidence(message));
+      lines.addView(text);
+    }
   }
 
   private void openEvidence(CenterData.Message m) {
@@ -1962,14 +1987,42 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     }
     LinearLayout panel = new LinearLayout(getParentActivity());
     panel.setOrientation(LinearLayout.VERTICAL);
+    panel.setMinimumHeight(Math.max(dp(400), AndroidUtilities.displaySize.y - dp(120)));
     ZoomImage image = new ZoomImage(getParentActivity());
-    panel.addView(image, new LinearLayout.LayoutParams(-1, dp(330)));
+    panel.addView(
+        image,
+        new LinearLayout.LayoutParams(
+            -1, Math.max(dp(240), (int) (AndroidUtilities.displaySize.y * .5f))));
     CenterThumbnails.loadFull(
         m,
         m.frameTimes.isEmpty() ? 0 : m.frameTimes.get(0),
         m.pages > 0 ? Math.max(1, page) : 0,
         b -> {
           if (b != null) image.setImageBitmap(b);
+          else if (report != null) {
+            CenterReports.Report archived = report;
+            for (CenterReports.Claim claim : archived.claims)
+              for (CenterReports.Evidence evidence : claim.evidence)
+                if (evidence.message.qualified().equals(m.qualified())) {
+                  TPAiClient.async(
+                      () -> {
+                        byte[] bytes = CenterAssets.image(archived, evidence);
+                        if (bytes == null) return null;
+                        try {
+                          return BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                        } finally {
+                          Arrays.fill(bytes, (byte) 0);
+                        }
+                      },
+                      (bitmap, error) -> {
+                        if (foreground
+                            && unlocked
+                            && CenterMedia.readableDerivative(m)
+                            && bitmap != null) image.setImageBitmap(bitmap);
+                      });
+                  return;
+                }
+          }
         });
     ScrollView details = new ScrollView(getParentActivity());
     LinearLayout content = new LinearLayout(getParentActivity());
@@ -2175,6 +2228,10 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     }
     mediaDialog = dialog;
     dialog.show();
+    dialog
+        .getWindow()
+        .setLayout(
+            WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
     dialog
         .getWindow()
         .setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
@@ -2795,6 +2852,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     if (profileAuthor != a.id) {
       profileAuthor = a.id;
       authorPage = 0;
+      authorKind = "";
     }
     body.removeAllViews();
     info(t("authorWarning"));
@@ -2873,9 +2931,33 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     }
     for (Map.Entry<String, Integer> week : weeks.entrySet())
       info(week.getKey() + " · " + week.getValue());
+    button(
+        "media",
+        () -> {
+          index.scope.authors.clear();
+          index.scope.authors.add(a.id);
+          index.saveScope();
+          show(4);
+        });
     heading("publications");
-    for (int i = authorPage * 40; i < Math.min((authorPage + 1) * 40, a.publications.size()); i++) {
-      CenterData.Message m = a.publications.get(i);
+    button(
+        "type",
+        () ->
+            choices(
+                "type",
+                new String[] {t("all"), t("text"), t("photo"), t("video"), t("links")},
+                i -> {
+                  authorKind = new String[] {"", "text", "photo", "video", "link"}[i];
+                  authorPage = 0;
+                  authorProfile(a, stats);
+                }));
+    List<CenterData.Message> feed = new ArrayList<>();
+    for (CenterData.Message m : a.publications)
+      if (authorKind.isEmpty()
+          || authorKind.equals(m.kind)
+          || (authorKind.equals("photo") && m.kind.equals("image"))) feed.add(m);
+    for (int i = authorPage * 40; i < Math.min((authorPage + 1) * 40, feed.size()); i++) {
+      CenterData.Message m = feed.get(i);
       row(
           new Date(m.date * 1000L)
               + " · "
@@ -2908,7 +2990,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             authorPage--;
             authorProfile(a, stats);
           });
-    if ((authorPage + 1) * 40 < a.publications.size())
+    if ((authorPage + 1) * 40 < feed.size())
       button(
           "next",
           () -> {

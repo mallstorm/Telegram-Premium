@@ -594,6 +594,80 @@ public final class CenterSync {
     return d;
   }
 
+  /** User-requested context around an exact anchor, with no read acknowledgement. */
+  public static List<CenterData.Message> context(CenterData.Message anchor, AtomicBoolean cancel)
+      throws Exception {
+    if (!CenterIndex.accountAllowed(anchor.account, anchor.owner)) throw new SecurityException();
+    TLObject request;
+    MessagesController controller = MessagesController.getInstance(anchor.account);
+    if (anchor.topic > 0) {
+      TLRPC.TL_messages_getReplies q = new TLRPC.TL_messages_getReplies();
+      q.peer = controller.getInputPeer(anchor.dialog);
+      q.msg_id = anchor.topic;
+      q.offset_id = anchor.id;
+      q.add_offset = -5;
+      q.limit = 11;
+      request = q;
+    } else {
+      TLRPC.TL_messages_getHistory q = new TLRPC.TL_messages_getHistory();
+      q.peer = controller.getInputPeer(anchor.dialog);
+      q.offset_id = anchor.id;
+      q.add_offset = -5;
+      q.limit = 11;
+      request = q;
+    }
+    java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+    List<CenterData.Message> rows = new ArrayList<>();
+    String[] error = {null};
+    long epoch = CenterIndex.generation();
+    CenterData.Source source = new CenterData.Source();
+    source.account = anchor.account;
+    source.owner = anchor.owner;
+    source.dialog = anchor.dialog;
+    source.topic = anchor.topic;
+    source.canonical = anchor.source;
+    source.title = anchor.sourceTitle;
+    source.accountName = anchor.accountName;
+    int id =
+        ConnectionsManager.getInstance(anchor.account)
+            .sendRequest(
+                request,
+                (result, failure) -> {
+                  if (failure != null) error[0] = failure.text;
+                  if (result instanceof TLRPC.messages_Messages) {
+                    TLRPC.messages_Messages messages = (TLRPC.messages_Messages) result;
+                    controller.putUsers(messages.users, false);
+                    controller.putChats(messages.chats, false);
+                    for (TLRPC.Message original : messages.messages)
+                      if (!(original instanceof TLRPC.TL_messageEmpty)
+                          && !(original instanceof TLRPC.TL_messageService)) {
+                        CenterData.Message row = convert(source, original);
+                        if (row != null) rows.add(row);
+                      }
+                  }
+                  latch.countDown();
+                });
+    try {
+      long deadline = System.currentTimeMillis() + 20000;
+      while (!latch.await(250, java.util.concurrent.TimeUnit.MILLISECONDS))
+        if (cancel.get()
+            || epoch != CenterIndex.generation()
+            || System.currentTimeMillis() > deadline) throw new InterruptedException();
+      if (error[0] != null) throw new java.io.IOException(error[0]);
+      if (epoch != CenterIndex.generation()
+          || !CenterIndex.accountAllowed(anchor.account, anchor.owner))
+        throw new SecurityException();
+      if (rows.stream().noneMatch(m -> m.id == anchor.id)) {
+        CenterData.Message quotation = CenterData.Message.parse(anchor.json());
+        quotation.deleted = true;
+        rows.add(quotation);
+      }
+      return CenterReports.context(rows, anchor);
+    } finally {
+      ConnectionsManager.getInstance(anchor.account).cancelRequest(id, true);
+    }
+  }
+
   /** Explicit single-message refresh for archived media; never changes read state. */
   public static void resolve(CenterData.Message message, AtomicBoolean cancel) throws Exception {
     if (!CenterIndex.accountAllowed(message.account, message.owner)) throw new SecurityException();
