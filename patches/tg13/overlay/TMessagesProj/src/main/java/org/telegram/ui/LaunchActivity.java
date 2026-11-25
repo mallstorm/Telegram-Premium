@@ -1552,6 +1552,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 return false;
             }
         }
+        if("org.telegram.aicenter".equals(action)&&UserConfig.getInstance(currentAccount).isClientActivated()){
+            presentFragment(TelePremiumAnalyzerActivity.openScreen(intent.getIntExtra("aic_screen",7)));intent.setAction(null);return true;
+        }
         boolean pushOpened = false;
         long push_user_id = 0;
         long push_chat_id = 0;
