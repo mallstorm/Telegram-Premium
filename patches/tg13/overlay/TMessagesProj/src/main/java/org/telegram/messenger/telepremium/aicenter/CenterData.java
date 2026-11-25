@@ -360,7 +360,30 @@ public final class CenterData {
     public int minPerDay;
     public final Set<Integer> accounts = new HashSet<>();
 
+    public static Map<String, Integer> counts(
+        List<Source> sources, List<Message> messages, long from, long to) {
+      Map<String, List<Message>> bySource = new HashMap<>();
+      for (Message m : messages)
+        if (m.date >= from && m.date <= to && !m.deleted && !m.protectedMedia)
+          bySource.computeIfAbsent(m.source, k -> new ArrayList<>()).add(m);
+      Map<String, Integer> result = new HashMap<>();
+      for (Source s : sources) {
+        Set<String> seen = new HashSet<>();
+        int count = 0;
+        List<Message> own = bySource.get(s.canonical);
+        if (own != null)
+          for (Message m : own) if ((s.topic == 0 || s.topic == m.topic) && seen.add(m.key())) count++;
+        result.put(s.key(), count);
+      }
+      return result;
+    }
+
     public boolean matches(Source s, List<Message> messages, long from, long to) {
+      Integer count = counts(Collections.singletonList(s), messages, from, to).get(s.key());
+      return matches(s, count == null ? 0 : count, from, to);
+    }
+
+    public boolean matches(Source s, int count, long from, long to) {
       if (!accounts.isEmpty() && !accounts.contains(s.account)
           || !s.title.toLowerCase(Locale.ROOT).contains(text.toLowerCase(Locale.ROOT))
           || !type.isEmpty() && !type.equals(s.type)
@@ -369,16 +392,6 @@ public final class CenterData {
       if ("pinned".equals(status) && !s.pinned
           || "archive".equals(status) && !s.archived
           || "muted".equals(status) && !s.muted) return false;
-      Set<String> seen = new HashSet<>();
-      int count = 0;
-      for (Message m : messages)
-        if (m.source.equals(s.canonical)
-            && (s.topic == 0 || s.topic == m.topic)
-            && m.date >= from
-            && m.date <= to
-            && !m.deleted
-            && !m.protectedMedia
-            && seen.add(m.key())) count++;
       return (!"active".equals(activity) || count > 0)
           && (!"quiet".equals(activity) || count == 0)
           && count >= minPerDay * Math.max(1, (to - from) / 86400);

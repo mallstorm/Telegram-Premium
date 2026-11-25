@@ -95,6 +95,22 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       };
   private CenterSync sync;
   private LinearLayout root, body, navigation;
+  private TelePremiumCenterUi ui;
+  private ProgressBar loadingBar;
+  private HorizontalScrollView navigationScroll;
+  private final ArrayList<LinearLayout> navItems = new ArrayList<>();
+  private static final int[] NAV_ICONS = {
+    R.drawable.tp_aic_sources,
+    R.drawable.tp_aic_summaries,
+    R.drawable.tp_aic_activity,
+    R.drawable.tp_aic_authors,
+    R.drawable.tp_aic_media,
+    R.drawable.tp_aic_transcriber,
+    R.drawable.tp_aic_analyst,
+    R.drawable.tp_aic_reports,
+    R.drawable.tp_aic_settings,
+    R.drawable.tp_aic_accounts
+  };
   private TextView scopeLine, status;
   private ScrollView scroll;
   private int screen;
@@ -126,7 +142,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
 
   public static TelePremiumAnalyzerActivity openScreen(int screen) {
     TelePremiumAnalyzerActivity a = new TelePremiumAnalyzerActivity();
-    a.screen = Math.max(0, Math.min(8, screen));
+    a.screen = Math.max(0, Math.min(9, screen));
     return a;
   }
 
@@ -160,13 +176,66 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     return AndroidUtilities.dp(n);
   }
 
+  private String tr(String en, String ru) {
+    return org.telegram.messenger.telepremium.TPStrings.isRussian() ? ru : en;
+  }
+
   private TextView label(String text, int size) {
     TextView v = new TextView(getParentActivity());
     v.setText(text);
     v.setTextSize(size);
     v.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-    v.setPadding(dp(12), dp(10), dp(12), dp(10));
+    v.setPadding(dp(16), dp(10), dp(16), dp(10));
     return v;
+  }
+
+  private String describe(int tab) {
+    switch (tab) {
+      case 0:
+        return tr(
+            "Choose what to analyze: accounts, groups, period",
+            "Что анализировать: аккаунты, группы и период");
+      case 1:
+        return tr(
+            "Sourced summaries of one or many groups",
+            "Сводки по одной или нескольким группам с источниками");
+      case 2:
+        return tr(
+            "Which groups are more and less active",
+            "Какие группы активнее, а какие тише");
+      case 3:
+        return tr("Who published what, with evidence", "Кто что публиковал — с доказательствами");
+      case 4:
+        return tr("Images, video and documents of your groups", "Изображения, видео и документы групп");
+      case 5:
+        return tr("Speech to text with timecodes", "Речь в текст с таймкодами");
+      case 6:
+        return tr("Ask a question across your selection", "Вопрос по выбранным источникам");
+      case 7:
+        return tr("Saved reports, exports and digests", "Сохранённые отчёты, экспорт и дайджесты");
+      case 8:
+        return tr("Models, limits, privacy and protection", "Модели, лимиты, приватность и защита");
+      default:
+        return tr("Accounts and source filters", "Аккаунты и фильтры источников");
+    }
+  }
+
+  private void updateNavigation() {
+    if (navItems.isEmpty()) return;
+    int active = screen == 9 ? 0 : screen;
+    for (int i = 0; i < navItems.size(); i++) {
+      LinearLayout item = navItems.get(i);
+      boolean on = i == active;
+      int color = on ? ui.accent() : ui.sub();
+      ((ImageView) item.getChildAt(0)).setImageDrawable(ui.drawable(NAV_ICONS[i], color));
+      TextView title = (TextView) item.getChildAt(1);
+      title.setTextColor(color);
+      title.setTypeface(on ? AndroidUtilities.bold() : Typeface.DEFAULT);
+      item.setBackground(on ? ui.shape(TelePremiumCenterUi.alpha(ui.accent(), 28), 14, 0, 0) : null);
+    }
+    final LinearLayout current = navItems.get(active);
+    navigationScroll.post(
+        () -> navigationScroll.smoothScrollTo(Math.max(0, current.getLeft() - dp(120)), 0));
   }
 
   private boolean lockPresent() {
@@ -239,26 +308,50 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void heading(String key) {
-    TextView v = label(t(key), 19);
-    v.setTypeface(AndroidUtilities.bold());
-    body.addView(v);
+    body.addView(ui.section(t(key)));
   }
 
   private TextView row(String text, Runnable action) {
     TextView v = label(text, 15);
-    v.setMinHeight(dp(48));
-    v.setBackground(Theme.getSelectorDrawable(false));
-    body.addView(v, new LinearLayout.LayoutParams(-1, -2));
-    if (action != null) v.setOnClickListener(w -> action.run());
+    v.setMinHeight(dp(52));
+    v.setGravity(Gravity.CENTER_VERTICAL);
+    v.setPadding(dp(16), dp(12), dp(16), dp(12));
+    v.setBackground(
+        action == null
+            ? ui.shape(ui.card(), 14, ui.line(), 1)
+            : ui.ripple(ui.shape(ui.card(), 14, ui.line(), 1), 14));
+    if (action != null) {
+      v.setOnClickListener(w -> action.run());
+      android.graphics.drawable.Drawable chevron = ui.drawable(R.drawable.tp_aic_chevron, ui.sub());
+      if (chevron != null) {
+        chevron.setBounds(0, 0, dp(20), dp(20));
+        v.setCompoundDrawables(null, null, chevron, null);
+      }
+    }
+    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+    p.setMargins(dp(12), dp(3), dp(12), dp(3));
+    body.addView(v, p);
     return v;
   }
 
   private void button(String key, Runnable action) {
-    row(t(key), action);
+    TextView b = ui.button(t(key), false, 0, w -> action.run());
+    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+    p.setMargins(dp(12), dp(4), dp(12), dp(4));
+    body.addView(b, p);
+  }
+
+  private void primary(String key, int icon, Runnable action) {
+    TextView b = ui.button(t(key), true, icon, w -> action.run());
+    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+    p.setMargins(dp(12), dp(4), dp(12), dp(4));
+    body.addView(b, p);
   }
 
   private void info(String text) {
-    row(text, null);
+    TextView v = label(text, 14);
+    v.setPadding(dp(20), dp(5), dp(20), dp(5));
+    body.addView(v);
   }
 
   private void toast(String text) {
@@ -350,13 +443,11 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void toggle(String key, boolean checked, java.util.function.Consumer<Boolean> change) {
-    CheckBox c = new CheckBox(getParentActivity());
-    c.setText(t(key));
-    c.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-    c.setChecked(checked);
-    c.setPadding(dp(12), dp(8), dp(12), dp(8));
-    c.setOnCheckedChangeListener((v, b) -> change.accept(b));
-    body.addView(c);
+    final Switch sw = ui.switchView(checked, change);
+    LinearLayout r = ui.row(0, t(key), null, sw, w -> sw.toggle());
+    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+    p.setMargins(dp(12), dp(3), dp(12), dp(3));
+    body.addView(r, p);
   }
 
   @Override
@@ -371,35 +462,87 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             if (id == -1) finishFragment();
           }
         });
+    ui = new TelePremiumCenterUi(context, this::getThemedColor);
     root = new LinearLayout(context);
     root.setOrientation(LinearLayout.VERTICAL);
-    root.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-    scopeLine = label(t("sources"), 14);
-    scopeLine.setOnClickListener(
-        v -> {
-          drilldown = null;
-          authorReport = false;
-          show(0);
-        });
-    root.addView(scopeLine);
-    status = label("", 12);
-    root.addView(status);
+    root.setBackgroundColor(ui.page());
+    LinearLayout scopeCard =
+        ui.clickableCard(
+            14,
+            10,
+            v -> {
+              drilldown = null;
+              authorReport = false;
+              show(0);
+            });
+    scopeCard.setOrientation(LinearLayout.HORIZONTAL);
+    scopeCard.setGravity(Gravity.CENTER_VERTICAL);
+    android.widget.FrameLayout scopeBadge = ui.badge(R.drawable.tp_aic_sources, ui.accent(), 38, 22);
+    LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(dp(38), dp(38));
+    badgeParams.rightMargin = dp(12);
+    scopeCard.addView(scopeBadge, badgeParams);
+    LinearLayout scopeColumn = new LinearLayout(context);
+    scopeColumn.setOrientation(LinearLayout.VERTICAL);
+    scopeLine = ui.text(t("sources"), 13.5f, ui.text(), false);
+    scopeLine.setMaxLines(3);
+    scopeColumn.addView(scopeLine);
+    status =
+        new TextView(context) {
+          @Override
+          public void setText(CharSequence text, BufferType type) {
+            super.setText(text, type);
+            if (loadingBar != null)
+              loadingBar.setVisibility(text == null || text.length() == 0 ? View.GONE : View.VISIBLE);
+            setVisibility(text == null || text.length() == 0 ? View.GONE : View.VISIBLE);
+          }
+        };
+    status.setTextSize(12);
+    status.setTextColor(ui.accent());
+    status.setPadding(0, dp(3), 0, 0);
+    status.setVisibility(View.GONE);
+    scopeColumn.addView(status);
+    scopeCard.addView(scopeColumn, new LinearLayout.LayoutParams(0, -2, 1));
+    scopeCard.addView(ui.icon(R.drawable.tp_aic_chevron, ui.sub(), 22));
+    root.addView(scopeCard, ui.cardParams());
+    loadingBar = new ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
+    loadingBar.setIndeterminate(true);
+    loadingBar.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(ui.accent()));
+    loadingBar.setVisibility(View.GONE);
+    root.addView(loadingBar, new LinearLayout.LayoutParams(-1, dp(3)));
     scroll = new ScrollView(context);
+    scroll.setBackgroundColor(ui.page());
+    scroll.setClipToPadding(false);
     body = new LinearLayout(context);
     body.setOrientation(LinearLayout.VERTICAL);
+    body.setPadding(0, 0, 0, dp(28));
     scroll.addView(body);
     root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    HorizontalScrollView bottom = new HorizontalScrollView(context);
-    bottom.setHorizontalScrollBarEnabled(false);
+    View navLine = new View(context);
+    navLine.setBackgroundColor(ui.line());
+    root.addView(navLine, new LinearLayout.LayoutParams(-1, Math.max(1, dp(0.5f))));
+    navigationScroll = new HorizontalScrollView(context);
+    navigationScroll.setHorizontalScrollBarEnabled(false);
+    navigationScroll.setBackgroundColor(ui.card());
     navigation = new LinearLayout(context);
-    bottom.addView(navigation);
-    root.addView(bottom, new LinearLayout.LayoutParams(-1, dp(56)));
+    navigation.setPadding(dp(6), dp(6), dp(6), dp(6));
+    navigationScroll.addView(navigation);
+    root.addView(navigationScroll, new LinearLayout.LayoutParams(-1, dp(66)));
+    navItems.clear();
     for (int i = 0; i < SCREENS.length; i++) {
       final int tab = i;
-      TextView v = label(t(SCREENS[i]), 13);
-      v.setGravity(Gravity.CENTER);
-      v.setOnClickListener(w -> show(tab));
-      navigation.addView(v, new LinearLayout.LayoutParams(-2, -1));
+      LinearLayout item = new LinearLayout(context);
+      item.setOrientation(LinearLayout.VERTICAL);
+      item.setGravity(Gravity.CENTER);
+      item.setPadding(dp(4), dp(4), dp(4), dp(4));
+      item.addView(ui.icon(NAV_ICONS[i], ui.sub(), 24));
+      TextView title = ui.text(t(SCREENS[i]), 11, ui.sub(), false);
+      title.setSingleLine(true);
+      title.setGravity(Gravity.CENTER);
+      title.setPadding(0, dp(2), 0, 0);
+      item.addView(title);
+      item.setOnClickListener(w -> show(tab));
+      navigation.addView(item, new LinearLayout.LayoutParams(dp(82), -1));
+      navItems.add(item);
     }
     fragmentView = root;
     return root;
@@ -623,7 +766,13 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     uiVersion++;
     body.removeAllViews();
     scopeLine.setText(scopeSummary());
-    heading(SCREENS[tab]);
+    body.addView(
+        ui.hero(
+            NAV_ICONS[tab],
+            tab == 9 ? tr("Accounts and filters", "Аккаунты и фильтры") : t(SCREENS[tab]),
+            describe(tab)));
+    updateNavigation();
+    scroll.scrollTo(0, 0);
     switch (tab) {
       case 0:
         sources();
@@ -652,89 +801,522 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       case 8:
         settings();
         break;
+      case 9:
+        accounts();
+        break;
       default:
         info(t("empty"));
     }
   }
 
-  private void sources() {
-    button(
-        "refresh",
+  // ------------------------------------------------------------------ sources and accounts
+
+  private int sourceLimit = 100;
+
+  private LinearLayout.LayoutParams margins(int w, int h, int l, int t, int r, int b) {
+    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(w, h);
+    p.setMargins(dp(l), dp(t), dp(r), dp(b));
+    return p;
+  }
+
+  private Map<String, Integer> sourceCounts() {
+    return CenterData.SourceFilter.counts(
+        index.sources, index.messages, index.scope.from, index.scope.to);
+  }
+
+  private List<Integer> activeAccounts() {
+    List<Integer> list = new ArrayList<>();
+    for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++)
+      if (UserConfig.getInstance(a).isClientActivated()) list.add(a);
+    return list;
+  }
+
+  private String accountTitle(int account) {
+    return UserObject.getUserName(UserConfig.getInstance(account).getCurrentUser());
+  }
+
+  private int accountMode(int account) {
+    return index.scope.excluded.contains(account) ? 2 : index.scope.whole.contains(account) ? 0 : 1;
+  }
+
+  private String modeTitle(int mode) {
+    return mode == 0 ? t("all") : mode == 1 ? t("selected") : t("excluded");
+  }
+
+  private int modeColor(int mode) {
+    return mode == 0 ? ui.good() : mode == 1 ? ui.accent() : ui.bad();
+  }
+
+  private void applyAccountMode(int account, int mode) {
+    Runnable apply =
         () -> {
-          if (sync != null) sync.cancel();
-          status.setText(t("loading"));
-          sync =
-              new CenterSync(
-                  index,
-                  e -> {
-                    error(e);
-                    status.setText("");
-                    show(0);
-                  });
-          sync.discover();
-        });
-    button(
-        "load",
-        () -> {
+          index.scope.excluded.remove(account);
+          index.scope.whole.remove(account);
+          if (mode == 0) index.scope.whole.add(account);
+          if (mode == 2) {
+            aiCancelled.set(true);
+            report = null;
+            index.scope.excluded.add(account);
+            index.messages.removeIf(m -> m.account == account);
+            CenterIndex.logout(account);
+          }
           index.saveScope();
-          if (sync != null) sync.cancel();
-          status.setText(t("loading"));
-          sync =
-              new CenterSync(
-                  index,
-                  e -> {
-                    error(e);
+          show(screen);
+        };
+    if (mode == 2 && accountMode(account) != 2)
+      dialogBuilder()
+          .setMessage(
+              tr(
+                  "Everything the Center stored for this account will be removed from the index.",
+                  "Всё, что центр сохранил по этому аккаунту, будет удалено из индекса."))
+          .setPositiveButton(t("confirm"), (d, w) -> apply.run())
+          .setNegativeButton(t("cancel"), null)
+          .show();
+    else apply.run();
+  }
+
+  private void runSync(boolean load) {
+    if (sync != null) sync.cancel();
+    if (load) index.saveScope();
+    status.setText(t("loading"));
+    sync =
+        new CenterSync(
+            index,
+            e -> {
+              error(e);
+              status.setText("");
+              show(screen);
+            });
+    if (load) sync.load();
+    else sync.discover();
+  }
+
+  private void pickPeriod(int i) {
+    index.scope.sinceRead = i == 5;
+    if (i < 4) {
+      index.scope.to = System.currentTimeMillis() / 1000;
+      index.scope.from = index.scope.to - new int[] {1, 7, 30, 90}[i] * 86400L;
+      index.saveScope();
+      show(0);
+    } else if (i == 4)
+      input(
+          "customDates",
+          "2026-11-01 / 2026-11-24",
+          dates -> {
+            try {
+              String[] v = dates.split("/");
+              java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
+              f.setLenient(false);
+              index.scope.from = f.parse(v[0].trim()).getTime() / 1000;
+              index.scope.to = f.parse(v[1].trim()).getTime() / 1000 + 86399;
+              if (index.scope.to < index.scope.from) throw new Exception();
+              index.saveScope();
+              show(0);
+            } catch (Exception e) {
+              error(t("customDates"));
+            }
+          });
+    else {
+      index.scope.to = System.currentTimeMillis() / 1000;
+      index.scope.from = reviewFrom(index.scope);
+      index.saveScope();
+      show(0);
+    }
+  }
+
+  private View periodChips() {
+    long span = Math.round((index.scope.to - index.scope.from) / 86400.0);
+    int selected =
+        index.scope.sinceRead
+            ? 5
+            : span == 1 ? 0 : span == 7 ? 1 : span == 30 ? 2 : span == 90 ? 3 : 4;
+    String[] labels = {
+      tr("1 day", "1 день"),
+      tr("7 days", "7 дней"),
+      tr("30 days", "30 дней"),
+      tr("90 days", "90 дней"),
+      t("customDates"),
+      t("sinceRead")
+    };
+    android.widget.HorizontalScrollView row = ui.chipRow();
+    for (int i = 0; i < labels.length; i++) {
+      final int pick = i;
+      ui.addChip(row, ui.chip(labels[i], i == selected, v -> pickPeriod(pick)));
+    }
+    return row;
+  }
+
+  private LinearLayout filterRow(
+      String title,
+      String[] labels,
+      String[] values,
+      String current,
+      java.util.function.Consumer<String> set,
+      int returnTo) {
+    LinearLayout box = new LinearLayout(getParentActivity());
+    box.setOrientation(LinearLayout.VERTICAL);
+    TextView caption = ui.text(title, 12.5f, ui.sub(), true);
+    caption.setPadding(dp(4), dp(12), dp(4), dp(2));
+    box.addView(caption);
+    android.widget.HorizontalScrollView row = ui.chipRow();
+    row.getChildAt(0).setPadding(0, dp(4), 0, dp(4));
+    for (int i = 0; i < labels.length; i++) {
+      final String value = values[i];
+      ui.addChip(
+          row,
+          ui.chip(
+              labels[i],
+              value.equals(current),
+              v -> {
+                set.accept(value);
+                show(returnTo);
+              }));
+    }
+    box.addView(row);
+    return box;
+  }
+
+  private void resetFilters() {
+    filter.text = "";
+    filter.type = "";
+    filter.role = "";
+    filter.folder = "";
+    filter.status = "";
+    filter.activity = "";
+    filter.minPerDay = 0;
+    filter.accounts.clear();
+  }
+
+  private List<CenterData.Source> matchingSources(Map<String, Integer> counts) {
+    List<CenterData.Source> matching = new ArrayList<>();
+    for (CenterData.Source s : index.sources) {
+      Integer n = counts.get(s.key());
+      if (filter.matches(s, n == null ? 0 : n, index.scope.from, index.scope.to)) matching.add(s);
+    }
+    return matching;
+  }
+
+  /** Dedicated screen: accounts as cards plus the full source filter. */
+  private void accounts() {
+    final Map<String, Integer> counts = sourceCounts();
+    final List<CenterData.Source> matching = matchingSources(counts);
+    LinearLayout filters = ui.card(14, 12);
+    filters.addView(ui.text(tr("Source filter", "Фильтр источников"), 16, ui.text(), true));
+    TextView hint =
+        ui.text(
+            tr(
+                "Filters combine: a source is shown only if it matches all of them.",
+                "Фильтры складываются: источник виден, только если подходит под все."),
+            12.5f,
+            ui.sub(),
+            false);
+    hint.setPadding(0, dp(2), 0, dp(10));
+    filters.addView(hint);
+    EditText search = ui.field(t("search"), filter.text, 1);
+    search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+    search.setOnEditorActionListener(
+        (v, action, event) -> {
+          filter.text = v.getText().toString().trim();
+          show(9);
+          return true;
+        });
+    filters.addView(search, new LinearLayout.LayoutParams(-1, -2));
+    filters.addView(
+        filterRow(
+            t("type"),
+            new String[] {
+              t("all"), t("group"), t("supergroup"), t("channel"), t("topic"), t("privateChats")
+            },
+            new String[] {"", "group", "supergroup", "channel", "topic", "private"},
+            filter.type,
+            v -> filter.type = v,
+            9));
+    filters.addView(
+        filterRow(
+            t("role"),
+            new String[] {t("all"), t("owner"), t("admin"), t("member")},
+            new String[] {"", "owner", "admin", "member"},
+            filter.role,
+            v -> filter.role = v,
+            9));
+    filters.addView(
+        filterRow(
+            t("status"),
+            new String[] {t("all"), t("pinned"), t("archived"), t("muted")},
+            new String[] {"", "pinned", "archive", "muted"},
+            filter.status,
+            v -> filter.status = v,
+            9));
+    filters.addView(
+        filterRow(
+            t("active"),
+            new String[] {t("all"), t("active"), t("quiet")},
+            new String[] {"", "active", "quiet"},
+            filter.activity,
+            v -> filter.activity = v,
+            9));
+    android.widget.HorizontalScrollView more = ui.chipRow();
+    more.getChildAt(0).setPadding(0, dp(12), 0, dp(2));
+    ui.addChip(
+        more,
+        ui.chip(
+            t("folder") + (filter.folder.isEmpty() ? "" : ": " + filter.folder),
+            !filter.folder.isEmpty(),
+            v ->
+                input(
+                    "folder",
+                    filter.folder,
+                    value -> {
+                      filter.folder = value;
+                      show(9);
+                    })));
+    ui.addChip(
+        more,
+        ui.chip(
+            t("minActivity") + (filter.minPerDay > 0 ? ": " + filter.minPerDay : ""),
+            filter.minPerDay > 0,
+            v ->
+                input(
+                    "minActivity",
+                    "" + filter.minPerDay,
+                    value -> {
+                      try {
+                        filter.minPerDay = Math.max(0, Integer.parseInt(value));
+                        show(9);
+                      } catch (Exception e) {
+                        error(e.getMessage());
+                      }
+                    })));
+    filters.addView(more);
+    filters.addView(ui.divider());
+    LinearLayout foot = new LinearLayout(getParentActivity());
+    foot.setGravity(Gravity.CENTER_VERTICAL);
+    TextView found =
+        ui.text(
+            t("count") + ": " + matching.size() + " / " + index.sources.size(),
+            14,
+            ui.text(),
+            true);
+    foot.addView(found, new LinearLayout.LayoutParams(0, -2, 1));
+    foot.addView(
+        ui.chip(
+            tr("Reset", "Сбросить"),
+            false,
+            v -> {
+              resetFilters();
+              show(9);
+            }));
+    foot.addView(
+        ui.chip(
+            tr("Show list", "К списку"),
+            true,
+            v -> {
+              show(0);
+            }),
+        margins(-2, -2, 8, 0, 0, 0));
+    filters.addView(foot);
+    body.addView(filters, ui.cardParams());
+
+    List<Integer> accounts = activeAccounts();
+    body.addView(
+        ui.section(tr("Accounts", "Аккаунты") + " · " + accounts.size()));
+    if (accounts.isEmpty())
+      body.addView(
+          ui.empty(
+              R.drawable.tp_aic_accounts,
+              tr("No accounts", "Нет аккаунтов"),
+              tr("Sign in to a Telegram account first.", "Сначала войдите в аккаунт Telegram.")));
+    for (int a : accounts) {
+      final int account = a;
+      long n = index.sources.stream().filter(s -> s.account == account).count();
+      long loaded = index.messages.stream().filter(m -> m.account == account).count();
+      long groupsCount =
+          index.sources.stream()
+              .filter(s -> s.account == account && !s.type.equals("channel") && !s.type.equals("private"))
+              .count();
+      long channelsCount =
+          index.sources.stream().filter(s -> s.account == account && s.type.equals("channel")).count();
+      LinearLayout card = ui.card(14, 12);
+      LinearLayout head = new LinearLayout(getParentActivity());
+      head.setGravity(Gravity.CENTER_VERTICAL);
+      avatar(head, account, UserConfig.getInstance(account).getClientUserId());
+      LinearLayout col = new LinearLayout(getParentActivity());
+      col.setOrientation(LinearLayout.VERTICAL);
+      TextView name = ui.text(accountTitle(account), 16, ui.text(), true);
+      name.setSingleLine(true);
+      name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      col.addView(name);
+      TextView sub =
+          ui.text(
+              tr("Account", "Аккаунт") + " " + (account + 1) + " · " + t("session") + ": " + t("available"),
+              12.5f,
+              ui.sub(),
+              false);
+      col.addView(sub);
+      head.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
+      head.addView(ui.pill(modeTitle(accountMode(account)), modeColor(accountMode(account))));
+      card.addView(head);
+      card.addView(
+          ui.kpiRow(
+              ui.kpi("" + n, t("sources"), ui.series(0), groupsCount + " · " + channelsCount, ui.sub()),
+              ui.kpi("" + loaded, t("messages"), ui.series(1), tr("loaded", "загружено"), ui.sub())),
+          margins(-1, -2, 0, 4, 0, 4));
+      TextView scopeLabel = ui.text(tr("Analysis scope", "Охват анализа"), 12.5f, ui.sub(), true);
+      scopeLabel.setPadding(dp(4), dp(8), dp(4), dp(4));
+      card.addView(scopeLabel);
+      card.addView(
+          ui.segmented(
+              new String[] {t("all"), t("selected"), t("excluded")},
+              accountMode(account),
+              mode -> applyAccountMode(account, mode)));
+      boolean shown = filter.accounts.isEmpty() || filter.accounts.contains(account);
+      LinearLayout list = new LinearLayout(getParentActivity());
+      list.setGravity(Gravity.CENTER_VERTICAL);
+      list.setPadding(dp(4), dp(12), dp(4), 0);
+      TextView listTitle = ui.text(tr("Show in source list", "Показывать в списке источников"), 14, ui.text(), false);
+      list.addView(listTitle, new LinearLayout.LayoutParams(0, -2, 1));
+      list.addView(
+          ui.switchView(
+              shown,
+              on -> {
+                if (filter.accounts.isEmpty()) filter.accounts.addAll(accounts);
+                if (on) filter.accounts.add(account);
+                else filter.accounts.remove(account);
+                if (filter.accounts.containsAll(accounts)) filter.accounts.clear();
+                show(9);
+              }));
+      card.addView(list);
+      LinearLayout actions = new LinearLayout(getParentActivity());
+      actions.setPadding(0, dp(10), 0, 0);
+      actions.addView(
+          ui.chip(
+              tr("Only this account", "Только этот аккаунт"),
+              false,
+              v -> {
+                filter.accounts.clear();
+                filter.accounts.add(account);
+                show(0);
+              }));
+      actions.addView(
+          ui.chip(
+              tr("Sources", "Источники") + " ›",
+              false,
+              v -> {
+                filter.accounts.clear();
+                filter.accounts.add(account);
+                show(0);
+              }),
+          margins(-2, -2, 8, 0, 0, 0));
+      card.addView(actions);
+      body.addView(card, ui.cardParams());
+    }
+  }
+
+  private void sources() {
+    final Map<String, Integer> counts = sourceCounts();
+    final List<CenterData.Source> matching = matchingSources(counts);
+    final List<Integer> accounts = activeAccounts();
+
+    LinearLayout controls = ui.card(6, 12);
+    TextView periodTitle = ui.text(tr("Period", "Период"), 12.5f, ui.sub(), true);
+    periodTitle.setPadding(dp(10), 0, dp(10), dp(2));
+    controls.addView(periodTitle);
+    controls.addView(periodChips());
+    TextView refresh = ui.button(t("refresh"), false, R.drawable.tp_aic_refresh, v -> runSync(false));
+    TextView load = ui.button(t("load"), true, R.drawable.tp_aic_download, v -> runSync(true));
+    controls.addView(ui.buttonRow(refresh, load), margins(-1, -2, 0, 8, 0, 0));
+    if (status.getText().length() > 0)
+      controls.addView(
+          ui.buttonRow(
+              ui.button(
+                  t("cancel"),
+                  false,
+                  R.drawable.tp_aic_close,
+                  v -> {
+                    if (sync != null) sync.cancel();
                     status.setText("");
-                    show(0);
-                  });
-          sync.load();
+                    reload();
+                  })));
+    body.addView(controls, ui.cardParams());
+
+    LinearLayout accountCard =
+        ui.clickableCard(12, 10, v -> show(9));
+    LinearLayout accountHead = new LinearLayout(getParentActivity());
+    accountHead.setGravity(Gravity.CENTER_VERTICAL);
+    accountHead.addView(
+        ui.text(tr("Accounts", "Аккаунты") + " · " + accounts.size(), 15, ui.text(), true),
+        new LinearLayout.LayoutParams(0, -2, 1));
+    accountHead.addView(ui.text(tr("Accounts and filters", "Аккаунты и фильтры") + " ›", 13, ui.accent(), true));
+    accountCard.addView(accountHead);
+    android.widget.HorizontalScrollView strip = new android.widget.HorizontalScrollView(getParentActivity());
+    strip.setHorizontalScrollBarEnabled(false);
+    LinearLayout stripRow = new LinearLayout(getParentActivity());
+    for (int a : accounts) {
+      final int account = a;
+      LinearLayout mini = new LinearLayout(getParentActivity());
+      mini.setOrientation(LinearLayout.VERTICAL);
+      mini.setGravity(Gravity.CENTER_HORIZONTAL);
+      mini.setPadding(dp(4), dp(8), dp(4), dp(2));
+      LinearLayout face = new LinearLayout(getParentActivity());
+      avatar(face, account, UserConfig.getInstance(account).getClientUserId());
+      mini.addView(face, new LinearLayout.LayoutParams(-2, -2));
+      TextView n = ui.text(accountTitle(account), 12, ui.text(), false);
+      n.setSingleLine(true);
+      n.setMaxWidth(dp(92));
+      n.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      n.setGravity(Gravity.CENTER);
+      mini.addView(n);
+      TextView state = ui.pill(modeTitle(accountMode(account)), modeColor(accountMode(account)));
+      mini.addView(state, margins(-2, -2, 0, 4, 0, 0));
+      LinearLayout.LayoutParams miniParams = new LinearLayout.LayoutParams(dp(100), -2);
+      miniParams.rightMargin = dp(4);
+      stripRow.addView(mini, miniParams);
+    }
+    strip.addView(stripRow);
+    accountCard.addView(strip);
+    body.addView(accountCard, ui.cardParams());
+
+    LinearLayout searchCard = ui.card(12, 10);
+    LinearLayout searchRow = new LinearLayout(getParentActivity());
+    searchRow.setGravity(Gravity.CENTER_VERTICAL);
+    EditText search = ui.field(t("search"), filter.text, 1);
+    search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+    search.setOnEditorActionListener(
+        (v, action, event) -> {
+          filter.text = v.getText().toString().trim();
+          show(0);
+          return true;
         });
-    button(
-        "cancel",
-        () -> {
-          if (sync != null) sync.cancel();
-          status.setText("");
-          reload();
-        });
-    button(
-        "period",
-        () ->
-            choices(
-                "period",
-                new String[] {"1", "7", "30", "90", t("customDates"), t("sinceRead")},
-                i -> {
-                  index.scope.sinceRead = i == 5;
-                  if (i < 4) {
-                    index.scope.to = System.currentTimeMillis() / 1000;
-                    index.scope.from = index.scope.to - new int[] {1, 7, 30, 90}[i] * 86400L;
-                    index.saveScope();
-                    show(0);
-                  } else if (i == 4)
-                    input(
-                        "customDates",
-                        "2026-11-01 / 2026-11-24",
-                        dates -> {
-                          try {
-                            String[] v = dates.split("/");
-                            java.text.SimpleDateFormat f =
-                                new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
-                            f.setLenient(false);
-                            index.scope.from = f.parse(v[0].trim()).getTime() / 1000;
-                            index.scope.to = f.parse(v[1].trim()).getTime() / 1000 + 86399;
-                            if (index.scope.to < index.scope.from) throw new Exception();
-                            index.saveScope();
-                            show(0);
-                          } catch (Exception e) {
-                            error(t("customDates"));
-                          }
-                        });
-                  else {
-                    index.scope.to = System.currentTimeMillis() / 1000;
-                    index.scope.from = reviewFrom(index.scope);
-                    index.saveScope();
-                    show(0);
-                  }
+    searchRow.addView(search, new LinearLayout.LayoutParams(0, -2, 1));
+    searchRow.addView(
+        ui.button(tr("Filters", "Фильтры"), false, R.drawable.tp_aic_filter, v -> show(9)),
+        margins(-2, -2, 8, 0, 0, 0));
+    searchCard.addView(searchRow);
+    List<String> active = new ArrayList<>();
+    if (!filter.type.isEmpty()) active.add(t("type") + ": " + t(filter.type.equals("private") ? "privateChats" : filter.type));
+    if (!filter.role.isEmpty()) active.add(t("role") + ": " + t(filter.role));
+    if (!filter.status.isEmpty()) active.add(t("status") + ": " + t(filter.status.equals("archive") ? "archived" : filter.status));
+    if (!filter.activity.isEmpty()) active.add(t("active") + ": " + t(filter.activity));
+    if (!filter.folder.isEmpty()) active.add(t("folder") + ": " + filter.folder);
+    if (filter.minPerDay > 0) active.add(t("minActivity") + ": " + filter.minPerDay);
+    if (!filter.accounts.isEmpty()) active.add(t("account") + ": " + filter.accounts.size());
+    if (!active.isEmpty()) {
+      android.widget.HorizontalScrollView activeRow = ui.chipRow();
+      activeRow.getChildAt(0).setPadding(0, dp(8), 0, 0);
+      for (String label : active)
+        ui.addChip(
+            activeRow,
+            ui.chip(
+                label + "  ✕",
+                true,
+                v -> {
+                  resetFilters();
+                  show(0);
                 }));
+      searchCard.addView(activeRow);
+    }
+    body.addView(searchCard, ui.cardParams());
+
     toggle(
         "own",
         index.scope.excludeOwn,
@@ -757,7 +1339,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                       index.saveScope();
                       show(0);
                     })
-                .setNegativeButton(t("cancel"), null)
+                .setNegativeButton(t("cancel"), (d, w) -> show(0))
                 .show();
           else {
             index.scope.includePrivate = false;
@@ -765,250 +1347,191 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             show(0);
           }
         });
-    for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++)
-      if (UserConfig.getInstance(a).isClientActivated()) {
-        final int account = a;
-        long n = index.sources.stream().filter(s -> s.account == account).count();
-        String mode =
-            index.scope.excluded.contains(a)
-                ? t("excluded")
-                : index.scope.whole.contains(a) ? t("all") : t("selected");
-        LinearLayout accountIdentity = new LinearLayout(getParentActivity());
-        avatar(accountIdentity, a, UserConfig.getInstance(a).getClientUserId());
-        long loaded = index.messages.stream().filter(m -> m.account == account).count();
-        TextView session =
-            label(t("messages") + ": " + loaded + " · " + t("session") + ": " + t("available"), 14);
-        accountIdentity.addView(session);
-        body.addView(accountIdentity);
-        row(
-            UserObject.getUserName(UserConfig.getInstance(a).getCurrentUser())
-                + " · "
-                + n
-                + " · "
-                + mode,
-            () ->
-                choices(
-                    "account",
-                    new String[] {t("all"), t("selected"), t("excluded")},
-                    i -> {
-                      index.scope.excluded.remove(account);
-                      index.scope.whole.remove(account);
-                      if (i == 0) index.scope.whole.add(account);
-                      if (i == 2) {
-                        aiCancelled.set(true);
-                        report = null;
-                        index.scope.excluded.add(account);
-                        index.messages.removeIf(m -> m.account == account);
-                        CenterIndex.logout(account);
+
+    body.addView(
+        ui.section(
+            t("count") + " " + matching.size() + " / " + index.sources.size() + " · " + index.selected().size() + " " + t("messages")));
+    android.widget.HorizontalScrollView bulk = ui.chipRow();
+    ui.addChip(
+        bulk,
+        ui.chip(
+            t("selectAll"),
+            false,
+            v -> {
+              for (CenterData.Source s : matching) {
+                index.scope.excluded.remove(s.account);
+                index.scope.sources.add(s.key());
+              }
+              index.saveScope();
+              show(0);
+            }));
+    ui.addChip(
+        bulk,
+        ui.chip(
+            t("excludeMatching"),
+            false,
+            v -> {
+              for (CenterData.Source s : matching) {
+                if (index.scope.whole.remove(s.account))
+                  for (CenterData.Source q : index.sources)
+                    if (q.account == s.account) index.scope.sources.add(q.key());
+                index.scope.sources.remove(s.key());
+              }
+              index.saveScope();
+              show(0);
+            }));
+    ui.addChip(
+        bulk,
+        ui.chip(
+            t("saveSet"),
+            false,
+            v ->
+                input(
+                    "name",
+                    "",
+                    name -> {
+                      try {
+                        TPAiStore.putPrivate("center_set_" + name, index.scope.json().toString());
+                        JSONObject sets = CenterIndex.settings().optJSONObject("sets");
+                        if (sets == null) sets = new JSONObject();
+                        sets.put(name, true);
+                        CenterIndex.setting("sets", sets);
+                      } catch (Exception e) {
+                        error(e.getMessage());
                       }
+                    })));
+    ui.addChip(
+        bulk,
+        ui.chip(
+            t("sets"),
+            false,
+            v -> {
+              JSONObject o = CenterIndex.settings().optJSONObject("sets");
+              ArrayList<String> names = new ArrayList<>();
+              if (o != null) {
+                Iterator<String> keys = o.keys();
+                while (keys.hasNext()) names.add(keys.next());
+              }
+              choices(
+                  "sets",
+                  names.toArray(new String[0]),
+                  i -> {
+                    try {
+                      index.scope =
+                          CenterData.Scope.parse(
+                              new JSONObject(TPAiStore.getPrivate("center_set_" + names.get(i))));
                       index.saveScope();
                       show(0);
-                    }));
-      }
-    button(
-        "account",
-        () -> {
-          java.util.ArrayList<Integer> accounts = new java.util.ArrayList<>();
-          java.util.ArrayList<String> names = new java.util.ArrayList<>();
-          for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++)
-            if (UserConfig.getInstance(a).isClientActivated()) {
-              accounts.add(a);
-              names.add(UserObject.getUserName(UserConfig.getInstance(a).getCurrentUser()));
-            }
-          boolean[] chosen = new boolean[accounts.size()];
-          for (int i = 0; i < chosen.length; i++)
-            chosen[i] = filter.accounts.isEmpty() || filter.accounts.contains(accounts.get(i));
-          dialogBuilder()
-              .setTitle(t("account"))
-              .setMultiChoiceItems(
-                  names.toArray(new String[0]), chosen, (d, i, on) -> chosen[i] = on)
-              .setPositiveButton(
-                  t("confirm"),
-                  (d, w) -> {
-                    filter.accounts.clear();
-                    for (int i = 0; i < chosen.length; i++)
-                      if (chosen[i]) filter.accounts.add(accounts.get(i));
-                    show(0);
-                  })
-              .show();
-        });
-    button(
-        "search",
-        () ->
-            input(
-                "search",
-                filter.text,
-                v -> {
-                  filter.text = v;
-                  show(0);
-                }));
-    String[] types = {"", "group", "supergroup", "channel", "topic", "private"};
-    button(
-        "type",
-        () ->
-            choices(
-                "type",
-                new String[] {
-                  t("all"), t("group"), t("supergroup"), t("channel"), t("topic"), t("privateChats")
-                },
-                i -> {
-                  filter.type = types[i];
-                  show(0);
-                }));
-    String[] roles = {"", "owner", "admin", "member"};
-    button(
-        "role",
-        () ->
-            choices(
-                "role",
-                new String[] {t("all"), t("owner"), t("admin"), t("member")},
-                i -> {
-                  filter.role = roles[i];
-                  show(0);
-                }));
-    button(
-        "folder",
-        () ->
-            input(
-                "folder",
-                filter.folder,
-                v -> {
-                  filter.folder = v;
-                  show(0);
-                }));
-    button(
-        "status",
-        () ->
-            choices(
-                "status",
-                new String[] {t("all"), t("pinned"), t("archived"), t("muted")},
-                i -> {
-                  filter.status = new String[] {"", "pinned", "archive", "muted"}[i];
-                  show(0);
-                }));
-    button(
-        "active",
-        () ->
-            choices(
-                "active",
-                new String[] {t("all"), t("active"), t("quiet")},
-                i -> {
-                  filter.activity = new String[] {"", "active", "quiet"}[i];
-                  show(0);
-                }));
-    button(
-        "minActivity",
-        () ->
-            input(
-                "minActivity",
-                "" + filter.minPerDay,
-                v -> {
-                  try {
-                    filter.minPerDay = Math.max(0, Integer.parseInt(v));
-                    show(0);
-                  } catch (Exception e) {
-                    error(e.getMessage());
-                  }
-                }));
-    List<CenterData.Source> matching = new ArrayList<>();
-    for (CenterData.Source s : index.sources)
-      if (filter.matches(s, index.messages, index.scope.from, index.scope.to)) matching.add(s);
-    button(
-        "selectAll",
-        () -> {
-          for (CenterData.Source s : matching) {
-            index.scope.excluded.remove(s.account);
-            index.scope.sources.add(s.key());
-          }
-          index.saveScope();
-          show(0);
-        });
-    button(
-        "excludeMatching",
-        () -> {
-          for (CenterData.Source s : matching) {
-            if (index.scope.whole.remove(s.account))
-              for (CenterData.Source q : index.sources)
-                if (q.account == s.account) index.scope.sources.add(q.key());
-            index.scope.sources.remove(s.key());
-          }
-          index.saveScope();
-          show(0);
-        });
-    button(
-        "saveSet",
-        () ->
-            input(
-                "name",
-                "",
-                name -> {
-                  try {
-                    TPAiStore.putPrivate("center_set_" + name, index.scope.json().toString());
-                    JSONObject sets = CenterIndex.settings().optJSONObject("sets");
-                    if (sets == null) sets = new JSONObject();
-                    sets.put(name, true);
-                    CenterIndex.setting("sets", sets);
-                  } catch (Exception e) {
-                    error(e.getMessage());
-                  }
-                }));
-    button(
-        "sets",
-        () -> {
-          JSONObject o = CenterIndex.settings().optJSONObject("sets");
-          ArrayList<String> names = new ArrayList<>();
-          if (o != null) {
-            Iterator<String> keys = o.keys();
-            while (keys.hasNext()) names.add(keys.next());
-          }
-          choices(
-              "sets",
-              names.toArray(new String[0]),
-              i -> {
-                try {
-                  index.scope =
-                      CenterData.Scope.parse(
-                          new JSONObject(TPAiStore.getPrivate("center_set_" + names.get(i))));
-                  index.saveScope();
-                  show(0);
-                } catch (Exception e) {
-                  error(e.getMessage());
-                }
-              });
-        });
-    info(t("count") + ": " + matching.size() + " / " + index.selected().size());
-    for (CenterData.Source s : matching) {
-      CheckBox v = new CheckBox(getParentActivity());
-      v.setText(
-          s.title
-              + " · "
-              + s.accountName
-              + " · "
-              + t(s.type)
-              + " · "
-              + t(s.role)
-              + "\n"
-              + t("state")
-              + ": "
-              + (s.available ? "✓" : "—")
-              + " · "
-              + (s.loadedAt > 0 ? new Date(s.loadedAt).toString() : "—"));
-      v.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-      v.setChecked(index.scope.allows(s));
-      v.setOnCheckedChangeListener(
-          (b, on) -> {
-            if (index.scope.whole.remove(s.account)) {
-              for (CenterData.Source q : index.sources)
-                if (q.account == s.account) index.scope.sources.add(q.key());
-            }
-            index.scope.excluded.remove(s.account);
-            if (on) index.scope.sources.add(s.key());
-            else index.scope.sources.remove(s.key());
-            index.saveScope();
-            scopeLine.setText(scopeSummary());
-          });
-      body.addView(v);
+                    } catch (Exception e) {
+                      error(e.getMessage());
+                    }
+                  });
+            }));
+    body.addView(bulk);
+
+    if (index.sources.isEmpty()) {
+      body.addView(
+          ui.empty(
+              R.drawable.tp_aic_sources,
+              tr("No sources yet", "Источников пока нет"),
+              tr(
+                  "Tap “Refresh” to find groups and channels of all your accounts.",
+                  "Нажмите «Обновить» — центр найдёт группы и каналы всех ваших аккаунтов.")));
+      return;
     }
+    if (matching.isEmpty()) {
+      body.addView(
+          ui.empty(
+              R.drawable.tp_aic_filter,
+              tr("Nothing matches", "Ничего не найдено"),
+              tr("Loosen or reset the filters.", "Ослабьте или сбросьте фильтры.")));
+      return;
+    }
+    int max = 1;
+    for (CenterData.Source s : matching) {
+      Integer n = counts.get(s.key());
+      if (n != null) max = Math.max(max, n);
+    }
+    int shownCount = 0;
+    for (int a : accounts) {
+      List<CenterData.Source> own = new ArrayList<>();
+      for (CenterData.Source s : matching) if (s.account == a) own.add(s);
+      if (own.isEmpty() || shownCount >= sourceLimit) continue;
+      if (accounts.size() > 1) {
+        LinearLayout header = new LinearLayout(getParentActivity());
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(8), dp(12), dp(8), dp(0));
+        avatar(header, a, UserConfig.getInstance(a).getClientUserId());
+        header.addView(
+            ui.text(accountTitle(a) + " · " + own.size(), 14, ui.text(), true),
+            new LinearLayout.LayoutParams(0, -2, 1));
+        body.addView(header);
+      }
+      for (CenterData.Source s : own) {
+        if (shownCount++ >= sourceLimit) break;
+        Integer n = counts.get(s.key());
+        body.addView(sourceRow(s, n == null ? 0 : n, max), margins(-1, -2, 12, 3, 12, 3));
+      }
+    }
+    if (matching.size() > sourceLimit)
+      button(
+          "next",
+          () -> {
+            sourceLimit += 100;
+            show(0);
+          });
+  }
+
+  private View sourceRow(CenterData.Source s, int count, int max) {
+    LinearLayout r = new LinearLayout(getParentActivity());
+    r.setGravity(Gravity.CENTER_VERTICAL);
+    r.setPadding(dp(2), dp(4), dp(12), dp(4));
+    r.setBackground(ui.ripple(ui.shape(ui.card(), 14, ui.line(), 1), 14));
+    avatar(r, s.account, s.dialog);
+    LinearLayout col = new LinearLayout(getParentActivity());
+    col.setOrientation(LinearLayout.VERTICAL);
+    TextView title = ui.text(s.title, 15, ui.text(), true);
+    title.setSingleLine(true);
+    title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    col.addView(title);
+    StringBuilder line = new StringBuilder(t(s.type));
+    if (!s.role.isEmpty()) line.append(" · ").append(t(s.role));
+    if (!s.folder.isEmpty()) line.append(" · ").append(s.folder);
+    if (s.pinned) line.append(" · ").append(t("pinned"));
+    if (s.archived) line.append(" · ").append(t("archived"));
+    if (s.muted) line.append(" · ").append(t("muted"));
+    TextView sub = ui.text(line.toString(), 12, ui.sub(), false);
+    sub.setSingleLine(true);
+    sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    col.addView(sub);
+    LinearLayout activity = new LinearLayout(getParentActivity());
+    activity.setGravity(Gravity.CENTER_VERTICAL);
+    activity.setPadding(0, dp(5), 0, 0);
+    activity.addView(
+        ui.meter(count / (float) max, count == 0 ? ui.sub() : ui.accent(), 5),
+        new LinearLayout.LayoutParams(0, dp(5), 1));
+    TextView number = ui.text(count + " " + t("messages"), 11.5f, ui.sub(), false);
+    number.setPadding(dp(8), 0, 0, 0);
+    activity.addView(number);
+    col.addView(activity);
+    r.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
+    Switch toggle =
+        ui.switchView(
+            index.scope.allows(s),
+            on -> {
+              if (index.scope.whole.remove(s.account)) {
+                for (CenterData.Source q : index.sources)
+                  if (q.account == s.account) index.scope.sources.add(q.key());
+              }
+              index.scope.excluded.remove(s.account);
+              if (on) index.scope.sources.add(s.key());
+              else index.scope.sources.remove(s.key());
+              index.saveScope();
+              scopeLine.setText(scopeSummary());
+            });
+    r.addView(toggle, margins(-2, -2, 8, 0, 0, 0));
+    r.setOnClickListener(w -> toggle.toggle());
+    return r;
   }
 
   private void summaries(boolean chat) {

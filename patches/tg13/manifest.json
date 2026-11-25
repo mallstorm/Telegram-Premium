@@ -472,7 +472,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/aicenter/CenterData.java",
       "base_sha256": null,
-      "sha256": "e055c324836ade9619be80d1e8ac499f25424faf2ae345d3f64a5ea1377b6d08"
+      "sha256": "5eb9da69246e07b923c9b2a8370bf81349a6982087db995dd1aefe08a999db88"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/aicenter/CenterDigestJob.java",
@@ -1277,7 +1277,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAnalyzerActivity.java",
       "base_sha256": null,
-      "sha256": "504071ffbf33959a14b066a5a2ff727eafb8c8d719be81e755497df0e7d589fe"
+      "sha256": "57e1730723c9d05831fc8c02f6fa37df26880c1eb07ae6c9e7eb61a48dd7f43e"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumAppearanceActivity.java",
@@ -1298,6 +1298,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCenterActivity.java",
       "base_sha256": null,
       "sha256": "006f7692caaed499b32d5dc4b978443636eabfabeaab9e54421de9ed16c20ff5"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCenterUi.java",
+      "base_sha256": null,
+      "sha256": "39c469d04e62c01a86d112cbea01ad1f76484b40eb3b825fd10c9d6f055852e9"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumChatWallpapersActivity.java",
@@ -1508,6 +1513,141 @@
       "path": "TMessagesProj/src/main/java/org/telegram/ui/iv/TPRichTools.java",
       "base_sha256": null,
       "sha256": "ae9531a0411477370e9fcda6bf3b025e176197ab74966c1023d87caec4f78300"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_accounts.xml",
+      "base_sha256": null,
+      "sha256": "d7725df9f6b4ed4cb0ca5dab3d65cbd4518072168e5ab3aebc1e7d74bc3793fd"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_activity.xml",
+      "base_sha256": null,
+      "sha256": "d031702930bd80aadae0f7062ff649abe8f8dd2e8bba05a25a1e167400da74a1"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_analyst.xml",
+      "base_sha256": null,
+      "sha256": "a09d7f07b69e2a6bb874e421b7d7503df3c45596f08dc0048b3f45e10d9287e0"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_authors.xml",
+      "base_sha256": null,
+      "sha256": "595257199ae7cae960e69e9c933cbdb560fba50d70800c4fa8d98d2ee90ae51d"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_calendar.xml",
+      "base_sha256": null,
+      "sha256": "c22fbcc36fb3172b320120ae293fa6f4e404760d19d0400c49618188af462953"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_chat_group.xml",
+      "base_sha256": null,
+      "sha256": "c5fa56c26b01ea90813256c139312c5f514b06237ca244a4cd07c7214fbebb18"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_check.xml",
+      "base_sha256": null,
+      "sha256": "f546f311c17246b17a5d9b67c967781d348a84920a61e1f364444cfad59ff6dd"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_chevron.xml",
+      "base_sha256": null,
+      "sha256": "0e4ee283e6a91f136bd1be33654a7e7dac4054f263d27c60a8c360740ae2f04c"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_close.xml",
+      "base_sha256": null,
+      "sha256": "cb9811cdfbdd9c376c7fd4f58607798bd9d20b4cfea44bc073fd69e883175d0b"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_download.xml",
+      "base_sha256": null,
+      "sha256": "90985d5e526b4d8f5dcbb4d78e07b753b2e86eabc5ef1741c91eb4170bdbbf2e"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_expand.xml",
+      "base_sha256": null,
+      "sha256": "a8a230a6c7800241c94683b62ccbb660dc69a6c8de37a57336cc376cee48c7eb"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_filter.xml",
+      "base_sha256": null,
+      "sha256": "b91074a8dd6f00a01fc5361e88c2b38fbf15a87bb9245e467d03f1ec6ee6ba10"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_lock.xml",
+      "base_sha256": null,
+      "sha256": "f8811953a0ecf5be465eb6c320e2612dd79de70505b12ccfb80a096b4c6887be"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_media.xml",
+      "base_sha256": null,
+      "sha256": "0ed0354715a0654e55fb7c9e1408cf1f071ba59f0b523216dd71a8118b2b5ad1"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_play.xml",
+      "base_sha256": null,
+      "sha256": "9ef5a60dc47146edcf6fcd006087d2c28b2924dfa4d6474c7cd215da65c100e2"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_quote.xml",
+      "base_sha256": null,
+      "sha256": "5a067650873a251ebf4b92fbe1212250cb53a6bdcd36628f3529e022933a10b6"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_refresh.xml",
+      "base_sha256": null,
+      "sha256": "e0075647ce17d8ba7d05ce16b8955f5f3df5b0e4ee983d6aa5e4da5b98c529e5"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_reports.xml",
+      "base_sha256": null,
+      "sha256": "96d56b0d53bdc5ab6aecaaa31acd4806893ea9ce69b0fd981a2a7fbb4e1c746d"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_send.xml",
+      "base_sha256": null,
+      "sha256": "d5280e48dc2d58fd100f49b5b7ebb68a45ff590cc4b56077df62bf84615d39ad"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_settings.xml",
+      "base_sha256": null,
+      "sha256": "f64dbb035abb541c1c244fdb6a2a91767dcbcf03d8a0996c279d6408d61c8abb"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_share.xml",
+      "base_sha256": null,
+      "sha256": "9de75f55e68cc588d2cb4c9907844c2fa3420c3485b6a7386f1175d6acd85ed4"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_sources.xml",
+      "base_sha256": null,
+      "sha256": "cebef64b3d8ba7d1f526f73b0b424149937e4c8ff11b447b3aed0a66df9bd264"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_summaries.xml",
+      "base_sha256": null,
+      "sha256": "98c58bb33d47c926af9ed1d835e5a8738bf99da45352b8fcfeac944efaa948e3"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_transcriber.xml",
+      "base_sha256": null,
+      "sha256": "c90a890ae1f5ad57728cc4d0fdda3baf968d1d3d7c2821c8fd7e600e8dc3a9c8"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_trend_down.xml",
+      "base_sha256": null,
+      "sha256": "afc397e314d4a074808ae94af0ff04c1add1e4097b15818950ab94bc40239144"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_trend_up.xml",
+      "base_sha256": null,
+      "sha256": "5ef8d1171f66e4c771f5e4deb1baae4860922d2cda0ba842b4e01e738fbbbb26"
+    },
+    {
+      "path": "TMessagesProj/src/main/res/drawable/tp_aic_warning.xml",
+      "base_sha256": null,
+      "sha256": "e280c0c0665146c6977793bae483ca98c7b7564679c225303c6cf4e8577e9ebc"
     },
     {
       "path": "TMessagesProj/src/main/res/drawable/tp_cloud_accounts.xml",
@@ -1962,7 +2102,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "bf2dd6aee445d34481bf3340e9b6d0c57040f4f8693402c0fb47f59ecd0cc940"
+      "sha256": "f2d359775b298d01c9e7bd53b1482c9b6fa2c6898673dca2fd9b162ed97d9fcc"
     },
     {
       "path": "settings.gradle",
