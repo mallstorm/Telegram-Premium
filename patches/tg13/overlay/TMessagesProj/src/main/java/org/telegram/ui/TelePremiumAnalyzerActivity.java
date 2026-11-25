@@ -1535,153 +1535,240 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void summaries(boolean chat) {
-    if (!chat)
-      button(
-          "type",
-          () ->
-              choices(
-                  "type",
-                  new String[] {t("groupReport"), t("authorsReport"), t("new"), t("compare")},
-                  i -> {
-                    reportKind = i;
-                  }));
-    EditText composer = new EditText(getParentActivity());
-    composer.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-    composer.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
-    composer.setBackgroundTintList(
-        android.content.res.ColorStateList.valueOf(
-            getThemedColor(Theme.key_windowBackgroundWhiteBlueText)));
-    composer.setHint(t("query"));
-    composer.setMaxLines(4);
-    composer.setText(query);
-    body.addView(composer);
-    button(
-        "responseMode",
-        () ->
-            choices(
-                "responseMode",
-                new String[] {
-                  t("shortText"), t("detailedText"), t("shortIllustrated"), t("detailedIllustrated")
-                },
-                mode -> {
-                  detailed = mode % 2 == 1;
-                  CenterExport.Options options = exportOptions();
-                  options.images = mode >= 2;
-                  saveExportOptions(options);
-                }));
-    toggle(
-        "personal",
-        index.scope.includePersonal,
-        b -> {
-          index.scope.includePersonal = b;
-          index.saveScope();
-        });
-    button(
-        "ask",
-        () -> {
-          query = composer.getText().toString().trim();
-          if (query.isEmpty()) {
-            toast(t("query"));
-            return;
-          }
-          runReport(query);
-        });
-    button("cancel", () -> aiCancelled.set(true));
-    button(
-        "templates",
-        () -> {
-          JSONObject templates = CenterIndex.settings().optJSONObject("templates");
-          List<String> names = new ArrayList<>();
-          if (templates != null) {
-            Iterator<String> keys = templates.keys();
-            while (keys.hasNext()) names.add(keys.next());
-          }
-          JSONObject saved = templates;
-          choices(
-              "templates",
-              names.toArray(new String[0]),
-              i -> {
-                try {
-                  JSONObject v = saved.getJSONObject(names.get(i));
-                  query = v.optString("query");
-                  index.scope = CenterData.Scope.parse(v.getJSONObject("scope"));
-                  index.saveScope();
+    LinearLayout box = ui.card(14, 12);
+    if (!chat) {
+      box.addView(ui.text(tr("Report type", "Тип отчёта"), 12.5f, ui.sub(), true));
+      String[] kinds = {t("groupReport"), t("authorsReport"), t("new"), t("compare")};
+      android.widget.HorizontalScrollView kindRow = ui.chipRow();
+      kindRow.getChildAt(0).setPadding(0, dp(6), 0, dp(10));
+      for (int i = 0; i < kinds.length; i++) {
+        final int pick = i;
+        ui.addChip(
+            kindRow,
+            ui.chip(
+                kinds[i],
+                reportKind == i,
+                v -> {
+                  reportKind = pick;
                   show(screen);
-                } catch (Exception e) {
-                  error(e.getMessage());
-                }
-              });
-        });
-    if (report != null) {
-      renderReport(report);
-      button(
-          "saveTemplate",
-          () ->
-              input(
-                  "name",
-                  "",
-                  name -> {
+                }));
+      }
+      box.addView(kindRow);
+    }
+    box.addView(
+        ui.text(
+            chat ? tr("Your question", "Ваш вопрос") : tr("What to find out", "Что выяснить"),
+            12.5f,
+            ui.sub(),
+            true));
+    final EditText composer = ui.field(t("query"), query, 4);
+    box.addView(composer, margins(-1, -2, 0, 6, 0, 0));
+    String[] examples =
+        org.telegram.messenger.telepremium.TPStrings.isRussian()
+            ? new String[] {
+              "Что произошло за период?",
+              "Какие решения приняты?",
+              "Кто о чём спорил?",
+              "Какие вопросы остались без ответа?"
+            }
+            : new String[] {
+              "What happened in this period?",
+              "Which decisions were made?",
+              "Who argued about what?",
+              "Which questions stayed unanswered?"
+            };
+    android.widget.HorizontalScrollView exampleRow = ui.chipRow();
+    exampleRow.getChildAt(0).setPadding(0, dp(8), 0, dp(2));
+    for (String example : examples)
+      ui.addChip(exampleRow, ui.chip(example, false, v -> composer.setText(example)));
+    box.addView(exampleRow);
+    box.addView(ui.divider());
+    CenterExport.Options current = exportOptions();
+    int mode = (current.images ? 2 : 0) + (detailed ? 1 : 0);
+    box.addView(ui.text(t("responseMode"), 12.5f, ui.sub(), true));
+    LinearLayout seg =
+        ui.segmented(
+            new String[] {
+              tr("Short", "Кратко"),
+              tr("Detailed", "Подробно"),
+              tr("Short + images", "Кратко + картинки"),
+              tr("Detailed + images", "Подробно + картинки")
+            },
+            mode,
+            picked -> {
+              detailed = picked % 2 == 1;
+              CenterExport.Options options = exportOptions();
+              options.images = picked >= 2;
+              saveExportOptions(options);
+            });
+    box.addView(seg, margins(-1, -2, 0, 6, 0, 0));
+    final Switch personal =
+        ui.switchView(
+            index.scope.includePersonal,
+            b -> {
+              index.scope.includePersonal = b;
+              index.saveScope();
+            });
+    LinearLayout personalRow = new LinearLayout(getParentActivity());
+    personalRow.setGravity(Gravity.CENTER_VERTICAL);
+    personalRow.setPadding(dp(2), dp(12), dp(2), 0);
+    personalRow.addView(
+        ui.text(t("personal"), 14, ui.text(), false), new LinearLayout.LayoutParams(0, -2, 1));
+    personalRow.addView(personal);
+    personalRow.setOnClickListener(w -> personal.toggle());
+    box.addView(personalRow);
+    TextView ask =
+        ui.button(
+            t("ask"),
+            true,
+            R.drawable.tp_aic_send,
+            v -> {
+              query = composer.getText().toString().trim();
+              if (query.isEmpty()) {
+                toast(t("query"));
+                return;
+              }
+              runReport(query);
+            });
+    TextView stop =
+        ui.button(t("cancel"), false, R.drawable.tp_aic_close, v -> aiCancelled.set(true));
+    box.addView(ui.buttonRow(stop, ask), margins(-1, -2, 0, 14, 0, 0));
+    body.addView(box, ui.cardParams());
+
+    android.widget.HorizontalScrollView tools = ui.chipRow();
+    ui.addChip(
+        tools,
+        ui.chip(
+            t("templates"),
+            false,
+            v -> {
+              JSONObject templates = CenterIndex.settings().optJSONObject("templates");
+              List<String> names = new ArrayList<>();
+              if (templates != null) {
+                Iterator<String> keys = templates.keys();
+                while (keys.hasNext()) names.add(keys.next());
+              }
+              JSONObject saved = templates;
+              choices(
+                  "templates",
+                  names.toArray(new String[0]),
+                  i -> {
                     try {
-                      JSONObject ts = CenterIndex.settings().optJSONObject("templates");
-                      if (ts == null) ts = new JSONObject();
-                      ts.put(
-                          name,
-                          new JSONObject().put("query", query).put("scope", index.scope.json()));
-                      CenterIndex.setting("templates", ts);
+                      JSONObject value = saved.getJSONObject(names.get(i));
+                      query = value.optString("query");
+                      index.scope = CenterData.Scope.parse(value.getJSONObject("scope"));
+                      index.saveScope();
+                      show(screen);
                     } catch (Exception e) {
                       error(e.getMessage());
                     }
-                  }));
-      button("archive", () -> persistReport(report, "report"));
-      button(
-          "onlyAuthor",
-          () -> {
-            Map<Long, String> names = new LinkedHashMap<>();
-            for (CenterReports.Claim claim : report.claims)
-              for (CenterReports.Evidence proof : claim.evidence)
-                if (proof.message.author != 0)
-                  names.put(proof.message.author, proof.message.authorName);
-            List<Long> ids = new ArrayList<>(names.keySet());
-            choices(
-                "authors",
-                names.values().toArray(new String[0]),
-                which -> {
-                  index.scope.authors.clear();
-                  index.scope.authors.add(ids.get(which));
-                  index.saveScope();
-                  drilldown = null;
-                  authorReport = true;
-                  show(6);
-                });
-          });
-      button(
-          "compare",
-          () -> {
-            reportKind = 3;
-            drilldown = null;
-            runReport(report.question);
-          });
-    }
-    if (chat) button("reports", this::history);
-    button(
-        "markReviewed",
-        () -> {
-          long now = System.currentTimeMillis();
-          for (CenterData.Source source : index.sources)
-            if (index.scope.allows(source)) {
-              source.readAt = now;
-              CenterStore.IO.execute(
-                  () -> {
-                    try {
-                      CenterStore.get()
-                          .put(source.account, source.owner, "source", source.key(), source.json());
-                    } catch (Exception e) {
-                      FileLog.e(e);
-                    }
                   });
-            }
-          toast(t("done"));
-        });
+            }));
+    ui.addChip(
+        tools,
+        ui.chip(
+            t("markReviewed"),
+            false,
+            v -> {
+              long now = System.currentTimeMillis();
+              for (CenterData.Source source : index.sources)
+                if (index.scope.allows(source)) {
+                  source.readAt = now;
+                  CenterStore.IO.execute(
+                      () -> {
+                        try {
+                          CenterStore.get()
+                              .put(
+                                  source.account,
+                                  source.owner,
+                                  "source",
+                                  source.key(),
+                                  source.json());
+                        } catch (Exception e) {
+                          FileLog.e(e);
+                        }
+                      });
+                }
+              toast(t("done"));
+            }));
+    if (chat) ui.addChip(tools, ui.chip(t("reports"), false, v -> history()));
+    body.addView(tools, margins(-1, -2, 8, 0, 8, 0));
+    if (report != null) {
+      renderReport(report);
+      android.widget.HorizontalScrollView actions = ui.chipRow();
+      ui.addChip(
+          actions,
+          ui.chip(
+              t("archive"),
+              true,
+              v -> persistReport(report, "report")));
+      ui.addChip(
+          actions,
+          ui.chip(
+              t("saveTemplate"),
+              false,
+              v ->
+                  input(
+                      "name",
+                      "",
+                      name -> {
+                        try {
+                          JSONObject ts = CenterIndex.settings().optJSONObject("templates");
+                          if (ts == null) ts = new JSONObject();
+                          ts.put(
+                              name,
+                              new JSONObject()
+                                  .put("query", query)
+                                  .put("scope", index.scope.json()));
+                          CenterIndex.setting("templates", ts);
+                        } catch (Exception err) {
+                          error(err.getMessage());
+                        }
+                      })));
+      ui.addChip(
+          actions,
+          ui.chip(
+              t("onlyAuthor"),
+              false,
+              v -> {
+                Map<Long, String> names = new LinkedHashMap<>();
+                for (CenterReports.Claim claim : report.claims)
+                  for (CenterReports.Evidence proof : claim.evidence)
+                    if (proof.message.author != 0)
+                      names.put(proof.message.author, proof.message.authorName);
+                List<Long> ids = new ArrayList<>(names.keySet());
+                choices(
+                    "authors",
+                    names.values().toArray(new String[0]),
+                    which -> {
+                      index.scope.authors.clear();
+                      index.scope.authors.add(ids.get(which));
+                      index.saveScope();
+                      drilldown = null;
+                      authorReport = true;
+                      show(6);
+                    });
+              }));
+      ui.addChip(
+          actions,
+          ui.chip(
+              t("compare"),
+              false,
+              v -> {
+                reportKind = 3;
+                drilldown = null;
+                runReport(report.question);
+              }));
+      body.addView(actions, margins(-1, -2, 8, 4, 8, 0));
+    } else if (!chat) {
+      body.addView(
+          ui.empty(
+              R.drawable.tp_aic_summaries,
+              tr("No report yet", "Отчёта пока нет"),
+              tr(
+                  "Pick the groups on the Sources screen, then ask a question above.",
+                  "Выберите группы на экране «Источники» и задайте вопрос выше.")));
+    }
   }
 
   private long reviewFrom(CenterData.Scope scope) {
@@ -1848,30 +1935,51 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           .show();
   }
 
+  private String dateTime(long millis) {
+    return java.text.DateFormat.getDateTimeInstance(
+            java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+        .format(new Date(millis));
+  }
+
+  private String dateOnly(long seconds) {
+    return java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM)
+        .format(new Date(seconds * 1000L));
+  }
+
   private void renderReport(CenterReports.Report r) {
-    button("blocks", this::reportBuilder);
-    button("export", () -> exportReport(false, false));
-    button("preview", () -> exportReport(false, true));
-    button("saveCloud", () -> exportReport(true, false));
-    info(
-        r.question
-            + "\n"
-            + new Date(r.created)
-            + "\n"
-            + new Date(r.from * 1000)
-            + " — "
-            + new Date(r.to * 1000));
-    info(
-        t("coverage")
-            + ": "
-            + r.analyzed
-            + " / "
-            + r.indexed
-            + " ("
-            + (r.indexed == 0 ? 0 : (100L * r.analyzed / r.indexed))
-            + "%) · "
-            + (r.complete ? t("done") : t("partial")));
-    info(t("coverageIndexed"));
+    LinearLayout summary = ui.card(16, 14);
+    TextView question = ui.text(r.question, 17, ui.text(), true);
+    summary.addView(question);
+    TextView period =
+        ui.text(
+            dateOnly(r.from) + " — " + dateOnly(r.to) + " · " + dateTime(r.created),
+            12.5f,
+            ui.sub(),
+            false);
+    period.setPadding(0, dp(4), 0, dp(10));
+    summary.addView(period);
+    long percent = r.indexed == 0 ? 0 : (100L * r.analyzed / r.indexed);
+    summary.addView(
+        ui.labeledMeter(
+            t("coverage") + ": " + r.analyzed + " / " + r.indexed,
+            percent + "%",
+            percent / 100f,
+            r.complete ? ui.good() : ui.warn()));
+    LinearLayout badges = new LinearLayout(getParentActivity());
+    badges.setPadding(0, dp(10), 0, 0);
+    badges.addView(ui.pill(r.complete ? t("done") : t("partial"), r.complete ? ui.good() : ui.warn()));
+    badges.addView(ui.pill(r.claims.size() + " " + t("evidence"), ui.accent()), margins(-2, -2, 6, 0, 0, 0));
+    summary.addView(badges);
+    TextView note = ui.text(t("coverageIndexed"), 12, ui.sub(), false);
+    note.setPadding(0, dp(8), 0, 0);
+    summary.addView(note);
+    body.addView(summary, ui.cardParams());
+    android.widget.HorizontalScrollView exports = ui.chipRow();
+    ui.addChip(exports, ui.chip(t("export"), true, v -> exportReport(false, false)));
+    ui.addChip(exports, ui.chip(t("preview"), false, v -> exportReport(false, true)));
+    ui.addChip(exports, ui.chip(t("saveCloud"), false, v -> exportReport(true, false)));
+    ui.addChip(exports, ui.chip(t("blocks"), false, v -> reportBuilder()));
+    body.addView(exports, margins(-1, -2, 8, 0, 8, 4));
     CenterExport.Options options = exportOptions();
     for (String block : options.blocks) {
       if (block.equals("main")) renderMain(r);
@@ -1882,29 +1990,48 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
         heading("authors");
         info(t("authorWarning"));
         JSONArray authors = r.statistics.optJSONArray("authors");
+        int topCount = 1;
+        for (int i = 0; authors != null && i < authors.length(); i++)
+          topCount = Math.max(topCount, authors.optJSONObject(i).optInt("count"));
         for (int i = 0; authors != null && i < Math.min(40, authors.length()); i++) {
           JSONObject author = authors.optJSONObject(i);
-          row(
-              author.optString("name") + " · " + author.optInt("count"),
-              () -> {
+          LinearLayout meterBox = new LinearLayout(getParentActivity());
+          meterBox.setOrientation(LinearLayout.VERTICAL);
+          meterBox.addView(
+              ui.labeledMeter(
+                  (i + 1) + ". " + author.optString("name"),
+                  "" + author.optInt("count"),
+                  author.optInt("count") / (float) topCount,
+                  ui.series(i)));
+          meterBox.setBackground(ui.ripple(ui.shape(ui.card(), 14, ui.line(), 1), 14));
+          meterBox.setPadding(dp(14), dp(8), dp(14), dp(8));
+          meterBox.setOnClickListener(
+              w -> {
                 List<CenterData.Message> hits = new ArrayList<>();
                 for (CenterData.Message m : index.selected())
                   if (m.author == author.optLong("id")) hits.add(m);
                 messageDetails(hits);
               });
+          body.addView(meterBox, margins(-1, -2, 12, 3, 12, 3));
         }
       } else if (block.equals("charts") && r.statistics != null) {
         heading("activity");
         int version = uiVersion;
         for (int mode : CenterExport.chartModes(r.statistics)) {
           final int kind = mode;
-          TextView title =
-              row(
+          LinearLayout chartCard = ui.card(8, 10);
+          TextView chartTitle =
+              ui.text(
                   t(new String[] {"rank", "days", "heatmap", "content", "concentration"}[mode]),
-                  null);
+                  14,
+                  ui.text(),
+                  true);
+          chartTitle.setPadding(dp(8), 0, dp(8), dp(6));
+          chartCard.addView(chartTitle);
           ImageView chart = new ImageView(getParentActivity());
           chart.setScaleType(ImageView.ScaleType.FIT_CENTER);
-          body.addView(chart, new LinearLayout.LayoutParams(-1, dp(240)));
+          chartCard.addView(chart, new LinearLayout.LayoutParams(-1, dp(240)));
+          body.addView(chartCard, ui.cardParams());
           TPAiClient.async(
               () -> {
                 byte[] bytes =
@@ -1962,9 +2089,20 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       CenterReports.Report r, CenterReports.Evidence evidence, LinearLayout container) {
     CenterData.Message m = evidence.message;
     if (m.protectedMedia) return;
+    LinearLayout frame = ui.card(0, 0);
+    frame.setPadding(0, 0, 0, dp(10));
     ImageView image = new ImageView(getParentActivity());
     image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-    container.addView(image, new LinearLayout.LayoutParams(-1, dp(170)));
+    image.setClipToOutline(true);
+    image.setOutlineProvider(
+        new ViewOutlineProvider() {
+          @Override
+          public void getOutline(View view, Outline outline) {
+            outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(14));
+          }
+        });
+    frame.addView(image, new LinearLayout.LayoutParams(-1, dp(180)));
+    container.addView(frame, ui.cardParams());
     int version = uiVersion;
     TPAiClient.async(
         () -> {
@@ -1989,28 +2127,46 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           if (evidence.timeMs > 0) playAt(m, evidence.timeMs);
           else mediaDetails(m, evidence.page);
         });
-    container.addView(
-        label(
-            m.authorName
-                + " · "
-                + m.sourceTitle
-                + " · "
-                + new Date(m.date * 1000L)
-                + "\n"
-                + m.description,
-            13));
+    TextView caption =
+        ui.text(
+            m.authorName + " · " + m.sourceTitle + " · " + dateTime(m.date * 1000L)
+                + (m.description.isEmpty() ? "" : "\n" + m.description),
+            12.5f,
+            ui.sub(),
+            false);
+    caption.setPadding(dp(14), dp(8), dp(14), 0);
+    frame.addView(caption);
   }
 
   private void renderMain(CenterReports.Report r) {
+    int firstClaim = Math.min(reportPage * 50, r.claims.size());
     for (CenterReports.Claim claim :
-        r.claims.subList(
-            Math.min(reportPage * 50, r.claims.size()),
-            Math.min((reportPage + 1) * 50, r.claims.size()))) {
-      TextView title = row(claim.title, null);
-      title.setTypeface(AndroidUtilities.bold());
-      if (!claim.topic.isEmpty()) info(t("topics") + ": " + claim.topic);
-      info(claim.text);
-      info(t(claim.verified() ? claim.certainty : "unverified"));
+        r.claims.subList(firstClaim, Math.min((reportPage + 1) * 50, r.claims.size()))) {
+      final int number = r.claims.indexOf(claim) + 1;
+      LinearLayout card = ui.card(16, 14);
+      LinearLayout head = new LinearLayout(getParentActivity());
+      head.setGravity(Gravity.CENTER_VERTICAL);
+      TextView num = ui.text("" + number, 13, ui.onAccent(), true);
+      num.setGravity(Gravity.CENTER);
+      num.setBackground(ui.shape(ui.accent(), 11, 0, 0));
+      LinearLayout.LayoutParams numParams = new LinearLayout.LayoutParams(dp(22), dp(22));
+      numParams.rightMargin = dp(10);
+      head.addView(num, numParams);
+      head.addView(ui.text(claim.title, 16, ui.text(), true), new LinearLayout.LayoutParams(0, -2, 1));
+      card.addView(head);
+      LinearLayout meta = new LinearLayout(getParentActivity());
+      meta.setPadding(0, dp(8), 0, dp(6));
+      boolean verified = claim.verified();
+      meta.addView(
+          ui.pill(
+              t(verified ? claim.certainty : "unverified"),
+              verified ? ui.good() : ui.warn()));
+      if (!claim.topic.isEmpty())
+        meta.addView(ui.pill(claim.topic, ui.accent()), margins(-2, -2, 6, 0, 0, 0));
+      card.addView(meta);
+      TextView textView = ui.text(claim.text, 14.5f, ui.text(), false);
+      textView.setLineSpacing(dp(2), 1f);
+      card.addView(textView);
       final LinearLayout evidence = new LinearLayout(getParentActivity());
       evidence.setOrientation(LinearLayout.VERTICAL);
       String evidenceKey = r.id + ":" + r.claims.indexOf(claim);
@@ -2022,58 +2178,84 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             else
               for (CenterReports.Evidence ev : claim.evidence) {
                 CenterData.Message m = ev.message;
-                TextView v =
-                    label(
-                        m.authorName
-                            + " · "
-                            + m.sourceTitle
-                            + " · "
-                            + m.accountName
-                            + "\n"
-                            + new Date(m.date * 1000L)
-                            + "\n“"
-                            + ev.quote
-                            + "”"
-                            + (m.deleted ? "\n" + t("deleted") : ""),
-                        14);
-                v.setOnClickListener(w -> openEvidence(m));
-                v.setOnLongClickListener(
+                LinearLayout item = new LinearLayout(getParentActivity());
+                item.setOrientation(LinearLayout.VERTICAL);
+                item.setPadding(dp(12), dp(10), dp(12), dp(10));
+                item.setBackground(
+                    ui.ripple(ui.shape(TelePremiumCenterUi.alpha(ui.accent(), 14), 12, 0, 0), 12));
+                LinearLayout identity = new LinearLayout(getParentActivity());
+                identity.setGravity(Gravity.CENTER_VERTICAL);
+                avatar(identity, m.account, m.author > 0 ? m.author : m.dialog);
+                LinearLayout who = new LinearLayout(getParentActivity());
+                who.setOrientation(LinearLayout.VERTICAL);
+                TextView author = ui.text(m.authorName, 14, ui.text(), true);
+                author.setSingleLine(true);
+                author.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                who.addView(author);
+                TextView where =
+                    ui.text(
+                        m.sourceTitle + " · " + m.accountName + " · " + dateTime(m.date * 1000L),
+                        11.5f,
+                        ui.sub(),
+                        false);
+                where.setSingleLine(true);
+                where.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                who.addView(where);
+                identity.addView(who, new LinearLayout.LayoutParams(0, -2, 1));
+                item.addView(identity);
+                TextView quote = ui.text("“" + ev.quote + "”", 14, ui.text(), false);
+                quote.setPadding(dp(4), dp(8), dp(4), 0);
+                quote.setTypeface(Typeface.defaultFromStyle(Typeface.ITALIC));
+                item.addView(quote);
+                if (m.deleted) item.addView(ui.pill(t("deleted"), ui.bad()), margins(-2, -2, 0, 6, 0, 0));
+                LinearLayout chips = new LinearLayout(getParentActivity());
+                chips.setPadding(0, dp(8), 0, 0);
+                chips.addView(
+                    ui.chip(tr("Open message", "Открыть сообщение"), true, w -> openEvidence(m)));
+                if (ev.timeMs > 0)
+                  chips.addView(
+                      ui.chip(CenterTranscript.stamp(ev.timeMs), false, w -> playAt(m, ev.timeMs)),
+                      margins(-2, -2, 6, 0, 0, 0));
+                if (ev.page > 0)
+                  chips.addView(
+                      ui.chip(t("page") + " " + ev.page, false, w -> mediaDetails(m, ev.page)),
+                      margins(-2, -2, 6, 0, 0, 0));
+                chips.addView(
+                    ui.chip("⋯", false, w -> evidenceActions(m, claim)),
+                    margins(-2, -2, 6, 0, 0, 0));
+                item.addView(chips);
+                item.setOnClickListener(w -> openEvidence(m));
+                item.setOnLongClickListener(
                     w -> {
                       evidenceActions(m, claim);
                       return true;
                     });
-                LinearLayout identity = new LinearLayout(getParentActivity());
-                identity.setGravity(Gravity.CENTER_VERTICAL);
-                avatar(identity, m.account, m.author > 0 ? m.author : m.dialog);
-                identity.addView(v, new LinearLayout.LayoutParams(0, -2, 1));
-                evidence.addView(identity);
-                if (ev.timeMs > 0) {
-                  TextView time = label(CenterTranscript.stamp(ev.timeMs), 14);
-                  time.setOnClickListener(w -> playAt(m, ev.timeMs));
-                  evidence.addView(time);
-                }
-                if (ev.page > 0) {
-                  TextView pageLabel = label(t("page") + " " + ev.page, 14);
-                  pageLabel.setOnClickListener(w -> mediaDetails(m, ev.page));
-                  evidence.addView(pageLabel);
-                }
+                evidence.addView(item, margins(-1, -2, 0, 6, 0, 0));
                 if (exportOptions().images) reportImage(r, ev, evidence);
               }
 
             if (opening) expandedEvidence.add(evidenceKey);
             else expandedEvidence.remove(evidenceKey);
           };
-      row(t("evidence") + " (" + claim.evidence.size() + ")", toggleEvidence);
-      body.addView(evidence);
+      LinearLayout actions = new LinearLayout(getParentActivity());
+      actions.setPadding(0, dp(12), 0, 0);
+      actions.addView(
+          ui.chip(t("evidence") + " (" + claim.evidence.size() + ")", false, v -> toggleEvidence.run()));
+      actions.addView(
+          ui.chip(
+              t("expand"),
+              false,
+              v -> {
+                drilldown = new ArrayList<>();
+                for (CenterReports.Evidence ev : claim.evidence) drilldown.add(ev.message);
+                query = t("expand") + ": " + claim.title;
+                show(6);
+              }),
+          margins(-2, -2, 8, 0, 0, 0));
+      card.addView(actions);
+      card.addView(evidence);
+      body.addView(card, ui.cardParams());
       if (expandedEvidence.contains(evidenceKey)) toggleEvidence.run();
-      row(
-          t("expand") + " · " + claim.title,
-          () -> {
-            drilldown = new ArrayList<>();
-            for (CenterReports.Evidence ev : claim.evidence) drilldown.add(ev.message);
-            query = t("expand") + ": " + claim.title;
-            show(6);
-          });
     }
     if (reportPage > 0)
       button(
@@ -3357,51 +3539,86 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void activity(CenterStats stats) {
-    button(
-        "sort",
-        () ->
-            choices(
-                "sort",
-                new String[] {t("messages"), t("authors"), t("media"), t("growth")},
-                i -> {
-                  activitySort = i;
-                  show(2);
-                }));
-    button(
-        "chart",
-        () ->
-            choices(
-                "chart",
-                new String[] {t("rank"), t("days"), t("heatmap"), t("content"), t("concentration")},
-                i -> {
-                  activityMode = i;
-                  show(2);
-                }));
-    button(
-        "groups",
-        () -> {
-          String[] names = new String[stats.groups.size()];
-          boolean[] selected = new boolean[names.length];
-          for (int i = 0; i < names.length; i++) {
-            names[i] = stats.groups.get(i).title;
-            selected[i] = chartGroups.contains(stats.groups.get(i).id);
-          }
-          dialogBuilder()
-              .setTitle(t("groups"))
-              .setMultiChoiceItems(
-                  names,
-                  selected,
-                  (d, i, on) -> {
-                    if (on && chartGroups.size() >= 4) {
-                      ((AlertDialog) d).getListView().setItemChecked(i, false);
-                      return;
-                    }
-                    if (on) chartGroups.add(stats.groups.get(i).id);
-                    else chartGroups.remove(stats.groups.get(i).id);
-                  })
-              .setPositiveButton(t("done"), (d, w) -> show(2))
-              .show();
-        });
+    int totalMessages = 0, quietGroups = 0, activeGroups = 0;
+    for (CenterStats.Group g : stats.groups) {
+      totalMessages += g.messages;
+      if (g.messages == 0) quietGroups++;
+      else activeGroups++;
+    }
+    body.addView(
+        ui.kpiRow(
+            ui.kpi("" + totalMessages, t("messages"), ui.series(0), stats.days + " " + t("days"), ui.sub()),
+            ui.kpi("" + activeGroups, t("active"), ui.series(1), "/ " + stats.groups.size(), ui.sub())));
+    body.addView(
+        ui.kpiRow(
+            ui.kpi("" + stats.authors.size(), t("authors"), ui.series(2), "", ui.sub()),
+            ui.kpi("" + quietGroups, t("quiet"), ui.series(3), "", quietGroups > 0 ? ui.warn() : ui.sub())));
+    LinearLayout controls = ui.card(12, 10);
+    controls.addView(ui.text(t("chart"), 12.5f, ui.sub(), true));
+    String[] chartNames = {t("rank"), t("days"), t("heatmap"), t("content"), t("concentration")};
+    android.widget.HorizontalScrollView chartRow = ui.chipRow();
+    chartRow.getChildAt(0).setPadding(0, dp(6), 0, dp(6));
+    for (int i = 0; i < chartNames.length; i++) {
+      final int pick = i;
+      ui.addChip(
+          chartRow,
+          ui.chip(
+              chartNames[i],
+              activityMode == i,
+              v -> {
+                activityMode = pick;
+                show(2);
+              }));
+    }
+    controls.addView(chartRow);
+    controls.addView(ui.text(t("sort"), 12.5f, ui.sub(), true));
+    String[] sortNames = {t("messages"), t("authors"), t("media"), t("growth")};
+    android.widget.HorizontalScrollView sortRow = ui.chipRow();
+    sortRow.getChildAt(0).setPadding(0, dp(6), 0, dp(4));
+    for (int i = 0; i < sortNames.length; i++) {
+      final int pick = i;
+      ui.addChip(
+          sortRow,
+          ui.chip(
+              sortNames[i],
+              activitySort == i,
+              v -> {
+                activitySort = pick;
+                show(2);
+              }));
+    }
+    controls.addView(sortRow);
+    LinearLayout controlButtons = new LinearLayout(getParentActivity());
+    controlButtons.setPadding(0, dp(6), 0, 0);
+    controlButtons.addView(
+        ui.chip(
+            t("groups") + (chartGroups.isEmpty() ? "" : " · " + chartGroups.size()),
+            !chartGroups.isEmpty(),
+            v -> {
+              String[] names = new String[stats.groups.size()];
+              boolean[] selected = new boolean[names.length];
+              for (int i = 0; i < names.length; i++) {
+                names[i] = stats.groups.get(i).title;
+                selected[i] = chartGroups.contains(stats.groups.get(i).id);
+              }
+              dialogBuilder()
+                  .setTitle(t("groups"))
+                  .setMultiChoiceItems(
+                      names,
+                      selected,
+                      (d, i, on) -> {
+                        if (on && chartGroups.size() >= 4) {
+                          ((AlertDialog) d).getListView().setItemChecked(i, false);
+                          return;
+                        }
+                        if (on) chartGroups.add(stats.groups.get(i).id);
+                        else chartGroups.remove(stats.groups.get(i).id);
+                      })
+                  .setPositiveButton(t("done"), (d, w) -> show(2))
+                  .show();
+            }));
+    controls.addView(controlButtons);
+    body.addView(controls, ui.cardParams());
     Comparator<CenterStats.Group> comparator =
         activitySort == 1
             ? Comparator.comparingInt(g -> g.authors.size())
@@ -3418,11 +3635,17 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       if (chartGroups.isEmpty() ? chosen.size() < 4 : chartGroups.contains(g.id)) chosen.add(g);
     if (!chosen.isEmpty()) {
       ActivityChart chart = new ActivityChart(getParentActivity(), stats, chosen, activityMode);
-      body.addView(chart, new LinearLayout.LayoutParams(-1, dp(activityMode == 2 ? 280 : 320)));
-      button("export", () -> shareChart(chart));
-      button(
-          "chartReport",
-          () -> {
+      LinearLayout chartCard = ui.card(6, 10);
+      chartCard.addView(chart, new LinearLayout.LayoutParams(-1, dp(activityMode == 2 ? 280 : 320)));
+      body.addView(chartCard, ui.cardParams());
+      TextView exportChart =
+          ui.button(t("export"), false, R.drawable.tp_aic_share, v -> shareChart(chart));
+      TextView chartReport =
+          ui.button(
+              t("chartReport"),
+              true,
+              R.drawable.tp_aic_reports,
+              v -> {
             int mode = activityMode, version = uiVersion;
             List<CenterData.Source> selectedSources = new ArrayList<>(index.sources);
             TPAiClient.async(
@@ -3440,41 +3663,51 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                   }
                 });
           });
+      body.addView(ui.buttonRow(exportChart, chartReport), margins(-1, -2, 12, 0, 12, 0));
     }
     heading("table");
+    int topMessages = 1;
+    for (CenterStats.Group g : ranked) topMessages = Math.max(topMessages, g.messages);
     for (CenterStats.Group g : ranked) {
+      boolean rising = g.previousComplete && g.growth() > 0;
+      boolean falling = g.previousComplete && g.growth() < 0;
       String growth =
           g.previousComplete
               ? (g.previous == 0 && g.messages > 0
                   ? t("new")
                   : String.format(Locale.getDefault(), "%+.1f%%", g.growth() * 100))
               : t("partial");
-      row(
-          g.title
-              + " · "
-              + g.messages
-              + " · "
-              + t("authors")
-              + ": "
-              + g.authors.size()
-              + " · "
-              + t("media")
-              + ": "
-              + g.media
-              + "\n"
-              + t("average")
-              + ": "
-              + String.format(Locale.getDefault(), "%.1f", g.messages / (double) stats.days)
-              + " · "
-              + t("growth")
-              + ": "
-              + growth
-              + "\n"
-              + t("concentration")
-              + ": "
-              + g.concentration
-              + (g.currentComplete ? "" : " · " + t("partial")),
-          () -> messageDetails(g.evidence));
+      LinearLayout card = ui.clickableCard(14, 12, v -> messageDetails(g.evidence));
+      LinearLayout head = new LinearLayout(getParentActivity());
+      head.setGravity(Gravity.CENTER_VERTICAL);
+      TextView title = ui.text(g.title, 15, ui.text(), true);
+      title.setSingleLine(true);
+      title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+      head.addView(ui.pill(growth, rising ? ui.good() : falling ? ui.bad() : ui.sub()));
+      card.addView(head);
+      LinearLayout meterLine = new LinearLayout(getParentActivity());
+      meterLine.setGravity(Gravity.CENTER_VERTICAL);
+      meterLine.setPadding(0, dp(8), 0, dp(6));
+      meterLine.addView(
+          ui.meter(g.messages / (float) topMessages, ui.series(Math.max(0, chosen.indexOf(g))), 7),
+          new LinearLayout.LayoutParams(0, dp(7), 1));
+      TextView count = ui.text("" + g.messages, 15, ui.text(), true);
+      count.setPadding(dp(10), 0, 0, 0);
+      meterLine.addView(count);
+      card.addView(meterLine);
+      card.addView(
+          ui.text(
+              t("authors") + ": " + g.authors.size()
+                  + " · " + t("media") + ": " + g.media
+                  + " · " + t("average") + ": "
+                  + String.format(Locale.getDefault(), "%.1f", g.messages / (double) stats.days)
+                  + " · " + t("concentration") + ": " + g.concentration
+                  + (g.currentComplete ? "" : " · " + t("partial")),
+              12,
+              ui.sub(),
+              false));
+      body.addView(card, ui.cardParams());
     }
     if (activityMode == 1) {
       heading("days");
@@ -3625,37 +3858,49 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void authors(CenterStats stats) {
-    button(
-        "search",
-        () ->
-            input(
-                "search",
-                authorSearch,
-                v -> {
-                  authorSearch = v;
-                  authorListPage = 0;
-                  show(3);
-                }));
-    button(
-        "sort",
-        () ->
-            choices(
-                "sort",
-                new String[] {t("messages"), t("media"), t("groups"), t("growth")},
-                i -> {
-                  authorSort = i;
-                  authorListPage = 0;
-                  show(3);
-                }));
-    button(
-        "compareAuthors",
-        () -> {
-          body.removeAllViews();
-          heading("compareAuthors");
-          info(t("authorWarning"));
-          for (CenterStats.Author a : stats.authors)
-            if (comparedAuthors.contains(a.id)) authorNumbers(a, stats);
+    LinearLayout controls = ui.card(12, 10);
+    EditText search = ui.field(t("search"), authorSearch, 1);
+    search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+    search.setOnEditorActionListener(
+        (v, action, event) -> {
+          authorSearch = v.getText().toString().trim();
+          authorListPage = 0;
+          show(3);
+          return true;
         });
+    controls.addView(search, new LinearLayout.LayoutParams(-1, -2));
+    String[] sortNames = {t("messages"), t("media"), t("groups"), t("growth")};
+    android.widget.HorizontalScrollView sortRow = ui.chipRow();
+    sortRow.getChildAt(0).setPadding(0, dp(8), 0, dp(2));
+    for (int i = 0; i < sortNames.length; i++) {
+      final int pick = i;
+      ui.addChip(
+          sortRow,
+          ui.chip(
+              sortNames[i],
+              authorSort == i,
+              v -> {
+                authorSort = pick;
+                authorListPage = 0;
+                show(3);
+              }));
+    }
+    controls.addView(sortRow);
+    body.addView(controls, ui.cardParams());
+    primary(
+          "compareAuthors",
+          R.drawable.tp_aic_authors,
+          () -> {
+            if (comparedAuthors.isEmpty()) {
+              toast(tr("Switch on two or more authors first.", "Сначала включите двух или больше авторов."));
+              return;
+            }
+            body.removeAllViews();
+            heading("compareAuthors");
+            info(t("authorWarning"));
+            for (CenterStats.Author a : stats.authors)
+              if (comparedAuthors.contains(a.id)) authorNumbers(a, stats);
+          });
     if (pendingAuthor != Long.MIN_VALUE) {
       long selected = pendingAuthor;
       pendingAuthor = Long.MIN_VALUE;
@@ -3676,27 +3921,47 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     : Comparator.comparingInt(a -> a.count);
     authors.sort(comparator.reversed());
     int rendered = 0;
+    int topAuthor = 1;
+    for (CenterStats.Author a : authors) topAuthor = Math.max(topAuthor, a.count);
     for (CenterStats.Author a : authors)
       if (a.name.toLowerCase(Locale.ROOT).contains(authorSearch.toLowerCase(Locale.ROOT))
           && rendered++ >= authorListPage * 40
           && rendered <= (authorListPage + 1) * 40) {
-        CheckBox compare = new CheckBox(getParentActivity());
-        compare.setText(
-            a.name
-                + " · "
-                + a.count
-                + " · "
-                + a.groups.size()
-                + (a.own ? " · " + t("ownAuthor") : ""));
-        compare.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-        compare.setChecked(comparedAuthors.contains(a.id));
-        compare.setOnCheckedChangeListener(
-            (v, b) -> {
-              if (b) comparedAuthors.add(a.id);
-              else comparedAuthors.remove(a.id);
-            });
-        body.addView(compare);
-        row(t("profile") + " · " + a.name, () -> authorProfile(a, stats));
+        LinearLayout card = ui.clickableCard(12, 10, v -> authorProfile(a, stats));
+        LinearLayout line = new LinearLayout(getParentActivity());
+        line.setGravity(Gravity.CENTER_VERTICAL);
+        int account = a.accounts.isEmpty() ? UserConfig.selectedAccount : a.accounts.iterator().next();
+        avatar(line, account, a.id);
+        LinearLayout col = new LinearLayout(getParentActivity());
+        col.setOrientation(LinearLayout.VERTICAL);
+        TextView name = ui.text(a.name, 15, ui.text(), true);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        col.addView(name);
+        col.addView(
+            ui.text(
+                a.groups.size() + " " + t("groups") + " · " + t("media") + ": " + a.media
+                    + (a.own ? " · " + t("ownAuthor") : ""),
+                12,
+                ui.sub(),
+                false));
+        line.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView count = ui.text("" + a.count, 17, ui.text(), true);
+        count.setPadding(dp(8), 0, dp(8), 0);
+        line.addView(count);
+        final Switch compare =
+            ui.switchView(
+                comparedAuthors.contains(a.id),
+                b -> {
+                  if (b) comparedAuthors.add(a.id);
+                  else comparedAuthors.remove(a.id);
+                });
+        line.addView(compare);
+        card.addView(line);
+        LinearLayout.LayoutParams meterParams = new LinearLayout.LayoutParams(-1, dp(5));
+        meterParams.setMargins(dp(2), dp(8), dp(2), 0);
+        card.addView(ui.meter(a.count / (float) topAuthor, ui.accent(), 5), meterParams);
+        body.addView(card, ui.cardParams());
       }
     long matching =
         authors.stream()
@@ -3998,7 +4263,6 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     final int mode;
     final List<android.graphics.RectF> hits = new ArrayList<>();
     final List<List<CenterData.Message>> data = new ArrayList<>();
-    final int[] colors = {0xff3185cc, 0xff22a889, 0xffb56bba, 0xffd98a43};
 
     ActivityChart(Context c, CenterStats s, List<CenterStats.Group> g, int m) {
       super(c);
@@ -4013,10 +4277,46 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       data.add(rows);
     }
 
+    int color(int i) {
+      return ui.series(i);
+    }
+
     void text(Canvas c, String label, float x, float y) {
-      paint.setColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-      paint.setTextSize(dp(11));
+      text(c, label, x, y, ui.text(), 11.5f, Paint.Align.LEFT);
+    }
+
+    void text(Canvas c, String label, float x, float y, int color, float sp, Paint.Align align) {
+      paint.setStyle(Paint.Style.FILL);
+      paint.setColor(color);
+      paint.setTextSize(dp(sp));
+      paint.setTextAlign(align);
       c.drawText(label, x, y, paint);
+      paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    void bar(Canvas c, float l, float t, float r, float b, int color) {
+      paint.setStyle(Paint.Style.FILL);
+      paint.setColor(color);
+      if (r - l < 1) r = l + 1;
+      c.drawRoundRect(l, t, r, b, Math.min(dp(5), (b - t) / 2), Math.min(dp(5), (b - t) / 2), paint);
+    }
+
+    void legend(Canvas c, List<String> names, float x, float y, float limit) {
+      float cx = x;
+      for (int i = 0; i < names.size(); i++) {
+        String name = names.get(i).length() > 18 ? names.get(i).substring(0, 18) + "…" : names.get(i);
+        paint.setTextSize(dp(11));
+        float w = paint.measureText(name) + dp(22);
+        if (cx + w > limit) {
+          cx = x;
+          y += dp(16);
+        }
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(color(i));
+        c.drawRoundRect(cx, y - dp(9), cx + dp(10), y + dp(1), dp(3), dp(3), paint);
+        text(c, name, cx + dp(15), y, ui.sub(), 11, Paint.Align.LEFT);
+        cx += w + dp(6);
+      }
     }
 
     @Override
@@ -4024,36 +4324,62 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       super.onDraw(canvas);
       hits.clear();
       data.clear();
-      canvas.drawColor(getThemedColor(Theme.key_windowBackgroundWhite));
-      float width = getWidth() - dp(24), height = getHeight() - dp(44), left = dp(12), top = dp(20);
+      canvas.drawColor(ui.card());
+      float left = dp(10), right = getWidth() - dp(10), width = right - left;
+      float top = dp(8), bottom = getHeight() - dp(8), height = bottom - top;
       if (mode == 0 || mode == 3 || mode == 4) {
+        List<String> legendNames = new ArrayList<>();
+        if (mode == 3) {
+          Set<String> kinds = new LinkedHashSet<>();
+          for (CenterStats.Group g : groups) kinds.addAll(g.types.keySet());
+          for (String kind : kinds) legendNames.add(t(kind.equals("link") ? "links" : kind));
+          bottom -= dp(18) * (1 + legendNames.size() / 4);
+          height = bottom - top;
+        }
         int max = 1;
         for (CenterStats.Group g : groups)
-          max = Math.max(max, mode == 4 ? g.concentration : g.messages);
+          max = Math.max(max, mode == 4 ? g.concentration : mode == 3 ? g.messages : g.messages);
         float row = height / Math.max(1, groups.size());
         int n = 0;
         for (CenterStats.Group g : groups) {
           float y = top + n * row;
-          text(
-              canvas, g.title.length() > 28 ? g.title.substring(0, 28) : g.title, left, y + dp(12));
-          float x = left, end = left + width * (mode == 4 ? g.concentration : g.messages) / max;
+          String title = g.title.length() > 34 ? g.title.substring(0, 34) + "…" : g.title;
+          text(canvas, title, left, y + dp(14), ui.text(), 12.5f, Paint.Align.LEFT);
+          float barTop = y + dp(22), barBottom = Math.min(y + row - dp(10), barTop + dp(24));
+          float trackEnd = right - dp(46);
+          paint.setStyle(Paint.Style.FILL);
+          paint.setColor(TelePremiumCenterUi.alpha(ui.sub(), 36));
+          canvas.drawRoundRect(left, barTop, trackEnd, barBottom, dp(5), dp(5), paint);
+          float x = left;
+          int value = mode == 4 ? g.concentration : g.messages;
           if (mode == 3) {
             int k = 0;
             for (Map.Entry<String, Integer> type : g.types.entrySet()) {
-              float edge = x + width * type.getValue() / max;
-              paint.setColor(colors[k++ % colors.length]);
-              canvas.drawRect(x, y + dp(20), edge, y + row - dp(8), paint);
+              float edge = x + (trackEnd - left) * type.getValue() / max;
+              if (edge > x) bar(canvas, x, barTop, edge, barBottom, color(k));
+              k++;
               x = edge;
             }
           } else {
-            paint.setColor(
-                g.previousComplete
-                    ? (g.growth() >= 0 ? 0xff22a889 : 0xffd35e62)
-                    : colors[n % colors.length]);
-            canvas.drawRect(x, y + dp(20), end, y + row - dp(8), paint);
+            int fill =
+                mode == 0 && g.previousComplete
+                    ? (g.growth() >= 0 ? ui.good() : ui.bad())
+                    : color(n);
+            bar(canvas, left, barTop, left + (trackEnd - left) * value / max, barBottom, fill);
           }
-          hit(left, y, left + width, y + row, g.evidence);
+          text(
+              canvas,
+              mode == 4 ? value + "%" : "" + value,
+              right,
+              (barTop + barBottom) / 2 + dp(4.5f),
+              ui.text(),
+              13,
+              Paint.Align.RIGHT);
+          hit(left, y, right, y + row, g.evidence);
           n++;
+        }
+        if (mode == 3) {
+          legend(canvas, legendNames, left, getHeight() - dp(8) - dp(16) * (legendNames.size() / 4), right);
         }
       } else if (mode == 1) {
         SortedSet<String> dates = new TreeSet<>();
@@ -4063,44 +4389,93 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           for (int n : g.daily.values()) max = Math.max(max, n);
         }
         List<String> days = new ArrayList<>(dates);
+        float plotLeft = left + dp(26), plotTop = top + dp(8), plotRight = right - dp(6);
+        float plotBottom = getHeight() - dp(54);
+        float plotHeight = plotBottom - plotTop, plotWidth = plotRight - plotLeft;
+        paint.setStrokeWidth(dp(1));
+        for (int g = 0; g <= 4; g++) {
+          float y = plotBottom - plotHeight * g / 4f;
+          paint.setStyle(Paint.Style.STROKE);
+          paint.setColor(ui.line());
+          canvas.drawLine(plotLeft, y, plotRight, y, paint);
+          text(canvas, "" + Math.round(max * g / 4f), left, y + dp(4), ui.sub(), 10.5f, Paint.Align.LEFT);
+        }
+        if (!days.isEmpty()) {
+          text(canvas, days.get(0), plotLeft, plotBottom + dp(16), ui.sub(), 10.5f, Paint.Align.LEFT);
+          text(canvas, days.get(days.size() - 1), plotRight, plotBottom + dp(16), ui.sub(), 10.5f, Paint.Align.RIGHT);
+        }
+        List<String> names = new ArrayList<>();
         for (int g = 0; g < groups.size(); g++) {
           CenterStats.Group group = groups.get(g);
-          Path line = new Path();
+          names.add(group.title);
+          Path line = new Path(), area = new Path();
+          float lastX = plotLeft, firstX = plotLeft;
           for (int i = 0; i < days.size(); i++) {
-            float x = left + width * i / Math.max(1, days.size() - 1),
-                y = top + height - height * group.daily.getOrDefault(days.get(i), 0) / max;
-            if (i == 0) line.moveTo(x, y);
-            else line.lineTo(x, y);
+            float x = plotLeft + plotWidth * i / Math.max(1, days.size() - 1),
+                y = plotBottom - plotHeight * group.daily.getOrDefault(days.get(i), 0) / max;
+            if (i == 0) {
+              line.moveTo(x, y);
+              area.moveTo(x, plotBottom);
+              area.lineTo(x, y);
+              firstX = x;
+            } else {
+              line.lineTo(x, y);
+              area.lineTo(x, y);
+            }
+            lastX = x;
             List<CenterData.Message> rows =
                 group.dayEvidence.getOrDefault(days.get(i), Collections.emptyList());
             hit(x - dp(12), y - dp(12), x + dp(12), y + dp(12), rows);
           }
-          paint.setColor(colors[g % colors.length]);
+          if (!days.isEmpty() && g == 0) {
+            area.lineTo(lastX, plotBottom);
+            area.close();
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(TelePremiumCenterUi.alpha(color(0), 34));
+            canvas.drawPath(area, paint);
+          }
+          paint.setColor(color(g));
           paint.setStyle(Paint.Style.STROKE);
-          paint.setStrokeWidth(dp(2));
+          paint.setStrokeWidth(dp(2.2f));
+          paint.setStrokeJoin(Paint.Join.ROUND);
+          paint.setStrokeCap(Paint.Cap.ROUND);
           canvas.drawPath(line, paint);
-          paint.setStyle(Paint.Style.FILL);
-          text(canvas, group.title, left, top + g * dp(14));
+          if (days.size() <= 31) {
+            paint.setStyle(Paint.Style.FILL);
+            for (int i = 0; i < days.size(); i++) {
+              float x = plotLeft + plotWidth * i / Math.max(1, days.size() - 1),
+                  y = plotBottom - plotHeight * group.daily.getOrDefault(days.get(i), 0) / max;
+              canvas.drawCircle(x, y, dp(2.6f), paint);
+            }
+          }
         }
+        paint.setStyle(Paint.Style.FILL);
+        legend(canvas, names, left, getHeight() - dp(16), right);
       } else if (mode == 2 && !groups.isEmpty()) {
         CenterStats.Group group = groups.get(0);
         int max = 1;
         for (int[] day : group.heat) for (int count : day) max = Math.max(max, count);
-        float cw = width / 24, ch = height / 7;
+        text(canvas, group.title, left, top + dp(12), ui.text(), 12.5f, Paint.Align.LEFT);
+        float gridLeft = left + dp(28), gridTop = top + dp(22);
+        float cw = (right - gridLeft) / 24, ch = (getHeight() - gridTop - dp(24)) / 7;
         for (int d = 0; d < 7; d++)
           for (int h = 0; h < 24; h++) {
+            paint.setStyle(Paint.Style.FILL);
             paint.setColor(
-                android.graphics.Color.argb(30 + 225 * group.heat[d][h] / max, 35, 130, 200));
-            float x = left + h * cw, y = top + d * ch;
-            canvas.drawRect(x, y, x + cw - 1, y + ch - 1, paint);
+                group.heat[d][h] == 0
+                    ? TelePremiumCenterUi.alpha(ui.sub(), 28)
+                    : TelePremiumCenterUi.alpha(ui.accent(), 60 + 195 * group.heat[d][h] / max));
+            float x = gridLeft + h * cw, y = gridTop + d * ch;
+            canvas.drawRoundRect(x + 1, y + 1, x + cw - 1, y + ch - 1, dp(3), dp(3), paint);
             List<CenterData.Message> rows =
                 group.hourEvidence.getOrDefault(d + ":" + h, Collections.emptyList());
             hit(x, y, x + cw, y + ch, rows);
           }
         String[] weekdays = new java.text.DateFormatSymbols().getShortWeekdays();
         for (int d = 0; d < 7; d++)
-          text(canvas, weekdays[(d + 1) % 7 + 1], left, top + (d + .5f) * ch);
-        for (int h = 0; h < 24; h += 6) text(canvas, "" + h, left + h * cw, getHeight() - dp(5));
+          text(canvas, weekdays[(d + 1) % 7 + 1], left, gridTop + (d + .65f) * ch, ui.sub(), 10.5f, Paint.Align.LEFT);
+        for (int h = 0; h < 24; h += 3)
+          text(canvas, "" + h, gridLeft + (h + .1f) * cw, getHeight() - dp(8), ui.sub(), 10.5f, Paint.Align.LEFT);
       }
     }
 
