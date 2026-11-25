@@ -542,7 +542,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/aicenter/CenterStore.java",
       "base_sha256": null,
-      "sha256": "2643162f0ba950c7a0c9a4ec6a7ded7773a173cc7f64627f28263933b7f44040"
+      "sha256": "a2127dea801f10f8cafa8725c2e409c047b32e6df0798d3da8c344f628126b3c"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/aicenter/CenterSync.java",

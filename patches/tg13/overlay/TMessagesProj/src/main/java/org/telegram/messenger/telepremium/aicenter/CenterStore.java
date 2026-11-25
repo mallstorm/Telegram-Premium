@@ -166,6 +166,35 @@ public final class CenterStore extends SQLiteOpenHelper {
     cachedBytes = next;
   }
 
+  /**
+   * Android CursorWindow has a small per-row capacity; large encrypted documents use SQL slices.
+   */
+  private byte[] payload(
+      int account, long owner, String kind, String hash, byte[] first, long length)
+      throws Exception {
+    if (length <= first.length) return first;
+    if (length > Integer.MAX_VALUE) throw new java.io.IOException(CenterText.get("storageLimit"));
+    byte[] result = new byte[(int) length];
+    System.arraycopy(first, 0, result, 0, first.length);
+    int offset = first.length;
+    while (offset < result.length) {
+      try (Cursor part =
+          getReadableDatabase()
+              .rawQuery(
+                  "SELECT substr(value,?,524288) FROM records WHERE account=? AND owner=? AND"
+                      + " kind=? AND id=?",
+                  new String[] {"" + (offset + 1), "" + account, "" + owner, kind, hash})) {
+        if (!part.moveToFirst()) throw new java.io.IOException("Missing encrypted record");
+        byte[] bytes = part.getBlob(0);
+        if (bytes.length == 0 || bytes.length > result.length - offset)
+          throw new java.io.IOException("Invalid encrypted record");
+        System.arraycopy(bytes, 0, result, offset, bytes.length);
+        offset += bytes.length;
+      }
+    }
+    return result;
+  }
+
   public synchronized JSONObject get(int a, long owner, String kind, String id) throws Exception {
     if (!CenterIndex.accountAllowed(a, owner)) return null;
     String h = digest(id);
@@ -173,7 +202,7 @@ public final class CenterStore extends SQLiteOpenHelper {
         getReadableDatabase()
             .query(
                 "records",
-                new String[] {"value", "v"},
+                new String[] {"substr(value,1,524288)", "v", "length(value)"},
                 "account=? AND owner=? AND kind=? AND id=?",
                 new String[] {"" + a, "" + owner, kind, h},
                 null,
@@ -184,7 +213,7 @@ public final class CenterStore extends SQLiteOpenHelper {
           CenterEnvelope.open(
               c.getInt(1) == 1 ? wrappingKey(a, owner) : key(a, owner),
               aad(a, owner, kind, h),
-              c.getBlob(0));
+              payload(a, owner, kind, h, c.getBlob(0), c.getLong(2)));
       try {
         JSONObject value = new JSONObject(new String(plain, StandardCharsets.UTF_8));
         if (c.getInt(1) == 1) migrate(a, owner, kind, h, plain);
@@ -221,7 +250,7 @@ public final class CenterStore extends SQLiteOpenHelper {
         getReadableDatabase()
             .query(
                 "records",
-                new String[] {"id", "value", "v"},
+                new String[] {"id", "substr(value,1,524288)", "v", "length(value)"},
                 "account=? AND owner=? AND kind=?",
                 new String[] {"" + a, "" + owner, kind},
                 null,
@@ -233,7 +262,7 @@ public final class CenterStore extends SQLiteOpenHelper {
             CenterEnvelope.open(
                 cursor.getInt(2) == 1 ? wrappingKey(a, owner) : key(a, owner),
                 aad(a, owner, kind, hash),
-                cursor.getBlob(1));
+                payload(a, owner, kind, hash, cursor.getBlob(1), cursor.getLong(3)));
         try {
           JSONObject value = new JSONObject(new String(plain, StandardCharsets.UTF_8));
           if (cursor.getInt(2) == 1) migrate(a, owner, kind, hash, plain);
@@ -255,7 +284,7 @@ public final class CenterStore extends SQLiteOpenHelper {
         getReadableDatabase()
             .query(
                 "records",
-                new String[] {"id", "value", "v"},
+                new String[] {"id", "substr(value,1,524288)", "v", "length(value)"},
                 "account=? AND owner=? AND kind=?",
                 new String[] {"" + a, "" + owner, kind},
                 null,
@@ -267,7 +296,7 @@ public final class CenterStore extends SQLiteOpenHelper {
             CenterEnvelope.open(
                 cursor.getInt(2) == 1 ? wrappingKey(a, owner) : key(a, owner),
                 aad(a, owner, kind, hash),
-                cursor.getBlob(1));
+                payload(a, owner, kind, hash, cursor.getBlob(1), cursor.getLong(3)));
         try {
           if (predicate.test(new JSONObject(new String(plain, StandardCharsets.UTF_8))))
             hashes.add(hash);
