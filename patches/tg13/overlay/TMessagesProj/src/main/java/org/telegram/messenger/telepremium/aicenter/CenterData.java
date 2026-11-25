@@ -27,7 +27,7 @@ public final class CenterData {
         }
     }
     public static final class Message {
-        public int account,id,date,topic,replies,forwards,reactions,pages;
+        public int account,id,date,topic,replies,replyTo,forwards,reactions,pages;
         public long owner,dialog,author,bytes,duration;
         public String source="",sourceTitle="",accountName="",authorName="",text="",kind="text",ocr="",transcript="",description="",forwardSource="",hash="",mime="",localUri="",cloudNode="";
         public JSONObject pageEvidence=new JSONObject(),frameEvidence=new JSONObject();
@@ -43,14 +43,14 @@ public final class CenterData {
              .put("source",source).put("sourceTitle",sourceTitle).put("accountName",accountName).put("author",author).put("authorName",authorName)
              .put("text",text).put("kind",kind).put("ocr",ocr).put("transcript",transcript).put("description",description).put("forwardSource",forwardSource)
              .put("pageEvidence",pageEvidence).put("frameEvidence",frameEvidence).put("frameTimes",new JSONArray(frameTimes)).put("mime",mime).put("localUri",localUri).put("cloudNode",cloudNode).put("hash",hash).put("bytes",bytes).put("duration",duration).put("own",own).put("deleted",deleted).put("protectedMedia",protectedMedia)
-             .put("personal",personal).put("transport",transport).put("replies",replies).put("forwards",forwards).put("reactions",reactions).put("pages",pages);
+             .put("personal",personal).put("transport",transport).put("replyTo",replyTo).put("replies",replies).put("forwards",forwards).put("reactions",reactions).put("pages",pages);
         }
         public static Message parse(JSONObject o){
             Message m=new Message();m.account=o.optInt("account");m.owner=o.optLong("owner");m.dialog=o.optLong("dialog");m.id=o.optInt("id");m.date=o.optInt("date");
             m.topic=o.optInt("topic");m.source=o.optString("source");m.sourceTitle=o.optString("sourceTitle");m.accountName=o.optString("accountName");m.author=o.optLong("author");m.authorName=o.optString("authorName");
             m.text=o.optString("text");m.kind=o.optString("kind","text");m.ocr=o.optString("ocr");m.transcript=o.optString("transcript");m.description=o.optString("description");m.forwardSource=o.optString("forwardSource");m.pageEvidence=o.optJSONObject("pageEvidence")==null?new JSONObject():o.optJSONObject("pageEvidence");m.frameEvidence=o.optJSONObject("frameEvidence")==null?new JSONObject():o.optJSONObject("frameEvidence");JSONArray frameTimes=o.optJSONArray("frameTimes");for(int i=0;frameTimes!=null&&i<frameTimes.length();i++)m.frameTimes.add(frameTimes.optLong(i));m.mime=o.optString("mime");m.localUri=o.optString("localUri");m.cloudNode=o.optString("cloudNode");m.hash=o.optString("hash");
             m.bytes=o.optLong("bytes");m.duration=o.optLong("duration");m.own=o.optBoolean("own");m.deleted=o.optBoolean("deleted");m.protectedMedia=o.optBoolean("protectedMedia");m.personal=o.optBoolean("personal");m.transport=o.optString("transport");
-            m.replies=o.optInt("replies");m.forwards=o.optInt("forwards");m.reactions=o.optInt("reactions");m.pages=o.optInt("pages");return m;
+            m.replyTo=o.optInt("replyTo");m.replies=o.optInt("replies");m.forwards=o.optInt("forwards");m.reactions=o.optInt("reactions");m.pages=o.optInt("pages");return m;
         }
     }
     public static final class Scope {

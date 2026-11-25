@@ -21,7 +21,7 @@ public final class CenterMedia {
     private CenterMedia(){}
     public interface Checkpoint {void save(long cursor,int percent)throws Exception;}
     public static void check(CenterData.Message m)throws Exception{
-        if(m.protectedMedia||!UserConfig.getInstance(m.account).isClientActivated()||UserConfig.getInstance(m.account).getClientUserId()!=m.owner)throw new SecurityException(CenterText.get("protected"));
+        if(m.protectedMedia||!CenterIndex.accountAllowed(m.account,m.owner))throw new SecurityException(CenterText.get("protected"));
         if(m.dialog!=0){TLRPC.Chat chat=MessagesController.getInstance(m.account).getChat(-m.dialog);TLRPC.Message original=CenterSync.original(m);if((m.dialog<0&&(chat==null||chat.noforwards))||original==null||original.noforwards)throw new SecurityException(CenterText.get("protected"));}
         if(!m.cloudNode.isEmpty()){if(!org.telegram.messenger.telepremium.cloud.TelePremiumCloudSecuritySession.isUnlocked(ApplicationLoader.applicationContext))throw new SecurityException(CenterText.get("locked"));org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager manager=org.telegram.messenger.telepremium.cloud.TelePremiumCloudManager.getInstance(m.account);org.telegram.messenger.telepremium.cloud.CloudNode node=manager.findNodeById(m.cloudNode);if(node==null||!manager.isVisible(node)||manager.isProtected(node))throw new SecurityException(CenterText.get("protected"));}
     }
@@ -58,7 +58,7 @@ public final class CenterMedia {
             try(PDDocument pdf=PDDocument.load(file,com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly())){
                 m.pages=pdf.getNumberOfPages();PDFTextStripper stripper=new PDFTextStripper();
                 try(ParcelFileDescriptor descriptor=ParcelFileDescriptor.open(file,ParcelFileDescriptor.MODE_READ_ONLY);android.graphics.pdf.PdfRenderer renderer=new android.graphics.pdf.PdfRenderer(descriptor)){
-                    for(int i=(int)cursor;i<m.pages;i++){if(cancel.get())throw new InterruptedException();check(m);stripper.setStartPage(i+1);stripper.setEndPage(i+1);String text=stripper.getText(pdf);
+                    for(int i=(int)cursor;i<m.pages;i++){if(m.pageEvidence.has(""+(i+1))){checkpoint.save(i+1,(i+1)*100/Math.max(1,m.pages));continue;}if(cancel.get())throw new InterruptedException();check(m);stripper.setStartPage(i+1);stripper.setEndPage(i+1);String text=stripper.getText(pdf);
                         try(android.graphics.pdf.PdfRenderer.Page page=renderer.openPage(i)){int width=Math.min(1280,Math.max(1,page.getWidth()*2)),height=Math.max(1,Math.min(1800,(int)(page.getHeight()*(width/(float)Math.max(1,page.getWidth())))));Bitmap bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);try{bitmap.eraseColor(Color.WHITE);page.render(bitmap,null,null,android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);preview(m,bitmap,0,i+1);if(text.trim().isEmpty())text=ocr(bitmap);}finally{bitmap.recycle();}}
                         m.pageEvidence.put(""+(i+1),text);m.ocr+="\n"+CenterText.get("page")+" "+(i+1)+"\n"+text;save(m);checkpoint.save(i+1,(i+1)*100/Math.max(1,m.pages));
                     }

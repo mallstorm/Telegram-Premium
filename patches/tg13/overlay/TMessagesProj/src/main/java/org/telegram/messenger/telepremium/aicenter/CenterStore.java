@@ -20,6 +20,7 @@ public final class CenterStore extends SQLiteOpenHelper {
     private final Map<String,SecretKey> keyCache=new HashMap<>();
     public static synchronized CenterStore get(){if(instance==null)instance=new CenterStore();return instance;}
     private CenterStore(){super(ApplicationLoader.applicationContext,"tp_ai_center_v1.db",null,1);}
+    @Override public void onConfigure(SQLiteDatabase db){db.execSQL("PRAGMA secure_delete=ON");}
     @Override public void onCreate(SQLiteDatabase db){db.execSQL("CREATE TABLE records (account INTEGER NOT NULL, owner INTEGER NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, value BLOB NOT NULL, PRIMARY KEY(account,owner,kind,id))");}
     @Override public void onUpgrade(SQLiteDatabase db,int old,int now){throw new IllegalStateException("Unsupported index migration");}
     private String alias(int account,long owner){return "tp_aic_"+account+"_"+owner;}
@@ -31,7 +32,7 @@ public final class CenterStore extends SQLiteOpenHelper {
     private byte[] aad(int a,long o,String kind,String id){return ("AIC1|"+a+"|"+o+"|"+kind+"|"+id).getBytes(StandardCharsets.UTF_8);}
     private static String digest(String s)throws Exception{byte[] b=MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8));StringBuilder out=new StringBuilder();for(byte x:b)out.append(String.format(Locale.ROOT,"%02x",x&255));return out.toString();}
     public synchronized void put(int a,long owner,String kind,String id,JSONObject json)throws Exception{
-        if(owner<=0||!UserConfig.getInstance(a).isClientActivated()||UserConfig.getInstance(a).getClientUserId()!=owner)throw new SecurityException("Account unavailable");
+        if(owner<=0||!CenterIndex.accountAllowed(a,owner))throw new SecurityException("Account unavailable");
         String h=digest(id);byte[] plain=json.toString().getBytes(StandardCharsets.UTF_8);byte[] sealed;
         try{sealed=CenterEnvelope.seal(key(a,owner),aad(a,owner,kind,h),plain);}finally{Arrays.fill(plain,(byte)0);}
         ContentValues v=new ContentValues();v.put("account",a);v.put("owner",owner);v.put("kind",kind);v.put("id",h);v.put("value",sealed);getWritableDatabase().insertWithOnConflict("records",null,v,SQLiteDatabase.CONFLICT_REPLACE);

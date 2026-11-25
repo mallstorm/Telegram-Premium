@@ -95,6 +95,7 @@ public final class CenterSync {
         if(protectedMedia&&m.media!=null&&!(m.media instanceof TLRPC.TL_messageMediaEmpty))return null;
         CenterData.Message d=new CenterData.Message();d.account=s.account;d.owner=s.owner;d.dialog=s.dialog;d.id=m.id;d.date=m.date;d.source=s.canonical;d.sourceTitle=s.title;d.accountName=s.accountName;d.topic=m.reply_to!=null&&m.reply_to.forum_topic?(m.reply_to.reply_to_top_id!=0?m.reply_to.reply_to_top_id:m.reply_to.reply_to_msg_id):s.topic;
         if(m.from_id!=null)d.author=m.from_id.user_id!=0?m.from_id.user_id:-(m.from_id.channel_id!=0?m.from_id.channel_id:m.from_id.chat_id);
+        if(d.author==0&&m.peer_id!=null&&m.peer_id.channel_id!=0)d.author=-m.peer_id.channel_id;
         TLRPC.User u=d.author>0?MessagesController.getInstance(s.account).getUser(d.author):null;TLRPC.Chat ac=d.author<0?MessagesController.getInstance(s.account).getChat(-d.author):null;d.authorName=u!=null?ContactsController.formatName(u.first_name,u.last_name):ac!=null?ac.title:s.title;if(d.authorName==null||d.authorName.isEmpty())d.authorName=CenterText.get("authors");
         d.own=false;for(int a=0;a<UserConfig.MAX_ACCOUNT_COUNT;a++)if(UserConfig.getInstance(a).isClientActivated()&&d.author==UserConfig.getInstance(a).getClientUserId())d.own=true;
         d.text=m.message==null?"":m.message;d.protectedMedia=protectedMedia;d.personal=CenterReports.personal(d.text);
@@ -103,7 +104,7 @@ public final class CenterSync {
         else if(m.media instanceof TLRPC.TL_messageMediaPoll)d.kind="poll";
         else if(m.media instanceof TLRPC.TL_messageMediaWebPage)d.kind="link";
         if(m.fwd_from!=null&&m.fwd_from.from_id!=null)d.forwardSource=""+DialogObject.getPeerDialogId(m.fwd_from.from_id);
-        d.replies=m.replies==null?0:m.replies.replies;d.forwards=m.forwards;if(m.reactions!=null)for(TLRPC.ReactionCount r:m.reactions.results)d.reactions+=r.count;
+        d.replyTo=m.reply_to==null?0:m.reply_to.reply_to_msg_id;d.replies=m.replies==null?0:m.replies.replies;d.forwards=m.forwards;if(m.reactions!=null)for(TLRPC.ReactionCount r:m.reactions.results)d.reactions+=r.count;
         SerializedData serial=new SerializedData();m.serializeToStream(serial);d.transport=Base64.encodeToString(serial.toByteArray(),Base64.NO_WRAP);serial.cleanup();return d;
     }
     public static TLRPC.Message original(CenterData.Message m){try{SerializedData d=new SerializedData(Base64.decode(m.transport,Base64.NO_WRAP));try{return TLRPC.Message.TLdeserialize(d,d.readInt32(true),true);}finally{d.cleanup();}}catch(Exception e){return null;}}

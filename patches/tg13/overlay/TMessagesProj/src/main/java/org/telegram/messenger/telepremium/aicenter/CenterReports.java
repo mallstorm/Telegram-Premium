@@ -15,9 +15,9 @@ public final class CenterReports {
         public JSONObject json()throws JSONException{return new JSONObject().put("account",message.account).put("chat",message.dialog).put("message",message.id).put("quote",quote).put("timeMs",timeMs).put("page",page);}
     }
     public static final class Claim {
-        public String title="",text="",topic="",certainty="single";public final List<Evidence> evidence=new ArrayList<>();
+        public String title="",text="",topic="",certainty="single";public boolean personal;public final List<Evidence> evidence=new ArrayList<>();
         public boolean verified(){return !evidence.isEmpty();}
-        public JSONObject json()throws JSONException{JSONArray a=new JSONArray();for(Evidence e:evidence)a.put(e.json());return new JSONObject().put("title",title).put("text",text).put("topic",topic).put("certainty",certainty).put("evidence",a);}
+        public JSONObject json()throws JSONException{JSONArray a=new JSONArray();for(Evidence e:evidence)a.put(e.json());return new JSONObject().put("personal",personal).put("title",title).put("text",text).put("topic",topic).put("certainty",certainty).put("evidence",a);}
     }
     public static final class Report {
         public String id=UUID.randomUUID().toString(),question="";public long created=System.currentTimeMillis(),from,to;
@@ -28,7 +28,7 @@ public final class CenterReports {
         Map<String,CenterData.Message> lookup=new HashMap<>();for(CenterData.Message m:index)lookup.put(m.qualified(),m);
         Report r=new Report();r.id=response.optString("id",r.id);r.question=clean(response.optString("question"));r.created=response.optLong("created",r.created);r.from=response.optLong("from");r.to=response.optLong("to");r.indexed=response.optInt("indexed");r.analyzed=response.optInt("analyzed");r.complete=response.optBoolean("complete");
         JSONArray claims=response.optJSONArray("claims");for(int i=0;claims!=null&&i<Math.min(500,claims.length());i++){
-            JSONObject c=claims.optJSONObject(i);if(c==null)continue;Claim claim=new Claim();claim.title=clean(c.optString("title"));claim.text=clean(c.optString("text"));claim.topic=clean(c.optString("topic"));String certainty=c.optString("certainty","single");claim.certainty="rumor".equals(certainty)?"rumor":"single";
+            JSONObject c=claims.optJSONObject(i);if(c==null)continue;Claim claim=new Claim();claim.personal=c.optBoolean("personal");claim.title=clean(c.optString("title"));claim.text=clean(c.optString("text"));claim.topic=clean(c.optString("topic"));String certainty=c.optString("certainty","single");claim.certainty="rumor".equals(certainty)?"rumor":"single";
             JSONArray evidence=c.optJSONArray("evidence");Set<String> seen=new HashSet<>();for(int j=0;evidence!=null&&j<Math.min(100,evidence.length());j++){
                 JSONObject e=evidence.optJSONObject(j);if(e==null)continue;CenterData.Message m=lookup.get(e.optInt("account")+":"+e.optLong("chat")+":"+e.optInt("message"));
                 if(m==null||m.protectedMedia||!seen.add(m.qualified()))continue;
