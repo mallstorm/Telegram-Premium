@@ -398,6 +398,7 @@ public final class CenterTaskService extends Service {
         String transcriptKey = CenterMedia.operationKey(op, m, cacheQuery);
         if (!transcriptKey.equals(m.transcriptKey)) {
           m.transcript = "";
+          CenterMediaResults.invalidateTranslation(m);
           m.transcriptKey = transcriptKey;
           CenterMedia.save(m);
         }

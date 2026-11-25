@@ -18,6 +18,7 @@ SOURCES = [
     "aicenter/CenterChartReport.java",
     "aicenter/CenterAuthorProfile.java",
     "aicenter/CenterMediaBundle.java",
+    "aicenter/CenterMediaResults.java",
     "aicenter/CenterTopics.java",
     "aicenter/CenterTranscript.java",
     "aicenter/CenterTranslation.java",

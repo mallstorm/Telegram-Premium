@@ -2467,10 +2467,13 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 m.transcript,
                 v -> {
                   m.transcript = v;
+                  CenterMediaResults.invalidateTranslation(m);
                   CenterStore.IO.execute(
                       () -> {
                         try {
-                          CenterMedia.save(m);
+                          CenterMedia.checkIndexed(m);
+                          CenterStore.get()
+                              .put(m.account, m.owner, "message", m.qualified(), m.json());
                         } catch (Exception e) {
                           FileLog.e(e);
                         }

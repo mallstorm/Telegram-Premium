@@ -9,6 +9,10 @@ public final class CenterTranslationTest {
   try{CenterTranslation.validate(batches.get(0),new JSONObject().put("parts",new JSONArray().put(new JSONObject().put("id","0:0").put("text","one")).put(new JSONObject().put("id","0:0").put("text","duplicate"))));throw new AssertionError("duplicate id accepted");}catch(JSONException expected){}
   JSONObject partial=new JSONObject().put("0:0","Только первый");check(CenterTranscript.parse(CenterTranslation.apply(source,partial,10000)).size()==1,"partial output contains completed segments only");
   String longText=String.join("",Collections.nCopies(15000,"а🚀"));List<JSONArray> longParts=CenterTranslation.batches("[00:00:00] "+longText,12000);StringBuilder reconstructed=new StringBuilder();for(JSONArray batch:longParts)for(int i=0;i<batch.length();i++)reconstructed.append(batch.optJSONObject(i).optString("text"));check(reconstructed.toString().equals(longText),"large translated inputs are never truncated and Unicode survives boundaries");
+  CenterData.Message current=new CenterData.Message(),cached=new CenterData.Message();current.transcript="manually corrected";current.ocr="fresh OCR";current.translation="corrected translation";current.translationComplete=true;cached.transcript="old ASR";cached.description="old snapshot description";cached.ocr="cached OCR";
+  CenterMediaResults.apply("ocr",current,cached);check(current.transcript.equals("manually corrected")&&current.translation.equals("corrected translation"),"OCR cache cannot overwrite corrected speech/translation");
+  cached.ocr="";CenterMediaResults.apply("download",current,cached);check(current.ocr.equals("cached OCR"),"download cache cannot erase OCR");
+  CenterMediaResults.apply("cloudAsr",current,cached);check(current.transcript.equals("old ASR")&&current.translation.isEmpty()&&!current.translationComplete,"new recognition invalidates an outdated translation");
   System.out.println("CenterTranslationTest OK: exact timestamps/speakers, unordered provider output, duplicate rejection, partial recovery and complete Unicode input");
  }
 }

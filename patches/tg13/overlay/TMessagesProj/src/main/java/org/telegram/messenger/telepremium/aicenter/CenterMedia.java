@@ -709,20 +709,7 @@ public final class CenterMedia {
     JSONObject o = cached.optJSONObject("result");
     if (o == null) return false;
     CenterData.Message prior = CenterData.Message.parse(o);
-    m.ocr = prior.ocr;
-    m.transcript = prior.transcript;
-    m.transcriptKey = prior.transcriptKey;
-    m.description = prior.description;
-    m.mediaAnalysis = prior.mediaAnalysis;
-    m.hash = prior.hash;
-    m.sceneHash = prior.sceneHash;
-    m.pages = prior.pages;
-    m.duration = prior.duration;
-    m.frameTimes.clear();
-    m.frameTimes.addAll(prior.frameTimes);
-    m.frameEvidence = prior.frameEvidence;
-    m.pageEvidence = prior.pageEvidence;
-    m.previewBase = prior.previewBase.isEmpty() ? prior.qualified() : prior.previewBase;
+    CenterMediaResults.apply(op, m, prior);
     save(m);
     if (op.equals("download") || op.equals("frames") || op.equals("document") || op.equals("ocr")) {
       if (m.pages > 0) {
