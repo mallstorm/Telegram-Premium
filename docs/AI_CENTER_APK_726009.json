@@ -1,0 +1,20 @@
+{
+  "source_sha": "16009664e7527a616ea0074f29dbaf49b5a4fa48",
+  "bytes": 65345301,
+  "sha256": "eb2b665853eada8882e38b835f3d49ce4f82a775bae4cd1fb748267bc706339b",
+  "certificate_sha256": "a08d7dc323ddf71ef3201944397e0d3cce7d40847263e11f328b68bbe19229ab",
+  "package": "com.telepremium.messenger",
+  "version_code": 726009,
+  "abis": [
+    "arm64-v8a"
+  ],
+  "ocr_models": {
+    "eng": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    "rus": "e16e5e036cce1d9ec2b00063cf8b54472625b9e14d893a169e2b0dedeb4df225"
+  },
+  "apk_file": "TelePremium_13.1.1_arm64-v8a.apk",
+  "run_id": 45550666931,
+  "artifact_id": 14994755336,
+  "ci_url": "https://github.com/mallstorm/Telegram-Premium/actions/runs/45550666931",
+  "artifact_url": "https://github.com/mallstorm/Telegram-Premium/actions/runs/45550666931/artifacts/14994755336"
+}
