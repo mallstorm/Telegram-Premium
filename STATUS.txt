@@ -1,0 +1,9 @@
+status=success
+source_ref=feat/folder-locks-dual
+source_sha=6026b7c86f55f15857fa203a4a901c91fa23c988
+run_id=45567451989
+patches=success
+java=success
+apk=success
+verify=success
+api_configured=true
