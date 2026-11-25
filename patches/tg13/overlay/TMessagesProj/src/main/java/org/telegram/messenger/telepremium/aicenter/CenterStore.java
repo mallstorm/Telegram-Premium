@@ -283,12 +283,14 @@ public final class CenterStore extends SQLiteOpenHelper {
         JSONObject old = get(m.account, m.owner, "message", m.qualified());
         if (old != null) {
           CenterData.Message prior = CenterData.Message.parse(old);
-          if (prior.transport.equals(m.transport)) {
+          if ((!m.mediaKey.isEmpty() && prior.mediaKey.equals(m.mediaKey))
+              || prior.transport.equals(m.transport)) {
             m.contentHash = prior.contentHash;
             m.previewBase = prior.previewBase;
             m.ocr = prior.ocr;
             m.transcript = prior.transcript;
-            m.description = prior.description;
+            m.transcriptKey = prior.transcriptKey;
+            m.description = prior.text.equals(m.text) ? prior.description : "";
             m.hash = prior.hash;
             m.pages = prior.pages;
             m.pageEvidence = prior.pageEvidence;
@@ -328,7 +330,7 @@ public final class CenterStore extends SQLiteOpenHelper {
         long owner = UserConfig.getInstance(other).getClientUserId();
         for (String kind :
             new String[] {
-              "report", "thread", "chunk", "final", "report_image", "media_result", "job"
+              "report", "thread", "chunk", "final", "search", "report_image", "media_result", "job"
             })
           try {
             for (JSONObject o : listInternal(other, owner, kind, false)) {
@@ -380,7 +382,7 @@ public final class CenterStore extends SQLiteOpenHelper {
     getWritableDatabase()
         .delete(
             "records",
-            "kind IN ('thread','chunk','final') AND stamp>0 AND stamp<?",
+            "kind IN ('thread','chunk','final','search') AND stamp>0 AND stamp<?",
             new String[] {"" + (now - days)});
     cachedBytes = -1;
   }

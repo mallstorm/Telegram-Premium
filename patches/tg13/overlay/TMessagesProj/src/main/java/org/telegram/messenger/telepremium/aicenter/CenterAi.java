@@ -99,9 +99,23 @@ public final class CenterAi {
       AtomicBoolean cancelled,
       Progress progress)
       throws Exception {
+    return run(messages, sources, scope, question, detailed, cancelled, progress, true);
+  }
+
+  public static CenterReports.Report run(
+      List<CenterData.Message> messages,
+      List<CenterData.Source> sources,
+      CenterData.Scope scope,
+      String question,
+      boolean detailed,
+      AtomicBoolean cancelled,
+      Progress progress,
+      boolean persist)
+      throws Exception {
     CenterNetwork.bind(cancelled);
     try {
-      return runInternal(messages, sources, scope, question, detailed, cancelled, progress);
+      return runInternal(
+          messages, sources, scope, question, detailed, cancelled, progress, persist);
     } finally {
       CenterNetwork.unbind();
     }
@@ -114,7 +128,8 @@ public final class CenterAi {
       String question,
       boolean detailed,
       AtomicBoolean cancelled,
-      Progress progress)
+      Progress progress,
+      boolean persist)
       throws Exception {
     requireAllowed();
     for (CenterData.Message m : messages)
@@ -128,7 +143,7 @@ public final class CenterAi {
     TPAiStore.Connection finalModel = model("reportModel");
     String finalKey =
         hash(finalModel.id + finalModel.model + question + scope.json() + batches.toString());
-    JSONObject finalCached = CenterStore.get().get(a, owner, "final", finalKey);
+    JSONObject finalCached = persist ? CenterStore.get().get(a, owner, "final", finalKey) : null;
     if (finalCached != null) {
       CenterReports.Report hit =
           CenterReports.validate(finalCached.getJSONObject("result"), messages);
@@ -158,7 +173,7 @@ public final class CenterAi {
       JSONArray batch = batches.get(i);
       String payload = question + "\n" + batch;
       String cacheId = hash(fast.id + fast.model + SCHEMA + payload);
-      JSONObject result = cached(a, owner, cacheId);
+      JSONObject result = persist ? cached(a, owner, cacheId) : null;
       try {
         if (result == null) {
           result =
@@ -170,17 +185,18 @@ public final class CenterAi {
                           + " report.",
                       payload));
           if (cancelled.get()) throw new InterruptedException();
-          CenterStore.get()
-              .put(
-                  a,
-                  owner,
-                  "chunk",
-                  cacheId,
-                  new JSONObject()
-                      .put("id", cacheId)
-                      .put("accounts", accounts(messages))
-                      .put("cloud", messages.stream().anyMatch(m -> !m.cloudNode.isEmpty()))
-                      .put("result", result));
+          if (persist)
+            CenterStore.get()
+                .put(
+                    a,
+                    owner,
+                    "chunk",
+                    cacheId,
+                    new JSONObject()
+                        .put("id", cacheId)
+                        .put("accounts", accounts(messages))
+                        .put("cloud", messages.stream().anyMatch(m -> !m.cloudNode.isEmpty()))
+                        .put("result", result));
         }
         CenterReports.Report validated = CenterReports.validate(result, messages);
         if (!scope.includePersonal) validated.claims.removeIf(c -> c.personal);
@@ -286,7 +302,7 @@ public final class CenterAi {
     }
     report.statistics =
         CenterStats.compute(messages, statisticalScope, scope, TimeZone.getDefault()).json();
-    if (!report.retryNeeded)
+    if (persist && !report.retryNeeded)
       CenterStore.get()
           .put(
               a,

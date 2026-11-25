@@ -43,7 +43,7 @@
   <string name="TP_AIC_security">Center access protection</string>
   <string name="TP_AIC_password">Password</string>
   <string name="TP_AIC_pin">PIN</string>
-  <string name="TP_AIC_pattern">Pattern (at least 4 distinct dots, 1–9)</string>
+  <string name="TP_AIC_pattern">Pattern (at least 5 distinct dots)</string>
   <string name="TP_AIC_unlock">Unlock</string>
   <string name="TP_AIC_locked">Center is locked</string>
   <string name="TP_AIC_wrong">Invalid secret / try later</string>
@@ -120,9 +120,9 @@
   <string name="TP_AIC_reportModel">Final report model</string>
   <string name="TP_AIC_visionModel">Vision model</string>
   <string name="TP_AIC_aiConnections">AI connections</string>
-  <string name="TP_AIC_dailyLimit">Daily estimated token budget</string>
-  <string name="TP_AIC_monthlyLimit">Monthly estimated token budget</string>
-  <string name="TP_AIC_usage">Usage (estimated tokens)</string>
+  <string name="TP_AIC_dailyLimit">Daily token budget</string>
+  <string name="TP_AIC_monthlyLimit">Monthly token budget</string>
+  <string name="TP_AIC_usage">Usage (actual / estimated tokens)</string>
   <string name="TP_AIC_anonymize">Anonymize authors</string>
   <string name="TP_AIC_noImages">Exclude images</string>
   <string name="TP_AIC_blocks">Report blocks and order</string>
@@ -229,4 +229,9 @@
   <string name="TP_AIC_polls">Polls</string>
   <string name="TP_AIC_session">Session</string>
   <string name="TP_AIC_available">Available</string>
+  <string name="TP_AIC_semanticSearch">Search by meaning (AI)</string>
+  <string name="TP_AIC_indexedDescriptions">Indexed captions, OCR and descriptions</string>
+  <string name="TP_AIC_chapterQuery">Create video chapters by changes of topic. For every chapter include the exact transcript quotation and its real timestamp. Correlate spoken words with indexed scene OCR. Identify gaps.</string>
+  <string name="TP_AIC_expand">Expand this finding</string>
+  <string name="TP_AIC_discussed">Most discussed messages</string>
 </resources>

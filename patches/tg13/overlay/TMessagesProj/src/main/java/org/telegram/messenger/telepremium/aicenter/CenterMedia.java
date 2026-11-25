@@ -64,6 +64,7 @@ public final class CenterMedia {
   }
 
   public static File file(CenterData.Message m, AtomicBoolean cancel) throws Exception {
+    if (m.dialog != 0 && m.transport.isEmpty()) CenterSync.resolve(m, cancel);
     check(m);
     if (!m.localUri.isEmpty()) {
       File result =
@@ -539,6 +540,7 @@ public final class CenterMedia {
     CenterData.Message prior = CenterData.Message.parse(o);
     m.ocr = prior.ocr;
     m.transcript = prior.transcript;
+    m.transcriptKey = prior.transcriptKey;
     m.description = prior.description;
     m.hash = prior.hash;
     m.pages = prior.pages;

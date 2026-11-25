@@ -38,6 +38,9 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   private String mediaSearch = "";
   private String mediaKind = "";
   private String mediaCategory = "";
+  private Set<String> semanticHits;
+  private int transcriptPage;
+  private String detailKey = "";
   private int mediaPage;
   private int uiVersion;
   private final android.os.Handler uiHandler =
@@ -1083,7 +1086,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                     reportRunning = true;
                     aiCancelled.set(false);
                     status.setText(t("loading"));
-                    final boolean ephemeral = authorReport;
+                    final boolean ephemeral = authorReport || reportKind == 1;
                     TPAiClient.async(
                         () ->
                             CenterTaskService.trackReport(
@@ -1291,6 +1294,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             Math.min((reportPage + 1) * 50, r.claims.size()))) {
       TextView title = row(claim.title, null);
       title.setTypeface(AndroidUtilities.bold());
+      if (!claim.topic.isEmpty()) info(t("topics") + ": " + claim.topic);
       info(claim.text);
       info(t(claim.verified() ? claim.certainty : "unverified"));
       final LinearLayout evidence = new LinearLayout(getParentActivity());
@@ -1341,6 +1345,14 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
               }
           });
       body.addView(evidence);
+      row(
+          t("expand") + " · " + claim.title,
+          () -> {
+            drilldown = new ArrayList<>();
+            for (CenterReports.Evidence ev : claim.evidence) drilldown.add(ev.message);
+            query = t("expand") + ": " + claim.title;
+            show(6);
+          });
     }
     if (reportPage > 0)
       button(
@@ -1545,12 +1557,13 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           && !m.kind.equals("text")
           && (!speech || Arrays.asList("video", "audio", "voice", "round").contains(m.kind))
           && (mediaKind.isEmpty() || mediaKind.equals(m.kind))
+          && (mediaCategory.isEmpty() || mediaCategory.equals(CenterTopics.category(m)))
+          && (semanticHits == null || semanticHits.contains(m.qualified()))
           && m.searchable()
               .toLowerCase(Locale.ROOT)
               .contains(mediaSearch.toLowerCase(Locale.ROOT))) {
         try {
-          CenterMedia.check(m);
-          out.add(m);
+          if (CenterMedia.readableDerivative(m)) out.add(m);
         } catch (Exception ignored) {
         }
       }
@@ -1558,6 +1571,63 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void media(boolean speech) {
+    if (!speech) {
+      button(
+          "semanticSearch",
+          () ->
+              input(
+                  "query",
+                  "",
+                  question -> {
+                    semanticHits = null;
+                    String previous = mediaSearch;
+                    mediaSearch = "";
+                    List<CenterData.Message> data = mediaMessages(false);
+                    mediaSearch = previous;
+                    new AlertDialog.Builder(getParentActivity())
+                        .setMessage(
+                            t("consent")
+                                + "\n"
+                                + t("estimate")
+                                + ": "
+                                + data.size()
+                                + " · "
+                                + t("indexedDescriptions"))
+                        .setPositiveButton(
+                            t("confirm"),
+                            (d, w) -> {
+                              CenterIndex.setting("consent", true);
+                              aiCancelled.set(false);
+                              status.setText(t("loading"));
+                              TPAiClient.async(
+                                  () -> CenterSearch.find(data, question, aiCancelled),
+                                  (hits, error) -> {
+                                    if (!foreground || !unlocked || aiCancelled.get()) return;
+                                    if (error != null) error(error);
+                                    else {
+                                      semanticHits = hits;
+                                      mediaSearch = "";
+                                      mediaPage = 0;
+                                      show(screen);
+                                    }
+                                  });
+                            })
+                        .setNegativeButton(t("cancel"), null)
+                        .show();
+                  }));
+      button(
+          "mediaType",
+          () ->
+              choices(
+                  "mediaType",
+                  new String[] {t("all"), t("chartImage"), t("receiptImage"), t("photoImage")},
+                  i -> {
+                    mediaCategory =
+                        new String[] {"", "chartImage", "receiptImage", "photoImage"}[i];
+                    mediaPage = 0;
+                    show(screen);
+                  }));
+    }
     button(
         "search",
         () ->
@@ -1566,6 +1636,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                 mediaSearch,
                 v -> {
                   mediaSearch = v;
+                  semanticHits = null;
                   mediaPage = 0;
                   show(screen);
                 }));
@@ -1715,7 +1786,9 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       card.addView(details);
       details.setOnClickListener(w -> mediaDetails(m, 0));
       if (!m.transcript.isEmpty())
-        for (CenterTranscript.Segment segment : CenterTranscript.parse(m.transcript)) {
+        for (CenterTranscript.Segment segment :
+            CenterTranscript.parse(m.transcript)
+                .subList(0, Math.min(12, CenterTranscript.parse(m.transcript).size()))) {
           TextView v = label(CenterTranscript.stamp(segment.start) + " · " + segment.text, 14);
           v.setOnClickListener(w -> playAt(m, segment.start));
           card.addView(v);
@@ -1862,6 +1935,10 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
   }
 
   private void mediaDetails(CenterData.Message m, int page) {
+    if (!detailKey.equals(m.qualified())) {
+      detailKey = m.qualified();
+      transcriptPage = 0;
+    }
     LinearLayout panel = new LinearLayout(getParentActivity());
     panel.setOrientation(LinearLayout.VERTICAL);
     ZoomImage image = new ZoomImage(getParentActivity());
@@ -1896,6 +1973,15 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
             14);
     metadata.setTextIsSelectable(true);
     content.addView(metadata);
+    List<CenterTranscript.Segment> segments = CenterTranscript.parse(m.transcript);
+    for (int n = transcriptPage * 40;
+        n < Math.min(segments.size(), (transcriptPage + 1) * 40);
+        n++) {
+      CenterTranscript.Segment segment = segments.get(n);
+      TextView line = label(CenterTranscript.stamp(segment.start) + " · " + segment.text, 14);
+      content.addView(line);
+      line.setOnClickListener(v -> playAt(m, segment.start));
+    }
     AlertDialog dialog =
         new AlertDialog.Builder(getParentActivity())
             .setView(panel)
@@ -1942,6 +2028,26 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
                         }))
             .setNegativeButton(t("cancel"), null)
             .create();
+    if (transcriptPage > 0) {
+      TextView previous = label(t("previous"), 14);
+      content.addView(previous);
+      previous.setOnClickListener(
+          v -> {
+            transcriptPage--;
+            dialog.dismiss();
+            mediaDetails(m, page);
+          });
+    }
+    if ((transcriptPage + 1) * 40 < segments.size()) {
+      TextView next = label(t("next"), 14);
+      content.addView(next);
+      next.setOnClickListener(
+          v -> {
+            transcriptPage++;
+            dialog.dismiss();
+            mediaDetails(m, page);
+          });
+    }
     if (m.pages > 1) {
       TextView next =
           label(t("page") + " " + Math.max(1, page) + " / " + m.pages + " · " + t("next"), 14);
@@ -2041,7 +2147,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           v -> {
             dialog.dismiss();
             drilldown = Collections.singletonList(m);
-            query = t("chapters") + ": " + t("query");
+            query = t("chapterQuery");
             reportKind = 0;
             show(6);
           });
@@ -2483,6 +2589,28 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       row(
           domain.getKey() + " · " + domain.getValue().size(),
           () -> messageDetails(domain.getValue()));
+    heading("forwarded");
+    for (Map.Entry<String, List<CenterData.Message>> forward : stats.forwards.entrySet())
+      row(
+          forward.getKey() + " · " + forward.getValue().size(),
+          () -> messageDetails(forward.getValue()));
+    heading("discussed");
+    List<CenterData.Message> discussed = new ArrayList<>(stats.messages);
+    discussed.sort(
+        Comparator.comparingInt((CenterData.Message m) -> m.reactions + m.replies).reversed());
+    for (int n = 0; n < Math.min(20, discussed.size()); n++) {
+      CenterData.Message m = discussed.get(n);
+      if (m.reactions + m.replies > 0)
+        row(
+            m.sourceTitle
+                + " · "
+                + m.authorName
+                + " · "
+                + (m.reactions + m.replies)
+                + "\n"
+                + m.text,
+            () -> openEvidence(m));
+    }
     button("compare", this::loadPreviousPeriod);
   }
 

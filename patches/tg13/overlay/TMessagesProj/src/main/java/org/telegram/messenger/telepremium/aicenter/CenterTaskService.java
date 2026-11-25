@@ -143,6 +143,9 @@ public final class CenterTaskService extends Service {
   }
 
   public static void change(JSONObject job, String state) {
+    AtomicBoolean externalToken = EXTERNAL.get(job.optString("id"));
+    if (externalToken != null && !state.equals("queued")) externalToken.set(true);
+    if (job.optString("id").equals(activeJob) && !state.equals("queued")) cancellation.set(true);
     CenterStore.IO.execute(
         () -> {
           try {
@@ -178,6 +181,7 @@ public final class CenterTaskService extends Service {
                     }
                     break;
                   }
+                  long generation = CenterIndex.generation();
                   activeJob = job.optString("id");
                   int a = job.optInt("account");
                   long owner = job.optLong("owner");
@@ -190,6 +194,7 @@ public final class CenterTaskService extends Service {
                         CenterStore.get().get(a, owner, "job", job.optString("id"));
                     String requestedState =
                         requested == null ? "cancelled" : requested.optString("state");
+                    if (generation != CenterIndex.generation()) continue;
                     job.put(
                         "state",
                         requestedState.equals("cancelled")
@@ -199,7 +204,8 @@ public final class CenterTaskService extends Service {
                     save(job);
                   } catch (Exception e) {
                     CenterNetwork.unbind();
-                    if (UserConfig.getInstance(a).isClientActivated()
+                    if (generation == CenterIndex.generation()
+                        && UserConfig.getInstance(a).isClientActivated()
                         && UserConfig.getInstance(a).getClientUserId() == owner) {
                       int tries = job.optInt("attempts") + 1;
                       job.put("state", cancel.get() ? "paused" : "error")
@@ -336,6 +342,12 @@ public final class CenterTaskService extends Service {
         }
         if (m.duration > CenterIndex.settings().optInt("maxVideo", 40) * 60000L)
           throw new IOException(CenterText.get("maxVideo"));
+        String transcriptKey = CenterMedia.operationKey(op, m, cacheQuery);
+        if (!transcriptKey.equals(m.transcriptKey)) {
+          m.transcript = "";
+          m.transcriptKey = transcriptKey;
+          CenterMedia.save(m);
+        }
         boolean cloud = op.equals("cloudAsr");
         long segmentLength = cloud ? 10000 : 35000;
         for (long start = job.optLong("cursor"); start < m.duration; start += segmentLength) {
@@ -457,6 +469,7 @@ public final class CenterTaskService extends Service {
       CenterAi.Progress progress)
       throws Exception {
     if (data.isEmpty()) throw new IllegalStateException(CenterText.get("empty"));
+    long generation = CenterIndex.generation();
     int account = data.get(0).account;
     long owner = data.get(0).owner;
     String id = java.util.UUID.randomUUID().toString();
@@ -480,7 +493,7 @@ public final class CenterTaskService extends Service {
             .put("created", System.currentTimeMillis());
     EXTERNAL.put(id, cancel);
     try {
-      save(job);
+      if (!ephemeral) save(job);
     } catch (Exception e) {
       EXTERNAL.remove(id);
       throw e;
@@ -497,25 +510,28 @@ public final class CenterTaskService extends Service {
               cancel,
               (done, total) -> {
                 try {
-                  checkpoint(job, done, 100 * done / Math.max(1, total));
+                  if (!ephemeral) checkpoint(job, done, 100 * done / Math.max(1, total));
                 } catch (Exception e) {
                   cancel.set(true);
                 }
                 progress.update(done, total);
-              });
-      if (cancel.get()) throw new InterruptedException();
+              },
+              !ephemeral);
+      if (cancel.get() || generation != CenterIndex.generation()) throw new InterruptedException();
       if (!ephemeral) CenterAssets.save(result, "thread", new CenterExport.Options());
       job.put("state", result.retryNeeded ? "error" : "done")
           .put("retryAt", System.currentTimeMillis() + 60000)
           .put("percent", 100);
-      save(job);
+      if (!ephemeral) save(job);
       result.dataset.clear();
       return result;
     } catch (Exception e) {
       job.put("state", cancel.get() ? "paused" : "error")
           .put("retryAt", System.currentTimeMillis() + 60000)
           .put("error", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
-      if (CenterIndex.accountAllowed(account, owner)) save(job);
+      if (!ephemeral
+          && generation == CenterIndex.generation()
+          && CenterIndex.accountAllowed(account, owner)) save(job);
       throw e;
     } finally {
       EXTERNAL.remove(id);

@@ -36,7 +36,7 @@ public final class CenterThumbnails {
         () -> {
           Bitmap b = null;
           try {
-            CenterMedia.check(m);
+            if (!CenterMedia.readableDerivative(m)) throw new SecurityException();
             b = CACHE.get(m.account + ":" + m.owner + ":" + sample + ":" + id);
             if (b == null) {
               JSONObject o = CenterStore.get().get(m.account, m.owner, "preview", id);

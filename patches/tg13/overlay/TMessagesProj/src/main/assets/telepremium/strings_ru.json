@@ -751,7 +751,7 @@
   "TP_AIC_security": "Защита входа в центр",
   "TP_AIC_password": "Пароль",
   "TP_AIC_pin": "PIN",
-  "TP_AIC_pattern": "Графический ключ (не менее 4 разных точек, 1–9)",
+  "TP_AIC_pattern": "Графический ключ (не менее 5 разных точек)",
   "TP_AIC_unlock": "Разблокировать",
   "TP_AIC_locked": "Центр заблокирован",
   "TP_AIC_wrong": "Неверный секрет / повторите позже",
@@ -828,9 +828,9 @@
   "TP_AIC_reportModel": "Модель итогового отчёта",
   "TP_AIC_visionModel": "Мультимодальная модель",
   "TP_AIC_aiConnections": "AI-подключения",
-  "TP_AIC_dailyLimit": "Дневной бюджет оценочных токенов",
-  "TP_AIC_monthlyLimit": "Месячный бюджет оценочных токенов",
-  "TP_AIC_usage": "Расход (оценочные токены)",
+  "TP_AIC_dailyLimit": "Дневной бюджет токенов",
+  "TP_AIC_monthlyLimit": "Месячный бюджет токенов",
+  "TP_AIC_usage": "Расход (фактические / оценочные токены)",
   "TP_AIC_anonymize": "Анонимизировать авторов",
   "TP_AIC_noImages": "Без картинок",
   "TP_AIC_blocks": "Блоки отчёта и порядок",
@@ -936,5 +936,10 @@
   "TP_AIC_forwarded": "Пересланное",
   "TP_AIC_polls": "Опросы",
   "TP_AIC_session": "Сессия",
-  "TP_AIC_available": "Доступна"
+  "TP_AIC_available": "Доступна",
+  "TP_AIC_semanticSearch": "Поиск по смыслу (AI)",
+  "TP_AIC_indexedDescriptions": "Подписи, OCR и описания из индекса",
+  "TP_AIC_chapterQuery": "Составь главы видео по смене темы. Для каждой главы укажи точную цитату транскрипции и её реальный таймкод. Сопоставь речь с OCR сцен. Отметь пробелы.",
+  "TP_AIC_expand": "Развернуть этот пункт",
+  "TP_AIC_discussed": "Самые обсуждаемые сообщения"
 }

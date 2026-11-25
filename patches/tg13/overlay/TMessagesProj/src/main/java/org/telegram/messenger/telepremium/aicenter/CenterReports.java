@@ -250,7 +250,7 @@ public final class CenterReports {
             lookup.get(e.optInt("account") + ":" + e.optLong("chat") + ":" + e.optInt("message"));
         if (m == null || m.protectedMedia || !seen.add(m.qualified())) continue;
         String quote = e.optString("quote").trim();
-        String actual = m.text + "\n" + m.ocr + "\n" + m.transcript;
+        String actual = m.text + "\n" + m.content + "\n" + m.ocr + "\n" + m.transcript;
         boolean visual =
             quote.isEmpty()
                 && ((e.optInt("page") > 0 && e.optInt("page") <= m.pages)

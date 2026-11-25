@@ -83,11 +83,8 @@ public final class CenterStats {
           gm.put(s.canonical, g);
         }
         g.accounts.add(s.account);
-        g.currentComplete |=
-            s.complete && s.rangeFrom <= scope.from && s.rangeTo >= scope.to
-                || s.type.equals("device")
-                || s.type.equals("cloud");
-        g.previousComplete |= s.complete && s.rangeFrom <= before.from && s.rangeTo >= before.to;
+        g.currentComplete |= s.covers(scope.from, scope.to);
+        g.previousComplete |= s.covers(before.from, before.to);
       }
     for (CenterData.Message m : current) {
       Group g = gm.get(m.source);
@@ -110,7 +107,8 @@ public final class CenterStats {
       boolean media = !m.kind.equals("text") && !m.kind.equals("link");
       if (media) g.media++;
       java.util.regex.Matcher url =
-          java.util.regex.Pattern.compile("(?i)https?://([^/\\s?#]+)[^\\s]*").matcher(m.text);
+          java.util.regex.Pattern.compile("(?i)https?://([^/\\s?#]+)[^\\s]*")
+              .matcher(m.text + "\n" + m.content);
       boolean linked = false;
       while (url.find()) {
         linked = true;
@@ -138,14 +136,8 @@ public final class CenterStats {
       a.accounts.add(m.account);
       a.publications.add(m);
       a.daily.put(date, a.daily.getOrDefault(date, 0) + 1);
-      java.util.regex.Matcher tag =
-          java.util.regex.Pattern.compile(
-                  "(?iu)#[\\p{L}\\p{N}_]+|\\b(?:EUR/USD|XAU/USD|USD/RUB|NASDAQ|S&P|BTC|ETH)\\b")
-              .matcher(m.text);
-      while (tag.find()) {
-        String topic = tag.group();
+      for (String topic : CenterTopics.words(m.text))
         a.topics.put(topic, a.topics.getOrDefault(topic, 0) + 1);
-      }
     }
     for (CenterData.Message m : previous) {
       Group g = gm.get(m.source);
@@ -159,11 +151,17 @@ public final class CenterStats {
       if (a != null) a.previous++;
     }
     for (Group g : gm.values()) {
-      if (!g.daily.isEmpty()) {
+      if (!g.daily.isEmpty() || g.currentComplete) {
         Calendar dates = Calendar.getInstance(zone);
         try {
-          dates.setTime(day.parse(g.daily.keySet().iterator().next()));
-          Date end = day.parse(((TreeMap<String, Integer>) g.daily).lastKey());
+          dates.setTime(
+              g.currentComplete
+                  ? new Date(scope.from * 1000L)
+                  : day.parse(g.daily.keySet().iterator().next()));
+          Date end =
+              g.currentComplete
+                  ? new Date(scope.to * 1000L)
+                  : day.parse(((TreeMap<String, Integer>) g.daily).lastKey());
           for (int n = 0; !dates.getTime().after(end) && n < 36600; n++) {
             String date = day.format(dates.getTime());
             g.daily.putIfAbsent(date, 0);

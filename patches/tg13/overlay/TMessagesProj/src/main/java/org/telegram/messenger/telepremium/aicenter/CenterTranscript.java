@@ -22,20 +22,23 @@ public final class CenterTranscript {
 
   public static List<Segment> parse(String text) {
     List<Segment> out = new ArrayList<>();
-    java.util.regex.Matcher m =
-        java.util.regex.Pattern.compile("(?m)^\\[(\\d+):(\\d+)(?::(\\d+))?\\]\\s*(.*)$")
-            .matcher(text);
-    while (m.find()) {
-      long start =
-          m.group(3) == null
-              ? (Long.parseLong(m.group(1)) * 60 + Long.parseLong(m.group(2))) * 1000
-              : (Long.parseLong(m.group(1)) * 3600
-                      + Long.parseLong(m.group(2)) * 60
-                      + Long.parseLong(m.group(3)))
-                  * 1000;
-      out.add(new Segment(start, start + 35000, m.group(4)));
+    java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+        "(?ms)^\\[(\\d+):(\\d+)(?::(\\d+))?\\][ \\t]*(.*?)(?=^\\[\\d+:\\d+(?::\\d+)?\\]|\\z)").matcher(text);
+    while (matcher.find()) {
+      try {
+        long first = Long.parseLong(matcher.group(1));
+        long second = Long.parseLong(matcher.group(2));
+        long third = matcher.group(3) == null ? -1 : Long.parseLong(matcher.group(3));
+        if (first > 1000000 || second >= 60 || third >= 60) continue;
+        long start = (third < 0 ? first * 60 + second : first * 3600 + second * 60 + third) * 1000;
+        out.add(new Segment(start, start + 35000, matcher.group(4).trim()));
+      } catch (NumberFormatException invalid) {
+        // Ignore malformed timestamps rather than misrouting player seeks.
+      }
     }
+    out.sort(Comparator.comparingLong(segment -> segment.start));
     for (int i = 0; i + 1 < out.size(); i++) out.get(i).end = out.get(i + 1).start;
+
     return out;
   }
 

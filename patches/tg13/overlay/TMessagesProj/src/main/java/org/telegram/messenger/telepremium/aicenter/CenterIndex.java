@@ -212,7 +212,14 @@ public final class CenterIndex {
                         .remove(a, owner, "message", CenterData.Message.parse(o).qualified());
                 for (String kind :
                     new String[] {
-                      "report", "thread", "chunk", "final", "report_image", "media_result", "job"
+                      "report",
+                      "thread",
+                      "chunk",
+                      "final",
+                      "search",
+                      "report_image",
+                      "media_result",
+                      "job"
                     })
                   for (JSONObject o : CenterStore.get().list(a, owner, kind)) {
                     JSONObject m = o.optJSONObject("message");

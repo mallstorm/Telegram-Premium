@@ -106,7 +106,7 @@ public final class CenterData {
     public boolean own, deleted, protectedMedia, personal;
 
     /** Original TL message, encrypted at rest; not included in provider payloads. */
-    public String transport = "";
+    public String transport = "", mediaKey = "", content = "", transcriptKey = "";
 
     public String key() {
       return source + ":" + id;
@@ -121,7 +121,7 @@ public final class CenterData {
     }
 
     public String searchable() {
-      return text + "\n" + ocr + "\n" + transcript + "\n" + description;
+      return text + "\n" + content + "\n" + ocr + "\n" + transcript + "\n" + description;
     }
 
     public JSONObject json() throws JSONException {
@@ -159,6 +159,9 @@ public final class CenterData {
           .put("protectedMedia", protectedMedia)
           .put("personal", personal)
           .put("transport", transport)
+          .put("mediaKey", mediaKey)
+          .put("transcriptKey", transcriptKey)
+          .put("content", content)
           .put("replyTo", replyTo)
           .put("replies", replies)
           .put("forwards", forwards)
@@ -209,6 +212,9 @@ public final class CenterData {
       m.protectedMedia = o.optBoolean("protectedMedia");
       m.personal = o.optBoolean("personal");
       m.transport = o.optString("transport");
+      m.mediaKey = o.optString("mediaKey");
+      m.transcriptKey = o.optString("transcriptKey");
+      m.content = o.optString("content");
       m.replyTo = o.optInt("replyTo");
       m.replies = o.optInt("replies");
       m.forwards = o.optInt("forwards");
@@ -318,9 +324,16 @@ public final class CenterData {
       if ("pinned".equals(status) && !s.pinned
           || "archive".equals(status) && !s.archived
           || "muted".equals(status) && !s.muted) return false;
+      Set<String> seen = new HashSet<>();
       int count = 0;
       for (Message m : messages)
-        if (m.source.equals(s.canonical) && m.date >= from && m.date <= to && !m.deleted) count++;
+        if (m.source.equals(s.canonical)
+            && (s.topic == 0 || s.topic == m.topic)
+            && m.date >= from
+            && m.date <= to
+            && !m.deleted
+            && !m.protectedMedia
+            && seen.add(m.key())) count++;
       return (!"active".equals(activity) || count > 0)
           && (!"quiet".equals(activity) || count == 0)
           && count >= minPerDay * Math.max(1, (to - from) / 86400);

@@ -187,6 +187,7 @@ public final class CenterPdf implements AutoCloseable {
                     9,
                     true);
                 pdf.text(e.message.description, 10, false);
+                pdf.text(CenterExport.link(e.message), 8, false);
               }
         }
         if (block.equals("transcripts")) {

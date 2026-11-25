@@ -450,7 +450,11 @@ public final class CenterSync {
   public static CenterData.Message convert(CenterData.Source s, TLRPC.Message m) {
     TLRPC.Chat chat =
         s.dialog < 0 ? MessagesController.getInstance(s.account).getChat(-s.dialog) : null;
-    boolean protectedMedia = m.noforwards || (chat != null && chat.noforwards);
+    boolean protectedMedia =
+        m.noforwards
+            || (chat != null && chat.noforwards)
+            || m.ttl_period > 0
+            || (m.media != null && m.media.ttl_seconds > 0);
     if (protectedMedia && m.media != null && !(m.media instanceof TLRPC.TL_messageMediaEmpty))
       return null;
     CenterData.Message d = new CenterData.Message();
@@ -491,13 +495,17 @@ public final class CenterSync {
     d.text = m.message == null ? "" : m.message;
     d.protectedMedia = protectedMedia;
     d.personal = CenterReports.personal(d.text);
-    if (m.media instanceof TLRPC.TL_messageMediaPhoto) d.kind = "photo";
-    else if (m.media instanceof TLRPC.TL_messageMediaDocument) {
+    if (m.media instanceof TLRPC.TL_messageMediaPhoto) {
+      d.kind = "photo";
+      TLRPC.Photo photo = ((TLRPC.TL_messageMediaPhoto) m.media).photo;
+      if (photo != null) d.mediaKey = "photo:" + photo.id;
+    } else if (m.media instanceof TLRPC.TL_messageMediaDocument) {
       TLRPC.Document doc = ((TLRPC.TL_messageMediaDocument) m.media).document;
       if (doc != null) {
         String mime = doc.mime_type == null ? "" : doc.mime_type;
         d.mime = mime;
         d.bytes = doc.size;
+        d.mediaKey = "document:" + doc.id + ":" + doc.size;
         d.kind =
             mime.startsWith("video/")
                 ? "video"
@@ -517,10 +525,50 @@ public final class CenterSync {
           }
         }
       }
-    } else if (m.media instanceof TLRPC.TL_messageMediaPoll) d.kind = "poll";
-    else if (m.media instanceof TLRPC.TL_messageMediaWebPage) d.kind = "link";
-    if (m.fwd_from != null && m.fwd_from.from_id != null)
-      d.forwardSource = "" + DialogObject.getPeerDialogId(m.fwd_from.from_id);
+    } else if (m.media instanceof TLRPC.TL_messageMediaPoll) {
+      d.kind = "poll";
+      TLRPC.TL_messageMediaPoll poll = (TLRPC.TL_messageMediaPoll) m.media;
+      StringBuilder text = new StringBuilder();
+      if (poll.poll != null) {
+        text.append(poll.poll.question.text);
+        for (TLRPC.PollAnswer answer : poll.poll.answers) {
+          text.append("\n").append(answer.text.text);
+          if (poll.results != null)
+            for (TLRPC.PollAnswerVoters result : poll.results.results)
+              if (java.util.Arrays.equals(answer.option, result.option))
+                text.append(" — ").append(result.voters);
+        }
+      }
+      if (poll.results != null)
+        text.append("\n")
+            .append(CenterText.get("polls"))
+            .append(": ")
+            .append(poll.results.total_voters);
+      d.content = text.toString();
+    } else if (m.media instanceof TLRPC.TL_messageMediaWebPage) {
+      d.kind = "link";
+      TLRPC.WebPage page = ((TLRPC.TL_messageMediaWebPage) m.media).webpage;
+      if (page != null)
+        d.content =
+            (page.url == null ? "" : page.url)
+                + "\n"
+                + (page.title == null ? "" : page.title)
+                + "\n"
+                + (page.site_name == null ? "" : page.site_name);
+    }
+    if (m.fwd_from != null && m.fwd_from.from_id != null) {
+      long peer = DialogObject.getPeerDialogId(m.fwd_from.from_id);
+      TLRPC.Chat origin =
+          peer < 0 ? MessagesController.getInstance(s.account).getChat(-peer) : null;
+      TLRPC.User sender = peer > 0 ? MessagesController.getInstance(s.account).getUser(peer) : null;
+      d.forwardSource =
+          origin != null
+              ? origin.title
+              : sender != null
+                  ? ContactsController.formatName(sender.first_name, sender.last_name)
+                  : CenterText.get("forwarded");
+      d.content += "\n" + CenterText.get("forwarded") + ": " + d.forwardSource;
+    }
     d.replyTo = m.reply_to == null ? 0 : m.reply_to.reply_to_msg_id;
     d.replies = m.replies == null ? 0 : m.replies.replies;
     d.forwards = m.forwards;
@@ -531,6 +579,72 @@ public final class CenterSync {
     d.transport = Base64.encodeToString(serial.toByteArray(), Base64.NO_WRAP);
     serial.cleanup();
     return d;
+  }
+
+  /** Explicit single-message refresh for archived media; never changes read state. */
+  public static void resolve(CenterData.Message message, AtomicBoolean cancel) throws Exception {
+    if (!CenterIndex.accountAllowed(message.account, message.owner)) throw new SecurityException();
+    MessagesController controller = MessagesController.getInstance(message.account);
+    TLRPC.Chat chat = message.dialog < 0 ? controller.getChat(-message.dialog) : null;
+    ArrayList<Integer> ids = new ArrayList<>();
+    ids.add(message.id);
+    TLObject request;
+    if (ChatObject.isChannel(chat)) {
+      TLRPC.TL_channels_getMessages q = new TLRPC.TL_channels_getMessages();
+      q.channel = controller.getInputChannel(chat);
+      q.id = ids;
+      request = q;
+    } else {
+      TLRPC.TL_messages_getMessages q = new TLRPC.TL_messages_getMessages();
+      q.id = ids;
+      request = q;
+    }
+    java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+    TLRPC.Message[] found = {null};
+    String[] error = {null};
+    int requestId =
+        ConnectionsManager.getInstance(message.account)
+            .sendRequest(
+                request,
+                (response, failure) -> {
+                  if (failure != null) error[0] = failure.text;
+                  if (response instanceof TLRPC.messages_Messages) {
+                    TLRPC.messages_Messages messages = (TLRPC.messages_Messages) response;
+                    for (TLRPC.Message item : messages.messages)
+                      if (item.id == message.id && !(item instanceof TLRPC.TL_messageEmpty)) {
+                        long peer = DialogObject.getPeerDialogId(item.peer_id);
+                        if (peer == message.dialog
+                            || (message.dialog > 0
+                                && peer == message.owner
+                                && item.from_id != null
+                                && item.from_id.user_id == message.dialog)) found[0] = item;
+                      }
+                  }
+                  latch.countDown();
+                });
+    try {
+      long deadline = System.currentTimeMillis() + 30000;
+      while (!latch.await(250, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+        if (cancel.get()
+            || System.currentTimeMillis() > deadline
+            || !CenterIndex.accountAllowed(message.account, message.owner))
+          throw new InterruptedException();
+      }
+      if (found[0] == null) {
+        if (error[0] == null) message.deleted = true;
+        throw new java.io.IOException(error[0] == null ? CenterText.get("deleted") : error[0]);
+      }
+      SerializedData data = new SerializedData();
+      try {
+        found[0].serializeToStream(data);
+        message.transport = Base64.encodeToString(data.toByteArray(), Base64.NO_WRAP);
+        message.protectedMedia = found[0].noforwards;
+      } finally {
+        data.cleanup();
+      }
+    } finally {
+      ConnectionsManager.getInstance(message.account).cancelRequest(requestId, true);
+    }
   }
 
   public static TLRPC.Message original(CenterData.Message m) {

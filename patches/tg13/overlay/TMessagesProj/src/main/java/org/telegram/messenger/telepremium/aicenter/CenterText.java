@@ -466,6 +466,16 @@ public final class CenterText {
         return TPStrings.get("TP_AIC_session", R.string.TP_AIC_session);
       case "available":
         return TPStrings.get("TP_AIC_available", R.string.TP_AIC_available);
+      case "semanticSearch":
+        return TPStrings.get("TP_AIC_semanticSearch", R.string.TP_AIC_semanticSearch);
+      case "indexedDescriptions":
+        return TPStrings.get("TP_AIC_indexedDescriptions", R.string.TP_AIC_indexedDescriptions);
+      case "chapterQuery":
+        return TPStrings.get("TP_AIC_chapterQuery", R.string.TP_AIC_chapterQuery);
+      case "expand":
+        return TPStrings.get("TP_AIC_expand", R.string.TP_AIC_expand);
+      case "discussed":
+        return TPStrings.get("TP_AIC_discussed", R.string.TP_AIC_discussed);
       default:
         return key;
     }

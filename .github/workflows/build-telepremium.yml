@@ -12,7 +12,7 @@ on:
     branches: [ main, port/tg-13.1.1, feature/classic-telegram-11x ]
 
 concurrency:
-  group: build-telepremium-${{ github.ref }}
+  group: build-telepremium-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:

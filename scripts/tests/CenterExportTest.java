@@ -13,6 +13,10 @@ public class CenterExportTest {
   StringWriter md=new StringWriter();CenterExport.md(r,o,k->k,null,null,md);check(md.toString().contains("first quote"),"Markdown evidence");check(!md.toString().contains("Private Name"),"Markdown privacy");
   check(CenterExport.csvRow("=HYPERLINK(\"x\")").startsWith("\"'="),"CSV formula");check(CenterExport.csvRow("  =HYPERLINK(\"x\")").startsWith("\"'  ="),"CSV leading spaces");check(CenterExport.csvRow(-3).startsWith("\"-3"),"CSV numeric values");
   CenterReports.Report restored=CenterReports.restore(CenterReports.archive(r),Collections.emptyList());check(restored.claims.get(0).verified()&&restored.claims.get(1).verified(),"archival evidence survives index pruning, including multiple excerpts");
+  m.transcript="[00:00:00] Full transcript first segment\n[00:00:35] Content outside the cited quotation";r.dataset.add(m);
+  CenterReports.Report durable=CenterReports.restore(CenterReports.archive(r),Collections.emptyList());check(CenterReports.transcripts(durable).get(0).transcript.contains("outside the cited quotation"),"full transcripts survive index pruning");
+  StringWriter full=new StringWriter();CenterExport.html(durable,o,k->k,null,null,full);check(full.toString().contains("outside the cited quotation"),"HTML exports full archived transcript");
+  CenterData.Message other=new CenterData.Message();other.account=0;other.dialog=-100;other.id=100;check(CenterReports.context(Arrays.asList(other),m).stream().anyMatch(item->item.id==42),"pruned context includes the actual anchor");
   check(CenterExport.Options.parse(o.json()).blocks.equals(o.blocks),"builder block order persistence");
   System.out.println("CenterExportTest OK: HTML escaping, source links, author/account privacy, CSV injection, Markdown, archival quotations and builder order");
  }
