@@ -552,7 +552,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/aicenter/CenterStore.java",
       "base_sha256": null,
-      "sha256": "00ade4d795a0b241e3fbffa9addbf4c37a8568cd66d1b7cb15aad006a0b49cd4"
+      "sha256": "2cf0949c4bd97fccd29b426379ae3bb603b53d3acc0de864d99639c20da4a896"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/aicenter/CenterSync.java",
@@ -1937,7 +1937,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "214caa0155807c6deb1b9e1f8209ab02ed4b04f9fa652cb5afd1a03599a0ad7d"
+      "sha256": "1f8479429bc971f27d352d91a216ebf10995ad64c8dedb7745dc63d01570b3e6"
     },
     {
       "path": "settings.gradle",

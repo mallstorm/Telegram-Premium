@@ -35,7 +35,13 @@ public final class CenterStore extends SQLiteOpenHelper {
 
   @Override
   public void onConfigure(SQLiteDatabase db) {
-    db.execSQL("PRAGMA secure_delete=ON");
+    // This PRAGMA returns a row on Android SQLite. execSQL uses executeUpdateDelete,
+    // which rejects row-returning statements on several Android/OEM versions.
+    try (Cursor configured = db.rawQuery("PRAGMA secure_delete=ON", null)) {
+      if (!configured.moveToFirst() || configured.getInt(0) != 1) {
+        throw new SQLiteException("Could not enable secure deletion");
+      }
+    }
   }
 
   @Override
