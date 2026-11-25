@@ -33,7 +33,7 @@ repositories {
     google()
     maven {
         url 'https://jitpack.io'
-        content { includeGroupByRegex 'com\\.github\\..*' }
+        content { includeGroupByRegex 'com\\.github\\..*'; includeGroup 'cz.adaptech.tesseract4android' }
     }
 }
 

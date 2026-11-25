@@ -7,7 +7,7 @@
     {
       "path": "TMessagesProj/build.gradle",
       "base_sha256": "41730d38da7f0486e2cf41e2c0c85a1187ca9473d6de0d84c61205359dde4c45",
-      "sha256": "68b3febfbc83b55e51f880ba67221b444b7fcfbcf1944f3a0bd0eee1cdefd190"
+      "sha256": "0994711d5c290ce6a572f95590414fd665aa968bec622a21364488883c6a4776"
     },
     {
       "path": "TMessagesProj/jni/tgnet/ConnectionsManager.cpp",
@@ -1852,7 +1852,7 @@
     {
       "path": "build.gradle",
       "base_sha256": "a7fc78c873827eb54e95acb73bfa74744ec636490e66a8df0cb32ea8b7009f67",
-      "sha256": "59c076bbb6ca41075de97eecb323bd8dd6c32b9db53a762b0dc0f8124a309dd0"
+      "sha256": "5d9c26bd9fcb49e30afdc31368326561ef40fe2da54a356e8b7b7e03120cd55d"
     },
     {
       "path": "gradle.properties",
@@ -1862,7 +1862,7 @@
     {
       "path": "settings.gradle",
       "base_sha256": "9471e04feb9c4844dd8bbe8fc61e2b3aa4da2d185b01ad6b6b35d80f4bec2965",
-      "sha256": "fdacd6c329b3d3de2d84c77e9a3357667892bd29dd2c3f6077344c8066e515d2"
+      "sha256": "aff8bd52bc9fbdaac1aac492dcb4a7a7e8066292e9da2d8ab52cd71967d7176a"
     }
   ]
 }
