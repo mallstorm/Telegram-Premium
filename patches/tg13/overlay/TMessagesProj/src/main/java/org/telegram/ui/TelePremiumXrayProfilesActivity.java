@@ -33,8 +33,12 @@ public final class TelePremiumXrayProfilesActivity extends BaseFragment {
         try{
             List<XrayProfile> profiles=XrayProfileStore.profiles();
             label(t("Core status: ","Состояние ядра: ")+XrayRuntime.status());
-            cell(t("Add profiles","Добавить профили"),profiles.size()+" / 10",()->importDialog());
-            for(XrayProfile p:profiles)cell(p.name,p.outbound.optString("protocol").toUpperCase(Locale.ROOT),()->profileMenu(p));
+            cell(t("Add profiles","Добавить профили"),profiles.size()+" / "+XrayConfig.MAX_PROFILES,()->importDialog());
+            cell(t("Check keys now","Проверить ключи сейчас"),t("Auto mode picks the fastest and rotates on failure","Режим «Авто» выбирает быстрейший и меняет при сбое"),()->{XrayRuntime.probeNow(this::render);Toast.makeText(getParentActivity(),t("Checking…","Проверяю…"),Toast.LENGTH_SHORT).show();});
+            String activeId=XrayRuntime.autoActiveId();
+            for(XrayProfile p:profiles){int ms=XrayRuntime.latency(p.id);String state=ms>0?ms+" "+t("ms","мс"):ms<0?t("no response","не отвечает"):"";
+                String mark=p.id.equals(activeId)?"● ":"";
+                cell(mark+p.name,p.outbound.optString("protocol").toUpperCase(Locale.ROOT)+(state.isEmpty()?"":" · "+state),()->profileMenu(p));}
             label(t("Telegram accounts","Telegram-аккаунты"));
             for(int a=0;a<UserConfig.MAX_ACCOUNT_COUNT;a++)if(UserConfig.getInstance(a).isClientActivated()){
                 final int account=a;AccountNetworkProfile route=AccountNetworkController.getInstance().getProfile(a);
@@ -50,7 +54,7 @@ public final class TelePremiumXrayProfilesActivity extends BaseFragment {
             cell(t("Reset unreadable Xray profiles","Сбросить нечитаемые профили Xray"),"",this::resetUnreadable);
         }
     }
-    private String profileName(String id)throws Exception{XrayProfile p=XrayProfileStore.find(id);return p==null?t("Unavailable","Недоступен"):p.name;}
+    private String profileName(String id)throws Exception{if(XrayRuntime.AUTO.equals(id)){String a=XrayRuntime.autoActiveId();XrayProfile ap=a.isEmpty()?null:XrayProfileStore.find(a);return t("Auto","Авто")+(ap==null?"":" · "+ap.name);}XrayProfile p=XrayProfileStore.find(id);return p==null?t("Unavailable","Недоступен"):p.name;}
     private void resetUnreadable(){
         showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider())
                 .setTitle(t("Reset local Xray profiles?","Сбросить локальные профили Xray?"))
@@ -63,25 +67,25 @@ public final class TelePremiumXrayProfilesActivity extends BaseFragment {
     private void importDialog(){
         EditText input=new EditText(getParentActivity());input.setHint("vless://… · vmess://… · trojan://… · ss://… · Xray JSON");input.setMinLines(4);input.setMaxLines(12);input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(262144)});
-        showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle(t("Import profiles (up to 10)","Импорт профилей — до 10"))
+        showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle(t("Import profiles (one link per line)","Импорт профилей — по ссылке в строке"))
                 .setView(input).setPositiveButton(t("Import","Импортировать"),(d,w)->{
                     String raw=input.getText().toString().trim();input.setText("");
                     XrayRuntime.importProfiles(raw,result->{if(result!=null)error(result);render();});
                 }).setNegativeButton(t("Cancel","Отмена"),null).create());
     }
     private void chooseAccount(int account){
-        try{List<XrayProfile> profiles=XrayProfileStore.profiles();ArrayList<String> names=new ArrayList<>();names.add(t("Global route","Общий маршрут"));names.add(t("Direct","Напрямую"));for(XrayProfile p:profiles)names.add(p.name);
+        try{List<XrayProfile> profiles=XrayProfileStore.profiles();ArrayList<String> names=new ArrayList<>();names.add(t("Global route","Общий маршрут"));names.add(t("Direct","Напрямую"));names.add(t("Auto: best of all keys","Авто: лучший из всех ключей"));for(XrayProfile p:profiles)names.add(p.name);
             showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle(t("Account route","Маршрут аккаунта")).setItems(names.toArray(new String[0]),(d,which)->{
                 if(which==0)AccountNetworkController.getInstance().resetToGlobal(account);
-                else{AccountNetworkProfile route=AccountNetworkController.getInstance().getEditableProfile(account);route.mode=which==1?AccountNetworkProfile.MODE_DIRECT:AccountNetworkProfile.MODE_XRAY;if(which>1){XrayProfile p=profiles.get(which-2);route.xrayProfileId=p.id;route.displayName=p.name;}AccountNetworkController.getInstance().saveAndApply(account,route);}
+                else{AccountNetworkProfile route=AccountNetworkController.getInstance().getEditableProfile(account);route.mode=which==1?AccountNetworkProfile.MODE_DIRECT:AccountNetworkProfile.MODE_XRAY;if(which==2){route.xrayProfileId=XrayRuntime.AUTO;route.displayName=t("Auto","Авто");}else if(which>2){XrayProfile p=profiles.get(which-3);route.xrayProfileId=p.id;route.displayName=p.name;}AccountNetworkController.getInstance().saveAndApply(account,route);}
                 XrayRuntime.refresh();render();
             }).create());
         }catch(Exception e){error(t("Could not load profiles","Не удалось открыть профили"));}
     }
     private void chooseMedia(){
-        try{List<XrayProfile> profiles=XrayProfileStore.profiles();ArrayList<String> names=new ArrayList<>();names.add(t("Direct","Напрямую"));names.add(t("Current account Xray","Xray текущего аккаунта"));for(XrayProfile p:profiles)names.add(p.name);
+        try{List<XrayProfile> profiles=XrayProfileStore.profiles();ArrayList<String> names=new ArrayList<>();names.add(t("Direct","Напрямую"));names.add(t("Current account Xray","Xray текущего аккаунта"));names.add(t("Auto: best of all keys","Авто: лучший из всех ключей"));for(XrayProfile p:profiles)names.add(p.name);
             showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle(t("Media route","Маршрут медиатеки")).setItems(names.toArray(new String[0]),(d,which)->{
-                try{XrayProfileStore.setMediaRoute(which==0?"":which==1?"account":profiles.get(which-2).id);XrayRuntime.refresh();org.telegram.messenger.telepremium.media.TelePremiumPlaybackController.networkRouteChanged();render();}catch(Exception e){error(t("Could not save route","Не удалось сохранить маршрут"));}
+                try{XrayProfileStore.setMediaRoute(which==0?"":which==1?"account":which==2?XrayRuntime.AUTO:profiles.get(which-3).id);XrayRuntime.refresh();org.telegram.messenger.telepremium.media.TelePremiumPlaybackController.networkRouteChanged();render();}catch(Exception e){error(t("Could not save route","Не удалось сохранить маршрут"));}
             }).create());
         }catch(Exception e){error(t("Could not load profiles","Не удалось открыть профили"));}
     }

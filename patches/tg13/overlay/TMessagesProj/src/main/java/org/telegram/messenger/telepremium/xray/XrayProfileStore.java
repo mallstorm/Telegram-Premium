@@ -81,14 +81,14 @@ public final class XrayProfileStore {
     }
     public static synchronized XrayProfile find(String id)throws Exception{for(XrayProfile p:profiles())if(p.id.equals(id))return p;return null;}
     public static synchronized void saveAll(List<XrayProfile> profiles)throws Exception{
-        if(profiles.size()>XrayConfig.MAX_PROFILES)throw new IllegalArgumentException("Можно сохранить до 10 профилей");
+        if(profiles.size()>XrayConfig.MAX_PROFILES)throw new IllegalArgumentException("Можно сохранить до 50 профилей");
         JSONArray a=new JSONArray();java.util.HashSet<String> ids=new java.util.HashSet<>();
         for(XrayProfile p:profiles){XrayConfig.validateOutbound(p.outbound);if(!ids.add(p.id))throw new IllegalArgumentException("Duplicate profile");a.put(p.toJson());}
         JSONObject state=read();state.put("profiles",a);write(state);
     }
     public static synchronized String mediaRoute()throws Exception{return read().optString("mediaRoute","");}
     public static synchronized void setMediaRoute(String id)throws Exception{
-        if(!id.isEmpty()&&!id.equals("account")&&find(id)==null)throw new IllegalArgumentException("Unknown profile");
+        if(!id.isEmpty()&&!id.equals("account")&&!id.equals(XrayRuntime.AUTO)&&find(id)==null)throw new IllegalArgumentException("Unknown profile");
         JSONObject state=read();state.put("mediaRoute",id);write(state);
     }
 }

@@ -8,7 +8,7 @@ import java.util.HashSet;
 
 /** One core, two loopback listeners per profile, explicit inbound -> outbound routing. */
 public final class XrayConfig {
-    public static final int MAX_PROFILES = 10;
+    public static final int MAX_PROFILES = 50;
     private XrayConfig() {}
     public static void validateOutbound(JSONObject node) throws Exception {
         String protocol = node.optString("protocol");
@@ -44,11 +44,11 @@ public final class XrayConfig {
             validateOutbound(node);accepted.put(new JSONObject(node.toString()));
         }
         if(accepted.length()==0)throw new IllegalArgumentException("Нет поддерживаемых профилей Xray");
-        if(accepted.length()>MAX_PROFILES)throw new IllegalArgumentException("Можно сохранить до 10 профилей");
+        if(accepted.length()>MAX_PROFILES)throw new IllegalArgumentException("Можно сохранить до 50 профилей");
         return accepted;
     }
     public static JSONObject build(List<XrayProfile> profiles, Map<String,int[]> ports) throws Exception {
-        if (profiles.size() > MAX_PROFILES) throw new IllegalArgumentException("Maximum 10 profiles");
+        if (profiles.size() > MAX_PROFILES) throw new IllegalArgumentException("Maximum 50 profiles");
         JSONArray inbounds = new JSONArray(), outbounds = new JSONArray(), rules = new JSONArray();
         outbounds.put(new JSONObject().put("tag", "block").put("protocol", "blackhole"));
         outbounds.put(new JSONObject().put("tag", "direct").put("protocol", "freedom"));
