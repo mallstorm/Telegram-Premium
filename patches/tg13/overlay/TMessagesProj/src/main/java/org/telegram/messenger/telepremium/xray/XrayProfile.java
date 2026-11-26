@@ -9,13 +9,16 @@ public final class XrayProfile {
     public String name;
     public JSONObject outbound;
     public boolean bypassLan = true;
+    /** Id of the subscription this key came from; empty for manually added keys. */
+    public String sub = "";
     public JSONObject toJson() throws Exception {
-        return new JSONObject().put("id", id).put("name", name).put("outbound", outbound).put("bypassLan", bypassLan);
+        return new JSONObject().put("id", id).put("name", name).put("outbound", outbound).put("bypassLan", bypassLan).put("sub", sub);
     }
     public static XrayProfile fromJson(JSONObject json) throws Exception {
         XrayProfile p = new XrayProfile(); p.id = json.getString("id"); p.name = json.getString("name");
         p.outbound = new JSONObject(json.getJSONObject("outbound").toString());
         p.bypassLan = json.optBoolean("bypassLan", true);
+        p.sub = json.optString("sub", "");
         if (!p.id.matches("[a-zA-Z0-9_-]{1,80}") || p.name.length() > 120) throw new IllegalArgumentException("Invalid profile");
         XrayConfig.validateOutbound(p.outbound); return p;
     }

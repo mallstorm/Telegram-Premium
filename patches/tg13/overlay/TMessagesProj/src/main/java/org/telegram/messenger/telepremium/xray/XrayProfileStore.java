@@ -86,6 +86,27 @@ public final class XrayProfileStore {
         for(XrayProfile p:profiles){XrayConfig.validateOutbound(p.outbound);if(!ids.add(p.id))throw new IllegalArgumentException("Duplicate profile");a.put(p.toJson());}
         JSONObject state=read();state.put("profiles",a);write(state);
     }
+    public static String subscriptionId(String url)throws Exception{
+        byte[] d=java.security.MessageDigest.getInstance("SHA-256").digest(url.trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        StringBuilder sb=new StringBuilder();for(int i=0;i<6;i++)sb.append(String.format("%02x",d[i]&0xff));return sb.toString();
+    }
+    /** @return list of {id, url} */
+    public static synchronized List<String[]> subscriptions()throws Exception{
+        JSONArray a=read().optJSONArray("subs");ArrayList<String[]> out=new ArrayList<>();
+        if(a!=null)for(int i=0;i<a.length();i++){JSONObject o=a.getJSONObject(i);out.add(new String[]{o.getString("id"),o.getString("url")});}
+        return out;
+    }
+    public static synchronized void saveSubscription(String url)throws Exception{
+        String id=subscriptionId(url);JSONObject state=read();JSONArray a=state.optJSONArray("subs");if(a==null)a=new JSONArray();
+        for(int i=0;i<a.length();i++)if(a.getJSONObject(i).getString("id").equals(id))return;
+        if(a.length()>=20)throw new IllegalArgumentException("Не более 20 подписок");
+        a.put(new JSONObject().put("id",id).put("url",url.trim()));state.put("subs",a);write(state);
+    }
+    public static synchronized void removeSubscription(String id)throws Exception{
+        JSONObject state=read();JSONArray a=state.optJSONArray("subs");if(a==null)return;JSONArray out=new JSONArray();
+        for(int i=0;i<a.length();i++)if(!a.getJSONObject(i).getString("id").equals(id))out.put(a.getJSONObject(i));
+        state.put("subs",out);write(state);
+    }
     public static synchronized String mediaRoute()throws Exception{return read().optString("mediaRoute","");}
     public static synchronized void setMediaRoute(String id)throws Exception{
         if(!id.isEmpty()&&!id.equals("account")&&!id.equals("auto-pool")&&find(id)==null)throw new IllegalArgumentException("Unknown profile");

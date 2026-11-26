@@ -118,19 +118,136 @@ public final class XrayRuntime {
         });
     }
     public static void refresh(){WORKER.execute(()->{try{ensureCore();}catch(Throwable e){status="Ошибка маршрута; соединение остановлено";}AndroidUtilities.runOnUIThread(XrayRuntime::reapplyAccounts);});}
+    private static volatile String lastSummary="";
+    public static String lastImportSummary(){return lastSummary;}
+    private static boolean isUrl(String t){String l=t.trim().toLowerCase(Locale.ROOT);return (l.startsWith("https://")||l.startsWith("http://"))&&!l.contains("\n")&&!l.contains(" ");}
+    private static boolean isShareLink(String line){
+        String l=line.toLowerCase(Locale.ROOT);
+        for(String p:new String[]{"vless://","vmess://","trojan://","ss://","hysteria2://","socks://"})if(l.startsWith(p))return true;
+        return false;
+    }
+    private static String fetchSubscription(String url)throws Exception{
+        Exception direct=null;
+        try{return fetch(url,Proxy.NO_PROXY);}catch(Exception e){direct=e;}
+        Map<String,int[]> ports=runningPorts;
+        if(!ports.isEmpty()){
+            int[] pair=ports.values().iterator().next();
+            try{return fetch(url,new Proxy(Proxy.Type.HTTP,new InetSocketAddress("127.0.0.1",pair[1])));}catch(Exception ignored){}
+        }
+        throw direct;
+    }
+    private static String fetch(String url,Proxy proxy)throws Exception{
+        HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection(proxy);
+        try{
+            c.setConnectTimeout(12000);c.setReadTimeout(20000);c.setRequestProperty("User-Agent","v2rayN/6.42");c.setInstanceFollowRedirects(true);
+            if(c.getResponseCode()/100!=2)throw new IOException("HTTP "+c.getResponseCode());
+            java.io.InputStream in=c.getInputStream();java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();byte[] buf=new byte[16384];int n;
+            while((n=in.read(buf))>0){out.write(buf,0,n);if(out.size()>2*1024*1024)throw new IllegalArgumentException("Подписка слишком большая");}
+            return out.toString("UTF-8");
+        }finally{c.disconnect();}
+    }
+    private static String decodeSubscription(String body){
+        String t=body.trim();
+        if(t.contains("://")||t.startsWith("{")||t.startsWith("["))return t;
+        String clean=t.replaceAll("\\s+","");
+        for(int flags:new int[]{android.util.Base64.DEFAULT,android.util.Base64.URL_SAFE}){
+            try{String s=new String(android.util.Base64.decode(clean,flags),java.nio.charset.StandardCharsets.UTF_8);if(s.contains("://"))return s;}catch(IllegalArgumentException ignored){}
+        }
+        throw new IllegalArgumentException("Не удалось прочитать подписку: ожидается список ссылок");
+    }
+    private static JSONArray nodesFromText(String text)throws Exception{
+        String t=text.trim();
+        if(t.startsWith("{")||t.startsWith("["))return XrayConfig.importJson(t);
+        JSONArray out=new JSONArray();Set<String> seen=new HashSet<>();
+        for(String line:t.split("[\\r\\n]+")){
+            line=line.trim();if(!isShareLink(line))continue;
+            try{
+                JSONArray one=invoke("convertShareLinksToXrayJson",new JSONObject().put("text",line)).getJSONArray("outbounds");
+                for(int i=0;i<one.length();i++){JSONObject o=one.getJSONObject(i);JSONObject copy=new JSONObject(o.toString());copy.remove("tag");if(seen.add(copy.toString()))out.put(o);}
+            }catch(Exception ignored){}
+        }
+        return out;
+    }
+    private static boolean isReferenced(String id){
+        try{
+            if(id.equals(XrayProfileStore.mediaRoute()))return true;
+            for(int a=0;a<UserConfig.MAX_ACCOUNT_COUNT;a++){AccountNetworkProfile r=AccountNetworkStore.getInstance().load(a);if(r!=null&&r.mode==AccountNetworkProfile.MODE_XRAY&&id.equals(r.xrayProfileId))return true;}
+        }catch(Exception e){return true;}
+        return false;
+    }
+    private static XrayProfile prepared(JSONObject outbound,String fallbackName)throws Exception{
+        XrayProfile p=new XrayProfile();p.outbound=outbound;p.name=outbound.optString("tag",fallbackName).trim();
+        if(p.name.isEmpty())p.name=fallbackName;if(p.name.length()>120)p.name=p.name.substring(0,120);
+        XrayConfig.validateOutbound(p.outbound);
+        Map<String,int[]> validationPorts=new HashMap<>();validationPorts.put(p.id,new int[]{20000,20001});
+        String validation=XrayConfig.build(Collections.singletonList(p),validationPorts).toString();
+        if(signature.isEmpty())invoke("testXray",new JSONObject().put("xrayJson",validation));
+        return p;
+    }
+    private static void finish(String error,org.telegram.messenger.Utilities.Callback<String> callback){final String result=error;AndroidUtilities.runOnUIThread(()->callback.run(result));}
+    /** Single links, several links, Xray JSON or a subscription URL (https://…). */
     public static void importProfiles(String text,org.telegram.messenger.Utilities.Callback<String> callback){
+        if(text!=null&&text.length()<=4096&&isUrl(text)){
+            final String url=text.trim();
+            Thread t=new Thread(()->{
+                String body=null,error=null;
+                try{body=decodeSubscription(fetchSubscription(url));}
+                catch(IllegalArgumentException e){error=e.getMessage();}
+                catch(Throwable e){error="Не удалось загрузить подписку. Проверьте ссылку и интернет";}
+                if(error!=null){finish(error,callback);return;}
+                importInternal(body,url,callback);
+            },"tp-xray-sub");t.setDaemon(true);t.start();return;
+        }
+        importInternal(text,null,callback);
+    }
+    /** Re-download a saved subscription: updates keys by name, adds new ones, drops unused vanished ones. */
+    public static void refreshSubscription(String subId,org.telegram.messenger.Utilities.Callback<String> callback){
+        Thread t=new Thread(()->{
+            String url=null,body=null,error=null;
+            try{for(String[] s:XrayProfileStore.subscriptions())if(s[0].equals(subId))url=s[1];
+                if(url==null)throw new IllegalArgumentException("Подписка не найдена");
+                body=decodeSubscription(fetchSubscription(url));}
+            catch(IllegalArgumentException e){error=e.getMessage();}
+            catch(Throwable e){error="Не удалось загрузить подписку. Проверьте интернет";}
+            if(error!=null){finish(error,callback);return;}
+            importInternal(body,url,callback);
+        },"tp-xray-sub");t.setDaemon(true);t.start();
+    }
+    private static void importInternal(String text,String subUrl,org.telegram.messenger.Utilities.Callback<String> callback){
         WORKER.execute(()->{String error=null;try{
-            if(text==null||text.length()>262144)throw new IllegalArgumentException("Слишком большой профиль");
-            String trimmed=text.trim();
-            JSONArray nodes=trimmed.startsWith("{")||trimmed.startsWith("[")?XrayConfig.importJson(trimmed):invoke("convertShareLinksToXrayJson",new JSONObject().put("text",trimmed)).getJSONArray("outbounds");
-            List<XrayProfile> profiles=XrayProfileStore.profiles();if(profiles.size()+nodes.length()>XrayConfig.MAX_PROFILES)throw new IllegalArgumentException("Можно сохранить до "+XrayConfig.MAX_PROFILES+" профилей");
-            for(int i=0;i<nodes.length();i++){XrayProfile p=new XrayProfile();p.outbound=nodes.getJSONObject(i);p.name=p.outbound.optString("tag","Профиль "+(profiles.size()+1));if(p.name.length()>120)p.name=p.name.substring(0,120);XrayConfig.validateOutbound(p.outbound);
-                Map<String,int[]> validationPorts=new HashMap<>();validationPorts.put(p.id,new int[]{20000,20001});
-                String validation=XrayConfig.build(Collections.singletonList(p),validationPorts).toString();
-                if(signature.isEmpty())invoke("testXray",new JSONObject().put("xrayJson",validation));profiles.add(p);}
-            if(nodes.length()==0)throw new IllegalArgumentException("В конфигурации нет подходящих профилей");XrayProfileStore.saveAll(profiles);
+            if(text==null||text.length()>262144*8)throw new IllegalArgumentException("Слишком большой профиль");
+            JSONArray nodes=nodesFromText(text);
+            if(nodes.length()==0)throw new IllegalArgumentException("В конфигурации нет подходящих профилей");
+            List<XrayProfile> profiles=XrayProfileStore.profiles();
+            if(subUrl==null){
+                if(text.length()>262144)throw new IllegalArgumentException("Слишком большой профиль");
+                if(profiles.size()+nodes.length()>XrayConfig.MAX_PROFILES)throw new IllegalArgumentException("Можно сохранить до "+XrayConfig.MAX_PROFILES+" профилей");
+                for(int i=0;i<nodes.length();i++)profiles.add(prepared(nodes.getJSONObject(i),"Профиль "+(profiles.size()+1)));
+                XrayProfileStore.saveAll(profiles);lastSummary="Добавлено ключей: "+nodes.length();
+            }else{
+                String subId=XrayProfileStore.subscriptionId(subUrl);
+                Map<String,XrayProfile> mine=new LinkedHashMap<>();List<XrayProfile> others=new ArrayList<>();
+                for(XrayProfile p:profiles){if(subId.equals(p.sub)&&!mine.containsKey(p.name))mine.put(p.name,p);else if(subId.equals(p.sub)){others.add(p);}else others.add(p);}
+                List<XrayProfile> result=new ArrayList<>(others);List<XrayProfile> fresh=new ArrayList<>();
+                Set<String> usedNames=new HashSet<>();int updated=0,added=0,skipped=0,kept=0;
+                for(int i=0;i<nodes.length();i++){
+                    try{
+                        XrayProfile p=prepared(nodes.getJSONObject(i),"Ключ "+(i+1));
+                        XrayProfile old=usedNames.contains(p.name)?null:mine.get(p.name);usedNames.add(p.name);
+                        if(old!=null){old.outbound=p.outbound;old.sub=subId;fresh.add(old);updated++;mine.remove(p.name);}
+                        else{p.sub=subId;fresh.add(p);added++;}
+                    }catch(Exception e){skipped++;}
+                }
+                for(XrayProfile gone:mine.values())if(isReferenced(gone.id)){fresh.add(gone);kept++;}
+                int room=XrayConfig.MAX_PROFILES-result.size();
+                if(fresh.size()>room){skipped+=fresh.size()-room;fresh=new ArrayList<>(fresh.subList(0,Math.max(0,room)));}
+                if(fresh.isEmpty())throw new IllegalArgumentException("Подписка не содержит подходящих ключей");
+                result.addAll(fresh);XrayProfileStore.saveAll(result);XrayProfileStore.saveSubscription(subUrl);
+                lastSummary="Добавлено: "+added+", обновлено: "+updated+(skipped>0?", пропущено: "+skipped:"");
+                refresh();
+            }
         }catch(Throwable e){error=e instanceof IllegalArgumentException?e.getMessage():"Не удалось импортировать профили";}
-            final String result=error;AndroidUtilities.runOnUIThread(()->callback.run(result));
+            finish(error,callback);
         });
     }
     // ---- Key health checks and automatic rotation ----

@@ -177,7 +177,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
             boolean ru = org.telegram.messenger.telepremium.TPStrings.isRussian();
             String state = profile.mode == AccountNetworkProfile.MODE_XRAY
                     ? (ru ? "Включён · " : "On · ") + empty(profile.displayName)
-                    : (ru ? "Вставить ссылку vless:// и включить" : "Paste a vless:// link and turn on");
+                    : (ru ? "Вставить подписку или ключи и включить" : "Paste a subscription or keys and turn on");
             vlessCell.setTextAndValue("VLESS / Xray", state, true);
         }
         modeCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_353", org.telegram.messenger.R.string.TP_L10N_353), AccountNetworkProfile.modeLabel(profile.mode), true);
@@ -198,7 +198,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
         input.setMinLines(4);
         input.setMaxLines(10);
         input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
-        input.setHint("vless://…");
+        input.setHint(ru ? "Подписка https://… или vless://…" : "Subscription https://… or vless://…");
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(262144)});
         input.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(8), AndroidUtilities.dp(20), AndroidUtilities.dp(8));
@@ -207,7 +207,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
             if (cm != null && cm.hasPrimaryClip() && cm.getPrimaryClip().getItemCount() > 0) {
                 CharSequence text = cm.getPrimaryClip().getItemAt(0).coerceToText(getParentActivity());
                 String low = text == null ? "" : text.toString().trim().toLowerCase(java.util.Locale.ROOT);
-                if (low.startsWith("vless://") || low.startsWith("vmess://") || low.startsWith("trojan://") || low.startsWith("ss://") || low.startsWith("hysteria2://") || low.startsWith("{")) {
+                if (low.startsWith("vless://") || low.startsWith("vmess://") || low.startsWith("trojan://") || low.startsWith("ss://") || low.startsWith("hysteria2://") || low.startsWith("{") || (low.startsWith("http") && low.indexOf(' ') < 0 && low.indexOf('\n') < 0)) {
                     input.setText(text.toString().trim());
                     input.setSelection(input.length());
                 }
@@ -217,8 +217,8 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
         builder.setTitle(ru ? "VLESS / Xray для этого аккаунта" : "VLESS / Xray for this account");
         builder.setMessage(ru
-                ? "Вставьте ссылку vless:// (или vmess://, trojan://, ss://, Xray JSON). Можно сразу много ссылок, по одной в строке: приложение само проверит их на отклик, подключит лучшую и будет менять при сбое."
-                : "Paste a vless:// link (or vmess://, trojan://, ss://, Xray JSON). You can paste many links, one per line: the app checks them, connects the best one and switches on failure.");
+                ? "Вставьте ссылку подписки (https://…) или ключи vless:// / vmess:// / trojan:// / ss:// (можно много, по одной в строке). Приложение проверит ключи на отклик, подключит лучший и будет менять при сбое."
+                : "Paste a subscription link (https://…) or keys vless:// / vmess:// / trojan:// / ss:// (many allowed, one per line). The app checks them, connects the best one and switches on failure.");
         builder.setView(input);
         builder.setPositiveButton(ru ? "Включить" : "Turn on", (dialog, which) -> {
             String raw = input.getText().toString().trim();
@@ -239,14 +239,14 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                 try {
                     java.util.List<org.telegram.messenger.telepremium.xray.XrayProfile> all = org.telegram.messenger.telepremium.xray.XrayProfileStore.profiles();
                     org.telegram.messenger.telepremium.xray.XrayProfile chosen = all.get(Math.min(first, all.size() - 1));
-                    boolean many = all.size() - first > 1;
+                    boolean many = all.size() - first > 1 || raw.toLowerCase(java.util.Locale.ROOT).startsWith("http");
                     profile = controller.getEditableProfile(account);
                     profile.mode = AccountNetworkProfile.MODE_XRAY;
                     profile.xrayProfileId = many ? org.telegram.messenger.telepremium.xray.XrayRuntime.AUTO : chosen.id;
                     profile.displayName = many ? (ru ? "Авто" : "Auto") : chosen.name;
                     controller.saveAndApply(account, profile);
                     refresh();
-                    toast(many ? (ru ? "Добавлено ключей: " : "Keys added: ") + (all.size() - first) + (ru ? ". Включён автовыбор лучшего" : ". Auto-select is on") : (ru ? "Xray включён: " : "Xray is on: ") + chosen.name);
+                    toast(many ? org.telegram.messenger.telepremium.xray.XrayRuntime.lastImportSummary() + (ru ? ". Включён автовыбор лучшего" : ". Auto-select is on") : (ru ? "Xray включён: " : "Xray is on: ") + chosen.name);
                     if (!many) AndroidUtilities.runOnUIThread(this::testConnection, 2500);
                 } catch (Exception e) {
                     toast(ru ? "Профиль сохранён, но включить не удалось" : "Profile saved but could not be turned on");

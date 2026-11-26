@@ -1092,17 +1092,17 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/xray/XrayProfile.java",
       "base_sha256": null,
-      "sha256": "9f962fe1de5e5e41c68f4c7ecce5977a084c60b2e321faebf5740c532e5a4968"
+      "sha256": "4c56a34ac0e4becdb5cdd9e7df454ae612bda76104627721da47402b64411fc5"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/xray/XrayProfileStore.java",
       "base_sha256": null,
-      "sha256": "1dfe51f48c9891809471c987fc5441d551e36c19956b0a3c3784a1cf988183f8"
+      "sha256": "0b64f30f13ab73993164fe85190cf3c8b66bc765f90640183603ba9b4fe8c113"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/xray/XrayRuntime.java",
       "base_sha256": null,
-      "sha256": "704a1a9563b19280d3e5e2deed98c46f4cc6f6bf26cfb684672b95b155574d78"
+      "sha256": "af6a6787a17d132e7fe60aa2a94b3a63e14a297630f9d606453d1a8392c07e83"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/xray/http/OkHttpDataSource.java",
@@ -1427,7 +1427,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkProfileActivity.java",
       "base_sha256": null,
-      "sha256": "4727fe237be842677edc0ba95e4782f06ccc16e8e1a3e47077bfabf854dabb71"
+      "sha256": "18f660dccaa81ce4f6d860e9f603563dbc6aef31b6e1fc6bab91d9c518edaaa2"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumOAuthCallbackActivity.java",
@@ -1502,7 +1502,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumXrayProfilesActivity.java",
       "base_sha256": null,
-      "sha256": "fdd03a7429969f82e32f9db4b61a156d8ee90d2d8745dbc87d662c5e7d48f74d"
+      "sha256": "be5eacde2086e94a50b3b4c0e18a75465a1a1690d2ede20d2bf29438add24cb2"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumYoutubeChannelsDialog.java",
@@ -2127,7 +2127,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "eee47ef543374778b9b6a7f4372a80a24954677d3eef1f0ce334b77e164cbfe2"
+      "sha256": "05cb9a75d25e3f76fe73c9c82debcc87b388aa541129f777ad234d4dbe2f9f50"
     },
     {
       "path": "settings.gradle",

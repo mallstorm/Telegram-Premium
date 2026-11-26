@@ -35,6 +35,12 @@ public final class TelePremiumXrayProfilesActivity extends BaseFragment {
             label(t("Core status: ","Состояние ядра: ")+XrayRuntime.status());
             cell(t("Add profiles","Добавить профили"),profiles.size()+" / "+XrayConfig.MAX_PROFILES,()->importDialog());
             cell(t("Check keys now","Проверить ключи сейчас"),t("Auto mode picks the fastest and rotates on failure","Режим «Авто» выбирает быстрейший и меняет при сбое"),()->{XrayRuntime.probeNow(this::render);Toast.makeText(getParentActivity(),t("Checking…","Проверяю…"),Toast.LENGTH_SHORT).show();});
+            List<String[]> subs=XrayProfileStore.subscriptions();
+            if(!subs.isEmpty()){
+                label(t("Subscriptions","Подписки"));
+                for(String[] sub:subs){int count=0;for(XrayProfile p:profiles)if(sub[0].equals(p.sub))count++;final int keys=count;
+                    cell(hostOf(sub[1]),keys+" "+t("keys · tap to update","ключей · нажмите, чтобы обновить"),()->subscriptionMenu(sub,keys));}
+            }
             String activeId=XrayRuntime.autoActiveId();
             for(XrayProfile p:profiles){int ms=XrayRuntime.latency(p.id);String state=ms>0?ms+" "+t("ms","мс"):ms<0?t("no response","не отвечает"):"";
                 String mark=p.id.equals(activeId)?"● ":"";
@@ -64,13 +70,33 @@ public final class TelePremiumXrayProfilesActivity extends BaseFragment {
                     catch(Exception e){error(t("Could not reset profiles","Не удалось сбросить профили"));}
                 }).setNegativeButton(t("Cancel","Отмена"),null).create());
     }
+    private String hostOf(String url){try{String h=android.net.Uri.parse(url).getHost();return h==null?url:h;}catch(Exception e){return url;}}
+    private void subscriptionMenu(String[] sub,int keys){
+        showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle(hostOf(sub[1])).setItems(new String[]{t("Update keys","Обновить ключи"),t("Delete subscription and its keys","Удалить подписку и её ключи")},(d,which)->{
+            if(which==0){
+                Toast.makeText(getParentActivity(),t("Updating…","Обновляю…"),Toast.LENGTH_SHORT).show();
+                XrayRuntime.refreshSubscription(sub[0],result->{if(result!=null)error(result);else Toast.makeText(getParentActivity(),XrayRuntime.lastImportSummary(),Toast.LENGTH_LONG).show();render();});
+            }else removeSubscription(sub[0]);
+        }).create());
+    }
+    private void removeSubscription(String id){
+        try{
+            List<XrayProfile> all=XrayProfileStore.profiles();List<XrayProfile> keep=new ArrayList<>();
+            for(XrayProfile p:all){
+                if(!id.equals(p.sub)){keep.add(p);continue;}
+                if(p.id.equals(XrayProfileStore.mediaRoute()))throw new IllegalArgumentException(t("Select another media route first","Сначала выберите другой маршрут медиатеки"));
+                for(int a=0;a<UserConfig.MAX_ACCOUNT_COUNT;a++){AccountNetworkProfile r=AccountNetworkStore.getInstance().load(a);if(r!=null&&r.mode==AccountNetworkProfile.MODE_XRAY&&r.xrayProfileId.equals(p.id))throw new IllegalArgumentException(t("Assign another route to accounts using these keys first","Сначала измените маршрут аккаунтов, использующих эти ключи"));}
+            }
+            XrayProfileStore.saveAll(keep);XrayProfileStore.removeSubscription(id);XrayRuntime.refresh();render();
+        }catch(Exception e){error(e instanceof IllegalArgumentException?e.getMessage():t("Could not delete","Не удалось удалить"));}
+    }
     private void importDialog(){
-        EditText input=new EditText(getParentActivity());input.setHint("vless://… · vmess://… · trojan://… · ss://… · Xray JSON");input.setMinLines(4);input.setMaxLines(12);input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        EditText input=new EditText(getParentActivity());input.setHint(t("Subscription https://… · vless:// · vmess:// · trojan:// · ss:// · Xray JSON","Подписка https://… · vless:// · vmess:// · trojan:// · ss:// · Xray JSON"));input.setMinLines(4);input.setMaxLines(12);input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(262144)});
-        showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle(t("Import profiles (one link per line)","Импорт профилей — по ссылке в строке"))
+        showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle(t("Import: subscription or links","Импорт: подписка или ссылки"))
                 .setView(input).setPositiveButton(t("Import","Импортировать"),(d,w)->{
                     String raw=input.getText().toString().trim();input.setText("");
-                    XrayRuntime.importProfiles(raw,result->{if(result!=null)error(result);render();});
+                    Toast.makeText(getParentActivity(),t("Importing…","Импортирую…"),Toast.LENGTH_SHORT).show();XrayRuntime.importProfiles(raw,result->{if(result!=null)error(result);else Toast.makeText(getParentActivity(),XrayRuntime.lastImportSummary(),Toast.LENGTH_LONG).show();render();});
                 }).setNegativeButton(t("Cancel","Отмена"),null).create());
     }
     private void chooseAccount(int account){
