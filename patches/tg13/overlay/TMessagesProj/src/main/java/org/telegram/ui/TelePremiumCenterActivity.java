@@ -49,6 +49,9 @@ public class TelePremiumCenterActivity extends BaseFragment {
                 v -> presentFragment(new TelePremiumAccountCenterActivity()));
         ui.row(t("TP_L10N_050", R.string.TP_L10N_050), t("TP_L10N_051", R.string.TP_L10N_051), R.drawable.tp_ic_public, TelePremiumSettingsUi.GREEN, null,
                 v -> presentFragment(new TelePremiumNetworkCenterActivity()));
+        ui.row(TPStrings.isRussian() ? "Сессии: резервная копия" : "Sessions backup",
+                TPStrings.isRussian() ? "Сохранить все аккаунты в файл под паролем и восстановить без входа" : "Save all accounts to a password-protected file and restore without logging in",
+                R.drawable.tp_ic_shield, TelePremiumSettingsUi.INDIGO, null, v -> presentFragment(new TelePremiumSessionBackupActivity()));
         ui.row(t("TP_L10N_304", R.string.TP_L10N_304), t("TP_C_MEDIA_SUB", R.string.TP_C_MEDIA_SUB), R.drawable.tp_ic_music, TelePremiumSettingsUi.PINK, null,
                 v -> { if (getParentActivity() != null) getParentActivity().startActivity(new Intent(getParentActivity(), TelePremiumMediaCenterActivity.class)); });
         ui.row(t("TP_L10N_069", R.string.TP_L10N_069), t("TP_C_CLOUD_SUB", R.string.TP_C_CLOUD_SUB), R.drawable.tp_ic_cloud, TelePremiumSettingsUi.SKY, null,

@@ -290,6 +290,7 @@ public class ApplicationLoader extends Application {
         }
 
         super.onCreate();
+        org.telegram.messenger.telepremium.TelePremiumSessionBackup.applyPending(applicationContext);
         TelePremiumUiScale.apply(applicationContext);
 
         // AndroidUtilities must be initialized before FileLog

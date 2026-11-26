@@ -297,7 +297,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java",
       "base_sha256": "79bd3221e149627b9f97499ab55924d978b8a5963333d23a519c9934044ad425",
-      "sha256": "c9d144f48114c0077beec177a02551d7670ab0ac8c8947f39bfcf9fef4770e28"
+      "sha256": "4c671d5957304bfa88b79817cb63909700a40d7982f62eb7ca732fcef19391ac"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java",
@@ -360,6 +360,11 @@
       "sha256": "605735f2debd2a4b20f2facc8772638dc345ffab588f8a7417c1d809e4438f9c"
     },
     {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/SessionCrypto.java",
+      "base_sha256": null,
+      "sha256": "93e80f6e3b46d37eed6ad27e6ba1277fa5a2f1d03d481244b26047513fea90dc"
+    },
+    {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TPStrings.java",
       "base_sha256": null,
       "sha256": "da9e2652599a1b5969e4c06e3ddc2f527c7d43d02efbb382d8f76c6c96c66aa1"
@@ -403,6 +408,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TelePremiumPeerAppearanceStore.java",
       "base_sha256": null,
       "sha256": "07f82779c57327434408f489debbba72c5d4705115d87ad5bf1d4689a9668c32"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TelePremiumSessionBackup.java",
+      "base_sha256": null,
+      "sha256": "bb5c0044d03fd84162f8050c5518401961e4e9263a50cc4d904dbf35260db468"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/TelePremiumShell.java",
@@ -1302,7 +1312,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCenterActivity.java",
       "base_sha256": null,
-      "sha256": "006f7692caaed499b32d5dc4b978443636eabfabeaab9e54421de9ed16c20ff5"
+      "sha256": "01e44244c10ccb7d346e02b9002802bbbb16cb302c7bce69577913a01647ab64"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumCenterUi.java",
@@ -1468,6 +1478,11 @@
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumServiceActivity.java",
       "base_sha256": null,
       "sha256": "1acbb706dd6197059e21b16b87f9aa448976d40ca5267fd2d5c7be3020ad9c5e"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumSessionBackupActivity.java",
+      "base_sha256": null,
+      "sha256": "f55f82d871c698f5d49874c670e75fc3c35caabeb2ecc149bfa81d6567eba864"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumSettingsUi.java",
@@ -2112,7 +2127,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "7f0d8314df3cf125817bfe562dde52cc96b15c98c5e3fbd8f1de0cda5a9f74ed"
+      "sha256": "eee47ef543374778b9b6a7f4372a80a24954677d3eef1f0ce334b77e164cbfe2"
     },
     {
       "path": "settings.gradle",
