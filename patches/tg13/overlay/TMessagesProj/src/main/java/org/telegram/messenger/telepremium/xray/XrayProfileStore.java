@@ -88,7 +88,7 @@ public final class XrayProfileStore {
     }
     public static synchronized String mediaRoute()throws Exception{return read().optString("mediaRoute","");}
     public static synchronized void setMediaRoute(String id)throws Exception{
-        if(!id.isEmpty()&&!id.equals("account")&&!id.equals(XrayRuntime.AUTO)&&find(id)==null)throw new IllegalArgumentException("Unknown profile");
+        if(!id.isEmpty()&&!id.equals("account")&&!id.equals("auto-pool")&&find(id)==null)throw new IllegalArgumentException("Unknown profile");
         JSONObject state=read();state.put("mediaRoute",id);write(state);
     }
 }

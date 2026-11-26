@@ -48,6 +48,7 @@ jobs:
           python3 scripts/test_media_playback_runtime.py
           python3 scripts/test_account_xray_runtime.py
           python3 scripts/test_xray_config_and_sync_model.py
+          python3 scripts/test_session_crypto.py
           python3 scripts/test_media_settings_sync_runtime.py
           python3 scripts/verify_xray_payload.py
       - name: Exercise pinned Xray native routing on loopback

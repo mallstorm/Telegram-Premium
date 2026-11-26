@@ -1097,7 +1097,7 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/xray/XrayProfileStore.java",
       "base_sha256": null,
-      "sha256": "7b59d5246e530dcd47704d4546706ca0291593e967768719506dc55a2f3a8d19"
+      "sha256": "1dfe51f48c9891809471c987fc5441d551e36c19956b0a3c3784a1cf988183f8"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/messenger/telepremium/xray/XrayRuntime.java",
