@@ -840,6 +840,16 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
         return streaming ? t("TP_P_STREAMING", R.string.TP_P_STREAMING) + " · " + sourceText(item) : sourceText(item);
     }
 
+    /** The window has no insets controller until its decor view exists (it does not yet inside onCreate). */
+    private static android.view.WindowInsetsController safeInsets(Window window) {
+        if (Build.VERSION.SDK_INT < 30 || window == null || window.peekDecorView() == null) return null;
+        try {
+            return window.getInsetsController();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     private void applyLandscapeWindowMode() {
         Window window = getWindow();
         window.setStatusBarColor(Color.BLACK);
@@ -850,9 +860,10 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
             attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
             window.setAttributes(attributes);
         }
-        if (Build.VERSION.SDK_INT >= 30 && window.getInsetsController() != null) {
-            window.getInsetsController().hide(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
-            window.getInsetsController().setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        android.view.WindowInsetsController insets = safeInsets(window);
+        if (insets != null) {
+            insets.hide(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
+            insets.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         }
         window.getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -865,8 +876,9 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
 
     private void resetPortraitWindowMode() {
         Window window = getWindow();
-        if (Build.VERSION.SDK_INT >= 30 && window.getInsetsController() != null) {
-            window.getInsetsController().show(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
+        android.view.WindowInsetsController insets = safeInsets(window);
+        if (insets != null) {
+            insets.show(android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars());
         }
         if (Build.VERSION.SDK_INT >= 28) {
             WindowManager.LayoutParams attributes = window.getAttributes();
