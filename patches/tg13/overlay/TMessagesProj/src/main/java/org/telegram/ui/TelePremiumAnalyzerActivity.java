@@ -1696,7 +1696,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
       },
       {
         tr("What is new", "Что нового"),
-        tr("Only what you have not reviewed yet", "Только то, что вы ещё не просматривали")
+        tr("Everything since you last marked the groups as reviewed. The period above is ignored", "Всё с момента, когда вы отметили группы просмотренными. Выбранный выше период не учитывается")
       },
       {
         tr("Compare with the previous period", "Сравнить с прошлым периодом"),
@@ -1775,7 +1775,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
               }
               String extra = focusDraft.trim();
               query = defaultQuestion(reportKind) + (extra.isEmpty() ? "" : " " + extra);
-              runReport(query);
+              startReport(query);
             });
     box.addView(ask, margins(-1, -2, 0, 14, 0, 0));
     body.addView(box, ui.cardParams());
@@ -1931,7 +1931,7 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           draft = "";
           input.setText("");
           AndroidUtilities.hideKeyboard(input);
-          runReport(question);
+          startReport(question);
         });
     LinearLayout.LayoutParams sendParams = new LinearLayout.LayoutParams(dp(46), dp(46));
     sendParams.leftMargin = dp(8);
@@ -2087,6 +2087,32 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
     runReport(question, false);
   }
 
+  /** Checks the obvious problems first and always tells the user what is wrong. */
+  private void startReport(String question) {
+    if (reportRunning) {
+      toast(t("queue"));
+      return;
+    }
+    long chosen = index.sources.stream().filter(index.scope::requests).count();
+    if (index.sources.isEmpty() || chosen == 0) {
+      dialogBuilder()
+          .setTitle(tr("No sources selected", "Не выбраны источники"))
+          .setMessage(
+              index.sources.isEmpty()
+                  ? tr(
+                      "The Center has not found your groups yet. Open Sources and tap “Refresh”.",
+                      "Центр ещё не нашёл ваши группы. Откройте «Источники» и нажмите «Обновить».")
+                  : tr(
+                      "Choose at least one group or a whole account to analyse.",
+                      "Выберите хотя бы одну группу или аккаунт целиком."))
+          .setPositiveButton(tr("Open sources", "Открыть источники"), (d, w) -> show(0))
+          .setNegativeButton(t("cancel"), null)
+          .show();
+      return;
+    }
+    runReport(question);
+  }
+
   private void runReport(String question, boolean prepared) {
     if (reportRunning) {
       toast(t("queue"));
@@ -2140,10 +2166,6 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
               drilldown == null
                   ? index.selected()
                   : CenterData.select(drilldown, index.sources, index.scope);
-          if (selected.isEmpty()) {
-            toast(t("empty"));
-            return;
-          }
           CenterData.Scope scope;
           try {
             scope = CenterData.Scope.parse(index.scope.json());
@@ -2173,6 +2195,23 @@ public final class TelePremiumAnalyzerActivity extends BaseFragment {
           }
           final List<CenterData.Message> data = selected;
           final String prompt = request;
+          if (data.isEmpty()) {
+            status.setText("");
+            dialogBuilder()
+                .setTitle(tr("Nothing to analyse", "Нечего анализировать"))
+                .setMessage(
+                    reportKind == 2
+                        ? tr(
+                            "There are no new messages since you last marked these groups as reviewed.",
+                            "Новых сообщений нет: с момента, когда вы последний раз отмечали эти группы просмотренными, ничего не появилось.")
+                        : tr(
+                            "The selected sources have no messages for this period. Choose a longer period, or open Sources and tap “Load”.",
+                            "В выбранных источниках нет сообщений за этот период. Выберите период длиннее или откройте «Источники» и нажмите «Загрузить»."))
+                .setPositiveButton(tr("Open sources", "Открыть источники"), (d, w) -> show(0))
+                .setNegativeButton(t("cancel"), null)
+                .show();
+            return;
+          }
           int chars = 0;
           for (CenterData.Message m : data) chars += m.searchable().length();
           String estimate =
