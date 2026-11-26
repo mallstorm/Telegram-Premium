@@ -67,6 +67,8 @@ public class TelePremiumNetworkCenterActivity extends BaseFragment {
                     online ? "●" : "…", v -> presentFragment(new TelePremiumNetworkProfileActivity(accountId)));
         }
         ui.section(t("TP_L10N_066", R.string.TP_L10N_066));
+        ui.row("VLESS / Xray", TPStrings.isRussian() ? "Профили vless://, маршрут каждого аккаунта и медиатеки" : "vless:// profiles, a route per account and for media", R.drawable.tp_ic_shield, TelePremiumSettingsUi.BLUE, null,
+                v -> presentFragment(new TelePremiumXrayProfilesActivity()));
         ui.row(t("TP_C_PROXY", R.string.TP_C_PROXY), t("TP_C_PROXY_SUB", R.string.TP_C_PROXY_SUB), R.drawable.tp_ic_shield, TelePremiumSettingsUi.INDIGO, null,
                 v -> presentFragment(new ProxyListActivity()));
         ui.row(t("TP_C_DATA", R.string.TP_C_DATA), t("TP_C_DATA_SUB", R.string.TP_C_DATA_SUB), R.drawable.tp_ic_storage, TelePremiumSettingsUi.TEAL, null,

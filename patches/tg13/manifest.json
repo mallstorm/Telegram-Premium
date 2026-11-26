@@ -1402,12 +1402,12 @@
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkCenterActivity.java",
       "base_sha256": null,
-      "sha256": "1e2b35dfeccaf206061895dfb9d511dd334375f05c619eddde8922e33de90b39"
+      "sha256": "aa825b8f808b8b73982115fc0c695829a03776f7bc5a1cbf6abaa528c12694fd"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumNetworkProfileActivity.java",
       "base_sha256": null,
-      "sha256": "243077c14e00382920f6990f792f7424f15cf7adea10e522f23b262d2e0b4bb0"
+      "sha256": "6c37ed96a56f507ce16fabc10d46ced0aa690b0b7a402271dbd0c272e138e5c1"
     },
     {
       "path": "TMessagesProj/src/main/java/org/telegram/ui/TelePremiumOAuthCallbackActivity.java",
@@ -2102,7 +2102,7 @@
     {
       "path": "gradle.properties",
       "base_sha256": "a2459546d62c2cb2e97fbb07238d3998a583b6c39440cfe446f3abd327275647",
-      "sha256": "bd2a8d0a25ce16048d14e00047eb341866a8d95c44a4e92c4182134149912085"
+      "sha256": "b69eec16020a75120b65cfe27490fe3d45b611d01f816bbe77cf3f7183f8bbe7"
     },
     {
       "path": "settings.gradle",

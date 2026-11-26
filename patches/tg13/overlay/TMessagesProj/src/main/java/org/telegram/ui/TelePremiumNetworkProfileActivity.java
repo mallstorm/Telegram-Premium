@@ -30,6 +30,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
 
     private boolean reloadXray;
     @Override public void onResume() { super.onResume(); if(reloadXray){profile=controller.getEditableProfile(account);reloadXray=false;refresh();} }
+    private TextCell vlessCell;
     private TextCell modeCell;
     private TextCell nameCell;
     private TextCell locationCell;
@@ -73,7 +74,9 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                 ScrollView.LayoutParams.WRAP_CONTENT
         ));
 
-        TextCell xray = addCell(content, context, "Xray · 10 профилей", "arm64-v8a");
+        vlessCell = addCell(content, context, "VLESS / Xray", "");
+        vlessCell.setOnClickListener(v -> pasteVless());
+        TextCell xray = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.isRussian() ? "Xray: список профилей и маршруты" : "Xray: profile list and routes", "arm64-v8a");
         xray.setOnClickListener(v -> { reloadXray=true;presentFragment(new TelePremiumXrayProfilesActivity()); });
 
         modeCell = addCell(content, context, org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_353", org.telegram.messenger.R.string.TP_L10N_353), "");
@@ -162,6 +165,13 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
         if (modeCell == null) {
             return;
         }
+        if (vlessCell != null) {
+            boolean ru = org.telegram.messenger.telepremium.TPStrings.isRussian();
+            String state = profile.mode == AccountNetworkProfile.MODE_XRAY
+                    ? (ru ? "Включён · " : "On · ") + empty(profile.displayName)
+                    : (ru ? "Вставить ссылку vless:// и включить" : "Paste a vless:// link and turn on");
+            vlessCell.setTextAndValue("VLESS / Xray", state, true);
+        }
         modeCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_353", org.telegram.messenger.R.string.TP_L10N_353), AccountNetworkProfile.modeLabel(profile.mode), true);
         nameCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_354", org.telegram.messenger.R.string.TP_L10N_354), empty(profile.displayName), true);
         locationCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_355", org.telegram.messenger.R.string.TP_L10N_355), empty(profile.locationName), true);
@@ -171,6 +181,75 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
         passwordCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_361", org.telegram.messenger.R.string.TP_L10N_361), profile.password == null || profile.password.isEmpty() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_370", org.telegram.messenger.R.string.TP_L10N_370) : "••••••", true);
         secretCell.setTextAndValue("MTProto secret", profile.secret == null || profile.secret.isEmpty() ? org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_370", org.telegram.messenger.R.string.TP_L10N_370) : "••••••", true);
         ipCell.setTextAndValue(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_363", org.telegram.messenger.R.string.TP_L10N_363), ipLabel(profile.ipStrategy), true);
+    }
+
+    private void pasteVless() {
+        if (getParentActivity() == null) return;
+        final boolean ru = org.telegram.messenger.telepremium.TPStrings.isRussian();
+        EditText input = new EditText(getParentActivity());
+        input.setMinLines(4);
+        input.setMaxLines(10);
+        input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+        input.setHint("vless://…");
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(262144)});
+        input.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(8), AndroidUtilities.dp(20), AndroidUtilities.dp(8));
+        try {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) getParentActivity().getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null && cm.hasPrimaryClip() && cm.getPrimaryClip().getItemCount() > 0) {
+                CharSequence text = cm.getPrimaryClip().getItemAt(0).coerceToText(getParentActivity());
+                String low = text == null ? "" : text.toString().trim().toLowerCase(java.util.Locale.ROOT);
+                if (low.startsWith("vless://") || low.startsWith("vmess://") || low.startsWith("trojan://") || low.startsWith("ss://") || low.startsWith("hysteria2://") || low.startsWith("{")) {
+                    input.setText(text.toString().trim());
+                    input.setSelection(input.length());
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
+        builder.setTitle(ru ? "VLESS / Xray для этого аккаунта" : "VLESS / Xray for this account");
+        builder.setMessage(ru
+                ? "Вставьте ссылку vless:// (или vmess://, trojan://, ss://, Xray JSON). Она сохранится и сразу включится только для этого аккаунта."
+                : "Paste a vless:// link (or vmess://, trojan://, ss://, Xray JSON). It is saved and turned on for this account only.");
+        builder.setView(input);
+        builder.setPositiveButton(ru ? "Включить" : "Turn on", (dialog, which) -> {
+            String raw = input.getText().toString().trim();
+            input.setText("");
+            int before;
+            try {
+                before = org.telegram.messenger.telepremium.xray.XrayProfileStore.profiles().size();
+            } catch (Exception e) {
+                toast(ru ? "Не удалось открыть список профилей" : "Could not open the profile list");
+                return;
+            }
+            final int first = before;
+            org.telegram.messenger.telepremium.xray.XrayRuntime.importProfiles(raw, error -> {
+                if (error != null) {
+                    toast(error);
+                    return;
+                }
+                try {
+                    java.util.List<org.telegram.messenger.telepremium.xray.XrayProfile> all = org.telegram.messenger.telepremium.xray.XrayProfileStore.profiles();
+                    org.telegram.messenger.telepremium.xray.XrayProfile chosen = all.get(Math.min(first, all.size() - 1));
+                    profile = controller.getEditableProfile(account);
+                    profile.mode = AccountNetworkProfile.MODE_XRAY;
+                    profile.xrayProfileId = chosen.id;
+                    profile.displayName = chosen.name;
+                    controller.saveAndApply(account, profile);
+                    refresh();
+                    toast((ru ? "Xray включён: " : "Xray is on: ") + chosen.name);
+                    AndroidUtilities.runOnUIThread(this::testConnection, 2500);
+                } catch (Exception e) {
+                    toast(ru ? "Профиль сохранён, но включить не удалось" : "Profile saved but could not be turned on");
+                }
+            });
+        });
+        builder.setNegativeButton(org.telegram.messenger.telepremium.TPStrings.get("TP_L10N_135", org.telegram.messenger.R.string.TP_L10N_135), null);
+        showDialog(builder.create());
+    }
+
+    private void toast(String text) {
+        if (getParentActivity() != null) android.widget.Toast.makeText(getParentActivity(), text, android.widget.Toast.LENGTH_LONG).show();
     }
 
     private void chooseMode() {
