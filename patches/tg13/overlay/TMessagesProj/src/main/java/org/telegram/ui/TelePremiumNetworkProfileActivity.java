@@ -242,6 +242,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                     boolean many = all.size() - first > 1 || raw.toLowerCase(java.util.Locale.ROOT).startsWith("http");
                     profile = controller.getEditableProfile(account);
                     profile.mode = AccountNetworkProfile.MODE_XRAY;
+                    profile.ipStrategy = ConnectionsManager.USE_IPV4_ONLY;
                     profile.xrayProfileId = many ? org.telegram.messenger.telepremium.xray.XrayRuntime.AUTO : chosen.id;
                     profile.displayName = many ? (ru ? "Авто" : "Auto") : chosen.name;
                     controller.saveAndApply(account, profile);
@@ -281,7 +282,7 @@ public class TelePremiumNetworkProfileActivity extends BaseFragment {
                     java.util.List<org.telegram.messenger.telepremium.xray.XrayProfile> profiles=org.telegram.messenger.telepremium.xray.XrayProfileStore.profiles();
                     if(profiles.isEmpty()){reloadXray=true;presentFragment(new TelePremiumXrayProfilesActivity());return;}
                     String[] names=new String[profiles.size()+1];names[0]=org.telegram.messenger.telepremium.TPStrings.isRussian()?"Авто: лучший из всех ключей":"Auto: best of all keys";for(int i=1;i<names.length;i++)names[i]=profiles.get(i-1).name;
-                    showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle("Xray").setItems(names,(d,w)->{profile.mode=AccountNetworkProfile.MODE_XRAY;if(w==0){profile.xrayProfileId=org.telegram.messenger.telepremium.xray.XrayRuntime.AUTO;profile.displayName=org.telegram.messenger.telepremium.TPStrings.isRussian()?"Авто":"Auto";}else{profile.xrayProfileId=profiles.get(w-1).id;profile.displayName=profiles.get(w-1).name;}refresh();}).create());
+                    showDialog(new AlertDialog.Builder(getParentActivity(),getResourceProvider()).setTitle("Xray").setItems(names,(d,w)->{profile.mode=AccountNetworkProfile.MODE_XRAY;profile.ipStrategy=ConnectionsManager.USE_IPV4_ONLY;if(w==0){profile.xrayProfileId=org.telegram.messenger.telepremium.xray.XrayRuntime.AUTO;profile.displayName=org.telegram.messenger.telepremium.TPStrings.isRussian()?"Авто":"Auto";}else{profile.xrayProfileId=profiles.get(w-1).id;profile.displayName=profiles.get(w-1).name;}refresh();}).create());
                 }catch(Exception e){android.widget.Toast.makeText(getParentActivity(),"Не удалось открыть профили",android.widget.Toast.LENGTH_LONG).show();}
             }else {profile.mode = which;refresh();}
         });

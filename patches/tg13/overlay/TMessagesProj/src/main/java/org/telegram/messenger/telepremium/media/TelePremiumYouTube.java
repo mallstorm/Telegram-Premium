@@ -166,6 +166,11 @@ public final class TelePremiumYouTube {
         if (lower.contains("login_required")) return TPStrings.isRussian()
                 ? "YouTube ограничил доступ к этому ролику; проверьте его доступность в браузере"
                 : "YouTube restricted this video; check its availability in a browser";
+        if (error instanceof java.io.IOException || lower.contains("connection reset") || lower.contains("timed out")
+                || lower.contains("unable to resolve") || lower.contains("xray"))
+            return message + (TPStrings.isRussian()
+                    ? "\nНет соединения с YouTube по выбранному маршруту. Проверьте маршрут медиатеки: Настройки прокси → Менеджер соединений → Проверить YouTube"
+                    : "\nCannot reach YouTube over the selected route. Check the media route: Proxy settings → Connection manager → Check YouTube");
         return message;
     }
 
@@ -381,6 +386,28 @@ public final class TelePremiumYouTube {
     }
 
     // ------------------------------------------------------------------ playback
+
+    /** Best video (+audio) for saving a whole video: audio is null when the format is already muxed. */
+    public static final class Pick { public VideoOption video; public AudioOption audio; }
+
+    public static Pick pickForDownload(Formats f) {
+        int max = getMaxQuality();
+        VideoOption best = null;
+        for (VideoOption v : f.videos) {
+            if (!v.videoOnly || v.height > max) continue;
+            if (best == null || v.height > best.height || (v.height == best.height && !v.webm && best.webm)) best = v;
+        }
+        AudioOption audio = null;
+        for (AudioOption a : f.audios) { if (!a.webm) { audio = a; break; } }
+        if (audio == null && !f.audios.isEmpty()) audio = f.audios.get(0);
+        Pick pick = new Pick();
+        if (best != null && audio != null) { pick.video = best; pick.audio = audio; return pick; }
+        VideoOption muxed = null;
+        for (VideoOption v : f.videos) if (!v.videoOnly && (muxed == null || v.height > muxed.height)) muxed = v;
+        if (muxed == null) return null;
+        pick.video = muxed;
+        return pick;
+    }
 
     public static final class Playback {
         public String videoUrl, audioUrl;

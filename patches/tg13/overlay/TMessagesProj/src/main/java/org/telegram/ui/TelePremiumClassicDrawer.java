@@ -273,18 +273,6 @@ public final class TelePremiumClassicDrawer extends FrameLayout implements Notif
                 () -> host.presentFragment(new TelePremiumCenterActivity())));
         items.add(new Item("Telegram AI Analyzer", R.drawable.tp_ic_ai,
                 () -> host.presentFragment(new TelePremiumAnalyzerActivity())));
-        items.add(null);
-        items.add(new Item(LocaleController.getString(R.string.InviteFriends), R.drawable.msg_addcontact, () -> {
-            if (host.getParentActivity() != null) {
-                Intent send = new Intent(Intent.ACTION_SEND);
-                send.setType("text/plain");
-                send.putExtra(Intent.EXTRA_TEXT, inviteText());
-                host.getParentActivity().startActivity(
-                        Intent.createChooser(send, LocaleController.getString(R.string.InviteFriends)));
-            }
-        }));
-        items.add(new Item(LocaleController.getString(R.string.TelegramFeatures), R.drawable.msg_help,
-                () -> Browser.openUrl(getContext(), LocaleController.getString(R.string.TelegramFeaturesUrl))));
     }
 
     private static String inviteText() {

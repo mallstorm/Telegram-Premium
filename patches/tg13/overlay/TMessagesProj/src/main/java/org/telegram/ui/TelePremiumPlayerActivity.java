@@ -497,18 +497,51 @@ public class TelePremiumPlayerActivity extends Activity implements TelePremiumPl
     private void toggleRecording() {
         TelePremiumMediaItem item = controller.getCurrent();
         if (item == null) return;
+        if (org.telegram.messenger.telepremium.media.TelePremiumYouTube.isYouTube(item) && !item.live) {
+            recordYoutubeVideo(item);
+            return;
+        }
         org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.toggle(item.title);
         updateRecViews();
         if (org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.isRecording())
             Toast.makeText(this, t("TP_REC_STARTED", R.string.TP_REC_STARTED), Toast.LENGTH_SHORT).show();
     }
 
+    private boolean videoRecordBusy;
+
+    /** A YouTube video is saved whole (picture + sound) from its own streams, not from the decoded audio. */
+    private void recordYoutubeVideo(TelePremiumMediaItem item) {
+        final boolean ru = TPStrings.isRussian();
+        if (videoRecordBusy) {
+            Toast.makeText(this, ru ? "Видео уже сохраняется" : "The video is already being saved", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        videoRecordBusy = true;
+        updateRecViews();
+        Toast.makeText(this, ru ? "Сохраняю видео со звуком…" : "Saving the video with sound…", Toast.LENGTH_LONG).show();
+        final String title = item.title;
+        org.telegram.messenger.telepremium.media.TelePremiumYouTube.loadFormats(item.uri, (formats, error) -> {
+            org.telegram.messenger.telepremium.media.TelePremiumYouTube.Pick pick = formats == null ? null : org.telegram.messenger.telepremium.media.TelePremiumYouTube.pickForDownload(formats);
+            if (pick == null) {
+                videoRecordBusy = false;
+                updateRecViews();
+                if (!isFinishing()) Toast.makeText(this, error != null ? error : (ru ? "Нет подходящих форматов видео" : "No suitable video formats"), Toast.LENGTH_LONG).show();
+                return;
+            }
+            org.telegram.messenger.telepremium.media.TelePremiumYouTubeDownloader.download(title, pick.video, pick.audio, (saved, err) -> {
+                videoRecordBusy = false;
+                updateRecViews();
+                if (!isFinishing()) Toast.makeText(this, saved != null ? tf("TP_REC_SAVED", R.string.TP_REC_SAVED, saved) : (err == null ? "YouTube" : err), Toast.LENGTH_LONG).show();
+            });
+        });
+    }
+
     private void updateRecViews() {
-        boolean on = org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.isRecording();
+        boolean on = org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.isRecording() || videoRecordBusy;
         int red = 0xffe53935;
         if (recIcon != null) kit.setIcon(recIcon, on ? R.drawable.tp_ic_rec : R.drawable.tp_ic_rec, on ? red : TelePremiumPlayerKit.withAlpha(red, 0xb0));
         if (recLabel != null) {
-            recLabel.setText(on ? "● " + formatTime(org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.elapsedMs()) : t("TP_REC", R.string.TP_REC));
+            recLabel.setText(videoRecordBusy ? "● ↓" : on ? "● " + formatTime(org.telegram.messenger.telepremium.media.TelePremiumStreamRecorder.elapsedMs()) : t("TP_REC", R.string.TP_REC));
             recLabel.setTextColor(on ? red : pal.muted);
         }
         if (recTool != null) kit.setIcon(recTool, R.drawable.tp_ic_rec, on ? red : TelePremiumPlayerKit.withAlpha(red, 0xb0));
