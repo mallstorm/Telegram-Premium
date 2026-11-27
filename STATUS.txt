@@ -1,0 +1,9 @@
+status=success
+source_ref=main
+source_sha=cff418e8722bfeada4e4db742720e22d2aaad707
+run_id=45961322739
+patches=success
+java=success
+apk=success
+verify=success
+api_configured=true
