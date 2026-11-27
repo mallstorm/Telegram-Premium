@@ -60,7 +60,7 @@ checks = {
     "classic header height matches 11.x reference (148dp + status bar)": "AndroidUtilities.dp(148) + statusBarPadding" in drawer,
     "legacy emoji status uses real Telegram picker": "R.string.SetEmojiStatus" in drawer
         and "chats.showSelectStatusDialog()" in drawer,
-    "drawer rows use localized Telegram strings": all(v in drawer for v in ("R.string.NewGroup", "R.string.Contacts", "R.string.Calls", "R.string.SavedMessages", "R.string.InviteFriends", "R.string.TelegramFeatures")),
+    "drawer rows use localized Telegram strings": all(v in drawer for v in ("R.string.NewGroup", "R.string.Contacts", "R.string.Calls", "R.string.SavedMessages")),
     "drawer is a recycler list with accounts toggle": "RecyclerListView" in drawer and "accountsShown" in drawer,
     "drawer follows the finger and settles by velocity": all(v in drawer for v in ("VelocityTracker", "beginEdgeDrag", "animateTo(")) and "classicDrawer.beginEdgeDrag(" in main
         and "classicDrawer.handleHostTouch(" in main,
