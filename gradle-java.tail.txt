@@ -1,0 +1,300 @@
+> Task :jlatexmath:generateReleaseRFile
+
+> Task :TMessagesProj_Modules:media3:media-lib-extractor:processReleaseManifest
+package="androidx.media3.extractor" found in source AndroidManifest.xml: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_Modules/media/libraries/extractor/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="androidx.media3.extractor" from the source AndroidManifest.xml: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_Modules/media/libraries/extractor/src/main/AndroidManifest.xml.
+
+> Task :TMessagesProj_Modules:media3:media-lib-session:extractDeepLinksRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-hls:processReleaseManifest
+package="androidx.media3.exoplayer.hls" found in source AndroidManifest.xml: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_Modules/media/libraries/exoplayer_hls/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="androidx.media3.exoplayer.hls" from the source AndroidManifest.xml: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_Modules/media/libraries/exoplayer_hls/src/main/AndroidManifest.xml.
+
+> Task :TMessagesProj_Modules:media3:media-lib-session:processReleaseManifest
+package="androidx.media3.session" found in source AndroidManifest.xml: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_Modules/media/libraries/session/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="androidx.media3.session" from the source AndroidManifest.xml: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_Modules/media/libraries/session/src/main/AndroidManifest.xml.
+
+> Task :TMessagesProj_Modules:media3:media-lib-common:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-container:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-common:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-database:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-container:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-datasource:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-database:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-decoder:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-decoder-ffmpeg:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-decoder:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-datasource:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-decoder-ffmpeg:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-dash:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-hls:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-extractor:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-hls:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-dash:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-extractor:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-common:generateReleaseBuildConfig
+> Task :jlatexmath:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-common:javaPreCompileRelease
+> Task :jlatexmath:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-session:parseReleaseLocalResources
+> Task :TMessagesProj_Modules:media3:media-lib-session:generateReleaseRFile
+> Task :TMessagesProj_Modules:media3:media-lib-container:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-container:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-database:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-database:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-datasource:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-datasource:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-decoder:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-decoder:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-decoder-ffmpeg:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-decoder-ffmpeg:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-extractor:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-extractor:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-dash:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-dash:javaPreCompileRelease
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-hls:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-hls:javaPreCompileRelease
+> Task :TMessagesProj:packageReleaseResources
+> Task :TMessagesProj:processReleaseNavigationResources
+> Task :TMessagesProj:parseReleaseLocalResources
+> Task :TMessagesProj:generateReleaseRFile
+> Task :TMessagesProj:writeReleaseAarMetadata
+> Task :TMessagesProj_Modules:media3:media-lib-session:compileReleaseAidl
+> Task :TMessagesProj:extractDeepLinksRelease
+
+> Task :TMessagesProj:processReleaseManifest
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/src/main/AndroidManifest.xml:83:5-102 Warning:
+	uses-permission#android.permission.WRITE_EXTERNAL_STORAGE was tagged at AndroidManifest.xml:83 to replace another declaration but no other declaration present
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/src/main/AndroidManifest.xml:97:5-769:19 Warning:
+	application@android:supportsRtl was tagged at AndroidManifest.xml:97 to replace other declarations but no other declaration present
+
+> Task :TMessagesProj:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :TMessagesProj:generateReleaseBuildConfig
+> Task :TMessagesProj:generateReleaseLocalizationUtilsJava
+> Task :TMessagesProj_Modules:media3:media-lib-session:generateReleaseBuildConfig
+> Task :TMessagesProj_Modules:media3:media-lib-session:javaPreCompileRelease
+> Task :TMessagesProj:javaPreCompileRelease
+
+> Task :jlatexmath:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/lib/jlatexmath/jlatexmath/src/main/java/org/scilab/forge/jlatexmath/PredefinedTeXFormulaParser.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :TMessagesProj_Modules:media3:media-lib-common:compileReleaseJavaWithJavac
+warning: unknown enum constant Level.FULL
+  reason: class file for com.google.j2objc.annotations.ReflectionSupport$Level not found
+
+> Task :jlatexmath:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-common:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 warning
+
+> Task :TMessagesProj_Modules:media3:media-lib-common:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-decoder:compileReleaseJavaWithJavac
+warning: unknown enum constant MigrationStatus.STRICT
+  reason: class file for kotlin.annotations.jvm.MigrationStatus not found
+1 warning
+
+> Task :TMessagesProj_Modules:media3:media-lib-database:compileReleaseJavaWithJavac
+> Task :TMessagesProj_Modules:media3:media-lib-decoder:bundleLibCompileToJarRelease
+> Task :TMessagesProj_Modules:media3:media-lib-database:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-container:compileReleaseJavaWithJavac
+warning: unknown enum constant MigrationStatus.STRICT
+  reason: class file for kotlin.annotations.jvm.MigrationStatus not found
+1 warning
+
+> Task :TMessagesProj_Modules:media3:media-lib-container:bundleLibCompileToJarRelease
+> Task :TMessagesProj_Modules:media3:media-lib-datasource:compileReleaseJavaWithJavac
+> Task :TMessagesProj_Modules:media3:media-lib-datasource:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-extractor:compileReleaseJavaWithJavac
+warning: unknown enum constant When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 warning
+
+> Task :TMessagesProj_Modules:media3:media-lib-extractor:bundleLibCompileToJarRelease
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer:compileReleaseKotlin NO-SOURCE
+
+> Task :TMessagesProj_Modules:media3:media-lib-session:compileReleaseJavaWithJavac
+warning: unknown enum constant When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+warning: unknown enum constant Level.FULL
+  reason: class file for com.google.j2objc.annotations.ReflectionSupport$Level not found
+warning: unknown enum constant MigrationStatus.STRICT
+  reason: class file for kotlin.annotations.jvm.MigrationStatus not found
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+3 warnings
+
+> Task :TMessagesProj_Modules:media3:media-lib-session:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer:compileReleaseJavaWithJavac
+warning: unknown enum constant Level.FULL
+  reason: class file for com.google.j2objc.annotations.ReflectionSupport$Level not found
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 warning
+
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-decoder-ffmpeg:compileReleaseJavaWithJavac
+Note: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_Modules/media/libraries/decoder_ffmpeg/src/main/java/androidx/media3/decoder/ffmpeg/ExperimentalFfmpegVideoDecoder.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :TMessagesProj_Modules:media3:media-lib-decoder-ffmpeg:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-dash:compileReleaseJavaWithJavac
+warning: unknown enum constant When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 warning
+
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-dash:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-hls:compileReleaseJavaWithJavac
+warning: unknown enum constant When.MAYBE
+  reason: class file for javax.annotation.meta.When not found
+Note: /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_Modules/media/libraries/exoplayer_hls/src/main/java/androidx/media3/exoplayer/hls/HlsMediaSource.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 warning
+
+> Task :TMessagesProj_Modules:media3:media-lib-exoplayer-hls:bundleLibCompileToJarRelease
+
+> Task :TMessagesProj_App:checkAfatReleaseAarMetadata
+WARNING: [Processor] Library '/home/runner/.gradle/caches/modules-2/files-2.1/com.google.android.gms/play-services-cast-framework/21.4.0/c48f09b1c439b395ce46bc0d1c187913819f8c7f/play-services-cast-framework-21.4.0.aar' contains references to both AndroidX and old support library. This seems like the library is partially migrated. Jetifier will try to rewrite the library anyway.
+ Example of androidX reference: 'androidx/core/app/TaskStackBuilder'
+ Example of support library reference: 'android/support/v4/media/session/MediaSessionCompat$Token'
+WARNING: [Processor] Library '/home/runner/.gradle/caches/modules-2/files-2.1/androidx.car.app/app/1.4.0/406ebf5913d8c23ff636e5ef54d306560e2b5de5/app-1.4.0.aar' contains references to both AndroidX and old support library. This seems like the library is partially migrated. Jetifier will try to rewrite the library anyway.
+ Example of androidX reference: 'androidx/car/app/media/IMediaPlaybackHost'
+ Example of support library reference: 'android/support/v4/media/session/MediaSessionCompat$Token'
+
+> Task :TMessagesProj_App:processAfatReleaseNavigationResources
+> Task :TMessagesProj_App:compileAfatReleaseNavigationResources
+> Task :TMessagesProj_App:mapAfatReleaseSourceSetPaths
+
+> Task :TMessagesProj_App:mergeAfatReleaseResources
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4380:4: Multiple substitutions specified in non-positional format of string resource string/Gift2ActiveAuctionsActiveBidActive. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4383:4: Multiple substitutions specified in non-positional format of string resource string/Gift2ActiveAuctionsActiveRound. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4434:4: Multiple substitutions specified in non-positional format of string resource string/Gift2AuctionInfo2_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4435:4: Multiple substitutions specified in non-positional format of string resource string/Gift2AuctionInfo2_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4438:4: Multiple substitutions specified in non-positional format of string resource string/Gift2AuctionInfoLearnMore2_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4439:4: Multiple substitutions specified in non-positional format of string resource string/Gift2AuctionInfoLearnMore2_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4440:4: Multiple substitutions specified in non-positional format of string resource string/Gift2AuctionInfo_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4441:4: Multiple substitutions specified in non-positional format of string resource string/Gift2AuctionInfo_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4486:4: Multiple substitutions specified in non-positional format of string resource string/Gift2AuctionsChangeRecipient2. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4496:4: Multiple substitutions specified in non-positional format of string resource string/Gift2AveragePriceHint. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4619:4: Multiple substitutions specified in non-positional format of string resource string/Gift2InfoOutConverted_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4620:4: Multiple substitutions specified in non-positional format of string resource string/Gift2InfoOutConverted_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4913:4: Multiple substitutions specified in non-positional format of string resource string/GiftAuctionInfo1Text_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:4914:4: Multiple substitutions specified in non-positional format of string resource string/GiftAuctionInfo1Text_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:5020:4: Multiple substitutions specified in non-positional format of string resource string/GiftOfferPayMulti. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:6665:4: Multiple substitutions specified in non-positional format of string resource string/NotificationTopicExceptionsDesctription_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:6666:4: Multiple substitutions specified in non-positional format of string resource string/NotificationTopicExceptionsDesctription_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:9287:4: Multiple substitutions specified in non-positional format of string resource string/StarRatingDescription1. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:9288:4: Multiple substitutions specified in non-positional format of string resource string/StarRatingDescription2. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:9289:4: Multiple substitutions specified in non-positional format of string resource string/StarRatingDescription3. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:9700:4: Multiple substitutions specified in non-positional format of string resource string/StoryAddedToAlbumTitle_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:9701:4: Multiple substitutions specified in non-positional format of string resource string/StoryAddedToAlbumTitle_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:9903:4: Multiple substitutions specified in non-positional format of string resource string/StoryRemovedFromAlbumTitle_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:9904:4: Multiple substitutions specified in non-positional format of string resource string/StoryRemovedFromAlbumTitle_other. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:9975:4: Multiple substitutions specified in non-positional format of string resource string/SuggestAPostBelowSubtitleStarsAndTime. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10029:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedAdmin1. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10030:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedAdmin1PastSimple. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10032:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedAdmin2. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10033:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedAdmin3Stars. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10034:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedAdmin3TON. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10035:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedAdmin4Stars. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10036:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedAdmin4TON. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10037:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedUser1. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10038:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedUser1PastSimple. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10041:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedUser3Stars. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10042:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedUser3TON. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10043:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedUser4Stars. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:10044:4: Multiple substitutions specified in non-positional format of string resource string/SuggestionAgreementReachedUser4TON. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:11456:4: Multiple substitutions specified in non-positional format of string resource string/UnconfirmedAuthMultipleFrom_one. Did you mean to add the formatted="false" attribute?
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/build/intermediates/packaged_res/release/packageReleaseResources/values/values.xml:11457:4: Multiple substitutions specified in non-positional format of string resource string/UnconfirmedAuthMultipleFrom_other. Did you mean to add the formatted="false" attribute?
+
+> Task :TMessagesProj_App:parseAfatReleaseLocalResources
+
+> Task :TMessagesProj_App:processAfatReleaseMainManifest
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/config/release/AndroidManifest_SDK23.xml Warning:
+	uses-permission#android.permission.WRITE_EXTERNAL_STORAGE was tagged at AndroidManifest_SDK23.xml:0 to replace another declaration but no other declaration present
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/config/release/AndroidManifest_SDK23.xml:56:9-64:20 Warning:
+	receiver#com.google.android.gms.measurement.AppMeasurementReceiver@android:enabled was tagged at AndroidManifest_SDK23.xml:56 to replace other declarations but no other declaration present
+/home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/config/release/AndroidManifest_SDK23.xml:66:9-70:40 Warning:
+	service#com.google.android.gms.measurement.AppMeasurementService@android:enabled was tagged at AndroidManifest_SDK23.xml:66 to replace other declarations but no other declaration present
+
+> Task :TMessagesProj_App:processAfatReleaseManifest
+> Task :TMessagesProj_App:processAfatReleaseManifestForPackage
+
+> Task :TMessagesProj_App:processAfatReleaseResources
+=== :TMessagesProj_App:processAfatReleaseResources ===
+AAPT additional parameters:
+  --stable-ids
+  /home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj_App/build/generated/telegramStrings/afatRelease/stable-ids.txt
+
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertNamesText_few without required default value.
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertNamesText_two without required default value.
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertTitle_few without required default value.
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertTitle_many without required default value.
+warn: removing resource com.telepremium.messenger:string/AddManyMembersAlertTitle_two without required default value.
+warn: removing resource com.telepremium.messenger:string/EmailPasswordConfirmText3 without required default value.
+warn: removing resource com.telepremium.messenger:string/Languages_few without required default value.
+warn: removing resource com.telepremium.messenger:string/Languages_many without required default value.
+warn: removing resource com.telepremium.messenger:string/Languages_two without required default value.
+warn: removing resource com.telepremium.messenger:string/Languages_zero without required default value.
+warn: removing resource com.telepremium.messenger:string/NoContactsYet without required default value.
+warn: removing resource com.telepremium.messenger:string/NoContactsYetLine1 without required default value.
+warn: removing resource com.telepremium.messenger:string/NoContactsYetLine2 without required default value.
+warn: removing resource com.telepremium.messenger:string/NoContactsYetLine3 without required default value.
+warn: removing resource com.telepremium.messenger:string/PleaseEnterFirstPassword without required default value.
+warn: removing resource com.telepremium.messenger:string/PleaseEnterPassword without required default value.
+warn: removing resource com.telepremium.messenger:string/ResetAccountButton without required default value.
+warn: removing resource com.telepremium.messenger:string/ResetMyAccountText without required default value.
+warn: removing resource com.telepremium.messenger:string/ShareTelegram without required default value.
+warn: removing resource com.telepremium.messenger:string/UseProxyForCalls without required default value.
+warn: removing resource com.telepremium.messenger:string/UseProxyForCallsInfo without required default value.
+warn: removing resource com.telepremium.messenger:string/WidgetPasscodeEnable2 without required default value.
+warn: removing resource com.telepremium.messenger:string/YourEmailCode without required default value.
+warn: removing resource com.telepremium.messenger:string/YourEmailCodeInfo without required default value.
+warn: removing resource com.telepremium.messenger:string/YourPasswordSuccessText without required default value.
+warn: removing resource com.telepremium.messenger:string/formatterMonthName without required default value.
+warn: removing resource com.telepremium.messenger:string/formatterMonthYear2 without required default value.
+
+
+> Task :TMessagesProj:compileReleaseKotlin
+w: file:///home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionProxyRepository.kt:425:59 'fun clearCodex(): Unit' is deprecated. Codex runtime credentials belong to OpenAiCodexAccountRepository.
+w: file:///home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/TMessagesProj/src/main/java/com/omnichat/app/network/SubscriptionProxyRepository.kt:429:60 'fun clearNvidia(): Unit' is deprecated. NVIDIA runtime credentials belong to the canonical account connection.
+
+> Task :TMessagesProj:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+[Incubating] Problems report is available at: file:///home/runner/work/Telegram-Premium/Telegram-Premium/upstream/Telegram/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2m 47s
+194 actionable tasks: 194 executed
